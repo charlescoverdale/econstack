@@ -7,6 +7,7 @@ Claude Code skills for professional economic analysis.
 Skills are in `skills/`. Each has a `SKILL.md` defining the workflow.
 
 - `skills/impact-report/SKILL.md` : Economic impact assessment (IO model)
+- `skills/la-profile/SKILL.md` : Local authority economic profile report
 
 ## Important Rules
 

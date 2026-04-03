@@ -21,9 +21,20 @@ Generate an economic impact assessment for an investment or job creation in any 
 
 **Output:** A structured report with executive summary, gross/net impact tables, sensitivity analysis, additionality adjustments (HM Treasury/MHCLG guidance), methodology documentation, caveats, and academic references.
 
+### `/la-profile`
+Generate a full local authority economic profile covering demographics, labour market, earnings, industry structure, housing, business activity, deprivation, skills, and commuting. Includes country-level benchmarking (England/Scotland/Wales).
+
+```
+/la-profile Manchester
+/la-profile Glasgow City --brief
+/la-profile Leeds --compare Birmingham
+/la-profile Bristol --focus housing
+```
+
+**Output:** A structured report with "at a glance" summary table, 10 sections covering every dimension of the local economy, narrative interpretation, and national benchmarking. Optional comparison mode for side-by-side analysis.
+
 ### More skills coming
 - `/macro-briefing` : UK macro dashboard report (GDP, inflation, employment, rates)
-- `/la-profile` : Full local authority economic profile
 - `/sector-analysis` : Industry deep dive with BRES data and IO multipliers
 - `/fiscal-monitor` : Public finances report using OBR data
 
