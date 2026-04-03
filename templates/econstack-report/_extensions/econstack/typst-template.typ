@@ -6,6 +6,7 @@
   subtitle: none,
   date: none,
   prepared-by: "EconStack",
+  prepared-for: none,
   confidential: false,
   body,
 ) = {
@@ -13,7 +14,7 @@
   // ----- Page setup -----
   set page(
     paper: "a4",
-    margin: (top: 30mm, bottom: 25mm, left: 20mm, right: 20mm),
+    margin: (top: 30mm, bottom: 25mm, left: 25mm, right: 20mm),
     header: context {
       if counter(page).get().first() > 1 {
         set text(size: 8pt, fill: rgb("#999999"))
@@ -44,7 +45,7 @@
   // ----- Typography -----
   set text(
     font: ("Inter", "Helvetica Neue", "Helvetica", "Arial"),
-    size: 10.5pt,
+    size: 11pt,
     fill: rgb("#333333"),
   )
 
@@ -54,8 +55,10 @@
   )
 
   // ----- Headings -----
+  // H1: page break before, navy, rule underneath
   show heading.where(level: 1): it => {
-    v(16pt)
+    pagebreak(weak: true)
+    v(8pt)
     set text(size: 16pt, weight: "bold", fill: rgb("#003078"))
     it.body
     v(4pt)
@@ -64,14 +67,14 @@
   }
 
   show heading.where(level: 2): it => {
-    v(12pt)
+    v(14pt)
     set text(size: 13pt, weight: "bold", fill: rgb("#003078"))
     it.body
     v(4pt)
   }
 
   show heading.where(level: 3): it => {
-    v(8pt)
+    v(10pt)
     set text(size: 11pt, weight: "bold", fill: rgb("#555555"))
     it.body
     v(2pt)
@@ -91,12 +94,11 @@
   show table.cell.where(y: 0): set text(
     fill: white,
     weight: "bold",
-    size: 9.5pt,
+    size: 10pt,
   )
 
-  show table.cell: set text(size: 9.5pt)
+  show table.cell: set text(size: 10pt)
 
-  // Add thin horizontal rules between rows
   show table: it => {
     block(width: 100%, {
       it
@@ -109,13 +111,6 @@
 
   // ----- Emphasis/strong -----
   show strong: set text(fill: rgb("#003078"))
-
-  // ----- Horizontal rule -----
-  show line: it => {
-    v(4pt)
-    it
-    v(4pt)
-  }
 
   // ----- Block quotes (callout boxes) -----
   show quote: it => {
@@ -162,16 +157,23 @@
     // Metadata
     #set text(size: 11pt, fill: rgb("#666666"))
 
-    #if date != none {
-      [*Date:* #date]
+    #if prepared-for != none {
+      [*Prepared for:* #prepared-for]
       linebreak()
+      v(4pt)
     }
 
     [*Prepared by:* #prepared-by]
     linebreak()
 
+    #if date != none {
+      v(4pt)
+      [*Date:* #date]
+      linebreak()
+    }
+
     #if confidential {
-      v(8pt)
+      v(12pt)
       text(size: 9pt, weight: "bold", fill: rgb("#E76F51"))[CONFIDENTIAL]
     }
 
@@ -185,8 +187,22 @@
     Powered by econprofile.com
   ]
 
+  // ===== TABLE OF CONTENTS =====
+  page(header: none)[
+    #v(8pt)
+    #text(size: 16pt, weight: "bold", fill: rgb("#003078"))[Contents]
+    #v(4pt)
+    #line(length: 100%, stroke: 1pt + rgb("#003078"))
+    #v(12pt)
+    #outline(
+      title: none,
+      indent: 1.5em,
+      depth: 2,
+    )
+  ]
+
   // ===== BODY =====
-  // Reset page counter after cover
+  // Reset page counter after front matter
   counter(page).update(1)
 
   // Section numbering
@@ -195,9 +211,9 @@
   body
 }
 
-// Export the template function
+// Default show rule (overridden by Quarto frontmatter)
 #show: econstack-report.with(
-  title: "Report Title",
-  subtitle: "Subtitle",
-  date: "2026-04-03",
+  title: none,
+  subtitle: none,
+  date: none,
 )

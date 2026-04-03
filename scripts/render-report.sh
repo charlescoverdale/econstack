@@ -29,6 +29,7 @@ fi
 INPUT_FILE=""
 TITLE=""
 SUBTITLE=""
+CLIENT=""
 DATE="$(date +%Y-%m-%d)"
 CONFIDENTIAL=""
 
@@ -36,6 +37,7 @@ while [ $# -gt 0 ]; do
   case "$1" in
     --title) TITLE="$2"; shift 2 ;;
     --subtitle) SUBTITLE="$2"; shift 2 ;;
+    --client) CLIENT="$2"; shift 2 ;;
     --date) DATE="$2"; shift 2 ;;
     --confidential) CONFIDENTIAL="true"; shift ;;
     --help|-h)
