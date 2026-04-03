@@ -41,15 +41,53 @@ The skill handles the computation and structure. You provide the substance (what
 ```
 
 **Options:**
-- `--framework uk` : UK Green Book (default)
-- `--framework eu` : EU Cohesion Policy CBA Guide (3% discount rate for advanced MS)
+- `--framework <name>` : CBA framework (see table below). Auto-detected from project description if not specified
 - `--full` : Skip interactive menus where possible
 - `--client "Name"` : Add "Prepared for"
-- `--format pdf` : Branded PDF output
+- `--format <type>` : Output format(s): `markdown`, `xlsx`, `word`, `pptx`, `pdf`, or `all`. Comma-separate for multiple (e.g. `--format xlsx,word`). Default: markdown only
+
+**Supported frameworks:**
+
+| Flag | Framework | Discount rate | Declining? | Optimism bias? |
+|------|-----------|--------------|------------|----------------|
+| `uk` | UK HM Treasury Green Book (default) | 3.5% | Yes (3.0% after yr 30, 2.5% after yr 75) | Yes, quantified by project type and stage |
+| `eu` | EU Cohesion Policy CBA Guide (DG Regio) | 3% (advanced MS) / 5% (convergence) | No | No (sensitivity instead) |
+| `us` | US OMB Circular A-4 (2023 revision) | 2% | Yes (long-term declining) | No (sensitivity instead) |
+| `wb` | World Bank project appraisal | 10% (country-specific) | No | No (sensitivity instead) |
+| `au` | Australian Government (OIA) | 7% (sensitivity at 3% and 10%) | No | No (sensitivity instead) |
+| `nz` | New Zealand Treasury CBAx | 2% (non-commercial) / 8% (commercial) | No | No (sensitivity instead) |
+| `eib` | European Investment Bank | 3.5-5% (aligned with EU) | No | No (sensitivity instead) |
+| `adb` | Asian Development Bank | 10-12% | No | No (sensitivity instead) |
 
 ## Instructions
 
 ### Step 1: Project setup
+
+**Framework selection:**
+
+If `--framework` was specified, use it. Otherwise, auto-detect from the project description:
+- UK location, Green Book language, "business case", "five case model" -> `uk`
+- EU member state, "cohesion fund", "ERDF", "major project" -> `eu`
+- US location, "regulatory impact", "OMB", "federal" -> `us`
+- "World Bank", "IDA", "IBRD", developing country -> `wb`
+- Australia location, "RIS", "regulation impact" -> `au`
+- New Zealand location, "CBAx", "Budget bid" -> `nz`
+- "EIB", "European Investment Bank" -> `eib`
+- "ADB", "Asian Development Bank" -> `adb`
+
+If auto-detected, confirm with the user: "This looks like a [framework] appraisal. Is that right?" using AskUserQuestion with the detected framework as the recommended option and other plausible frameworks as alternatives.
+
+If no framework can be inferred, ask using AskUserQuestion:
+
+Question: "Which CBA framework should this follow?"
+
+Options:
+- UK Green Book (Recommended for UK projects)
+- EU Cohesion Policy (EU-funded projects)
+- US OMB Circular A-4 (US federal regulatory analysis)
+- Other (World Bank, Australia, NZ, EIB, ADB)
+
+**Project type and sector:**
 
 Ask the user using AskUserQuestion:
 
@@ -71,33 +109,78 @@ Options:
 - F) Digital infrastructure
 - G) Other
 
-Based on answers, set defaults:
+**Question 3 (if infrastructure):** "What project stage is this appraisal for?"
 
-| Setting | Infrastructure | Policy/Programme | RIA |
-|---------|---------------|-----------------|-----|
-| Appraisal period | 60 years | 10 years | 10 years |
-| Optimism bias (capex) | 24% (standard buildings) | 0% | 0% |
-| Optimism bias (works) | 44% (standard civil eng) | 0% | 0% |
+Options:
+- A) **Strategic Outline Case (SOC)** : Early stage, high uncertainty
+- B) **Outline Business Case (OBC)** : Preferred option identified, moderate uncertainty
+- C) **Full Business Case (FBC)** : Detailed design, low uncertainty
+
+This determines the optimism bias rate. The Green Book specifies different rates by stage because uncertainty reduces as the project matures:
+
+| Project type | SOC | OBC | FBC |
+|-------------|-----|-----|-----|
+| Standard buildings | 24% | 4% | 2% |
+| Non-standard buildings | 51% | 18% | 4% |
+| Standard civil engineering | 44% | 20% | 6% |
+| Non-standard civil engineering | 66% | 34% | 6% |
+| Equipment/development | 200% | 54% | 10% |
+| Outsourced IT | 200% | 38% | 10% |
+
+For non-UK frameworks that do not use optimism bias, set it to 0% and note that uncertainty is handled through sensitivity analysis instead.
+
+**Set framework-specific defaults:**
+
+| Setting | UK Green Book | EU Cohesion | US OMB A-4 | World Bank | Australia | NZ CBAx | EIB | ADB |
+|---------|--------------|-------------|------------|------------|-----------|---------|-----|-----|
+| Discount rate | 3.5% declining | 3% or 5% | 2% declining | 10% | 7% | 2% or 8% | 3.5-5% | 10-12% |
+| Declining rates | Yes | No | Yes | No | No | No | No | No |
+| Optimism bias | By type+stage | 0% | 0% | 0% | 0% | 0% | 0% | 0% |
+| Appraisal period | By asset life | By sector (15-30yr) | By regulation life | 20-30yr | By asset life | By asset life | By sector | 20-30yr |
+
+**EU Cohesion Policy: additional requirements.**
+If the EU framework is selected:
+- Ask whether the project is in an advanced member state (3% SDR) or convergence region (5% SDR).
+- Ask whether the project cost exceeds EUR 50m (if so, it is a "major project" requiring full CBA under EU regulations).
+- The EU requires both a **financial analysis** (Financial Net Present Value, Financial Rate of Return) and an **economic analysis** (Economic Net Present Value, Economic Rate of Return). Always produce both when using EU framework.
+- Apply **fiscal correction factors** to strip out indirect taxes, subsidies, and transfer payments from the economic analysis.
+- Apply **shadow wages** if the project is in a high-unemployment region (shadow wage factor typically 0.6-0.8 of market wage; ask the user for the regional unemployment rate and apply accordingly).
+- EU reference periods by sector: Railways 30yr, Roads 25-30yr, Water/sanitation 30yr, Waste 25-30yr, Energy 15-25yr, Broadband 15-20yr, Ports/airports 25yr.
+- Calculate the **EU co-financing gap rate**: the proportion of costs not covered by project revenues, which determines the eligible EU co-financing amount.
+
+For NZ framework, ask whether the proposal is commercial (8%) or non-commercial (2%).
+
+**Question 4:** "Are your cost estimates in real (today's prices) or nominal (future prices including inflation)?"
+
+Options:
+- A) **Real prices** (today's prices, no inflation. This is standard for CBA.)
+- B) **Nominal prices** (include expected inflation. I'll deflate to real terms.)
+- C) **Not sure** (I'll assume real prices and note the assumption.)
+
+If nominal, ask for the assumed inflation rate and deflate all costs/benefits to real terms before discounting. Note: Green Book and most frameworks require real prices. Discounting already accounts for the time value of money.
 
 Tell the user the defaults and ask if they want to override:
 
 ```
 DEFAULTS SET
 ============
-Framework:        UK Green Book
-Discount rate:    3.5% (declining: 3.0% after year 30, 2.5% after year 75)
+Framework:        [Framework name]
+Discount rate:    [X]% [declining schedule if applicable]
 Appraisal period: [X] years
-Optimism bias:    [X]% on capex
+Optimism bias:    [X]% on capex ([stage name] stage)
 Price base year:  2026
+Prices:           Real (2026 prices)
 
 Override any of these? (Enter to accept defaults)
 ```
 
-**Question 3:** "How many options are you appraising (including do-nothing)?"
+**Question 5:** "How many options are you appraising (including do-nothing)?"
 
 Default: 3 (Do Nothing, Do Minimum, Preferred Option)
 
 For each option, ask for: name and one-line description.
+
+**For Do Nothing:** Ask "Does the Do Nothing option have any costs? (e.g., ongoing deterioration costs, emergency repairs, growing congestion costs, decommissioning)." If yes, capture Do Nothing costs. Many infrastructure projects have a non-zero counterfactual where doing nothing incurs increasing costs over time.
 
 ### Step 2: Cost and benefit entry
 
@@ -112,11 +195,42 @@ Options:
 
 **If A (summary figures):**
 
-For each option (except Do Nothing), ask:
+For each option (except Do Nothing, unless Do Nothing has costs), ask:
+
+**Costs:**
 - Total capital cost (£, one-off or phased over how many years?)
+- Capital phasing profile: "How should capital costs be spread over the construction period?"
+  - A) **Even spread** (equal annual amounts)
+  - B) **S-curve** (slow start, peak in middle years, tail off). This is more realistic for construction projects. Apply a bell-curve distribution: ~10% in first year, ramping to ~25-30% in peak years, tapering to ~10% in final year.
+  - C) **Front-loaded** (most spend in early years)
+  - D) **Custom** (I'll specify the annual split)
 - Annual operating cost (£/year, starting from which year?)
-- Annual benefit (£/year, starting from which year? growing at what rate?)
+- Any major renewal/replacement costs at specific years? (e.g., "bridge deck resurfacing at year 15 costing £20m, bearing replacement at year 30 costing £40m"). These are lumpy whole-life costs that differ from routine annual opex. If yes, capture each renewal event: year, cost, description.
 - Any residual/terminal value at end of appraisal period?
+
+**Benefits:**
+- Annual benefit (£/year, at full maturity)
+- Benefit ramp-up: "How quickly do benefits reach full value after construction?"
+  - A) **Immediate** (full benefits from year 1 of operation)
+  - B) **Linear ramp-up over [X] years** (e.g., 25% in year 1, 50% in year 2, 75% in year 3, 100% in year 4). Default: 3 years for infrastructure, 1 year for policy.
+  - C) **Custom ramp-up** (I'll specify the profile)
+- Growth rate after reaching full maturity (% per year)
+- Starting from which year?
+
+**Carbon impacts (if applicable):**
+Ask: "Does this project have significant carbon impacts (positive or negative)?"
+- A) **Yes, net carbon reduction** (e.g., mode shift to active travel, energy efficiency)
+- B) **Yes, net carbon increase** (e.g., embodied carbon in construction, induced traffic)
+- C) **Both** (construction emissions but operational carbon savings)
+- D) **Not material** (skip carbon valuation)
+
+If carbon impacts exist, ask for estimated annual tonnes of CO2e (positive = emissions, negative = savings). Apply DESNZ carbon values:
+- UK framework: use BEIS/DESNZ traded and non-traded carbon values (2026: ~£254/tCO2e traded, ~£280/tCO2e non-traded, rising annually)
+- EU/EIB framework: use EIB shadow carbon price (EUR 250/tCO2 in 2030, rising to EUR 800/tCO2 by 2050)
+- US framework: use EPA social cost of carbon (~$51/tCO2 at 2% discount rate, 2020 dollars)
+- Other frameworks: ask the user for a carbon price or use a default of $50/tCO2
+
+Carbon benefits/costs are included as a separate line item in the benefit/cost tables, not subject to additionality adjustments (they are global externalities, not local economic activity).
 
 **If B (year-by-year):**
 
@@ -149,6 +263,85 @@ Benefits:
 
 For each benefit category, ask: "Can you estimate the annual value? If not, I'll note it as non-monetised."
 
+**Transport benefit monetisation (if sector is Transport):**
+
+If the user describes benefits in physical units rather than monetary values, offer to monetise using DfT Transport Analysis Guidance (TAG) standard values. Ask:
+
+"Would you like me to apply TAG standard values to monetise transport benefits?"
+
+If yes, use these DfT TAG Data Book values (2026 prices, per unit):
+
+| Benefit type | TAG value | Unit | Source |
+|-------------|-----------|------|--------|
+| Working time savings | £19.61/hr | per person | TAG A1.3 |
+| Commuting time savings | £7.63/hr | per person | TAG A1.3 |
+| Leisure time savings | £6.56/hr | per person | TAG A1.3 |
+| Vehicle operating cost savings (car) | £0.14/km | per vehicle-km | TAG A1.3 |
+| Fatal accident prevented | £2.35m | per fatality | TAG A4.1 |
+| Serious injury prevented | £264,500 | per casualty | TAG A4.1 |
+| Slight injury prevented | £20,400 | per casualty | TAG A4.1 |
+| Noise (change in exposure) | varies by dB change | per household/yr | TAG A3 |
+| Air quality (NOx, PM) | varies by location | per tonne | TAG A3 |
+
+Ask for physical quantities (e.g., "How many person-hours of journey time will be saved per year? What mix of trip purposes: work/commute/leisure?"). Then compute annual benefit = quantity x TAG value.
+
+Note: TAG values are updated annually. These are indicative. For a formal WebTAG appraisal, use the current TAG Data Book.
+
+**Health benefit monetisation (if sector is Health or benefits include safety/health):**
+
+If health outcomes are described in physical units, offer to monetise using framework-specific QALY/DALY/VPF values:
+
+**UK (Green Book / DHSC / NICE):**
+| Health metric | Value | Source |
+|--------------|-------|--------|
+| QALY (quality-adjusted life year) | £70,000 | Green Book supplementary guidance; DHSC |
+| NICE cost-effectiveness threshold | £20,000-£30,000/QALY | NICE (willingness to pay for health interventions) |
+| Value of a prevented fatality (VPF) | £2.35m | DfT TAG A4.1 |
+| DALY (disability-adjusted life year) averted | £70,000 | Equivalent to QALY by convention |
+
+**US (OMB / EPA / HHS):**
+| Health metric | Value | Source |
+|--------------|-------|--------|
+| Value of a statistical life (VSL) | $13.2m (2024 USD) | EPA; updated annually |
+| QALY | $190,000-$250,000 | Derived from VSL; varies by agency |
+| DALY averted | ~$190,000-$250,000 | Symmetric with QALY by convention |
+| FDA cost-effectiveness threshold | $150,000/QALY | FDA regulatory analysis |
+
+**Australia (PBAC / MSAC / OBPR):**
+| Health metric | Value | Source |
+|--------------|-------|--------|
+| QALY | AUD 50,000-$70,000 | PBAC implicit threshold; no official value |
+| DALY averted | AUD 50,000-$70,000 | Symmetric with QALY |
+| Value of a statistical life (VSL) | AUD 5.7m (2024 AUD) | OBPR Best Practice Regulation Guidance |
+| Value of a statistical life year (VSLY) | AUD 227,000 (2024 AUD) | OBPR; derived from VSL |
+
+**EU (EIB / EC):**
+| Health metric | Value | Source |
+|--------------|-------|--------|
+| QALY | EUR 40,000-€100,000 | Varies by member state; no single EU value |
+| VSL | EUR 3.6m (EU average) | OECD / EC Impact Assessment guidelines |
+| DALY averted | EUR 40,000-€100,000 | Symmetric with QALY |
+
+**New Zealand:**
+| Health metric | Value | Source |
+|--------------|-------|--------|
+| QALY | NZD 56,000-$68,000 | PHARMAC implicit threshold |
+| VSL | NZD 4.99m (2024 NZD) | NZ Treasury CBAx; Ministry of Transport |
+| VSLY | NZD 198,000 | Derived from VSL |
+
+Use the values matching the selected framework. If the user provides health outcomes in DALYs rather than QALYs, note that for CBA purposes these are typically treated symmetrically (1 DALY averted = 1 QALY gained), though they are conceptually different measures (DALYs measure burden of disease; QALYs measure health utility).
+
+**Wider economic impacts (if infrastructure project):**
+
+For infrastructure projects, ask: "Do you want to include wider economic impacts (WEIs) beyond direct user benefits?"
+
+Options:
+- A) **No** (standard appraisal, direct benefits only. This is the default and most defensible approach.)
+- B) **Yes, qualitatively** (note agglomeration, labour supply, imperfect competition effects but do not monetise)
+- C) **Yes, with estimates** (I'll provide estimates of agglomeration/labour supply impacts)
+
+If B or C, note that WEIs should be presented separately from core transport benefits to avoid double-counting. The Green Book and TAG recommend WEIs are reported as supplementary analysis, not included in the primary BCR.
+
 ### Step 3: Additionality adjustments
 
 Ask: "Do you want to apply additionality adjustments to the benefits?"
@@ -165,13 +358,68 @@ adjusted_benefit = benefit * (1 - 0.20) * (1 - 0.25) * (1 - 0.10) = benefit * 0.
 
 If B, ask for deadweight %, displacement %, leakage %, substitution %.
 
+### Step 3b: Distributional weighting (optional)
+
+Ask: "Do you want to apply distributional (equity) weights to the analysis?"
+
+Options:
+- A) **No** (standard unweighted analysis. This is the default.)
+- B) **Yes, UK Green Book welfare weights** (weight benefits to lower-income groups more heavily)
+- C) **Yes, US OMB A-4 income weights** (2023 revision endorses income-based weights)
+- D) **Yes, custom weights** (I'll specify weights by income group)
+
+If distributional weights are applied:
+
+**UK Green Book approach:**
+The Green Book uses the elasticity of marginal utility of income (e = 1.3) to weight costs and benefits by the income of those affected:
+
+```
+weight(income) = (median_income / income)^1.3
+```
+
+For example, if median UK household income is ~£35,000:
+- Household on £20,000: weight = (35000/20000)^1.3 = 2.01 (benefits count double)
+- Household on £35,000: weight = 1.00 (median, no adjustment)
+- Household on £60,000: weight = (35000/60000)^1.3 = 0.49 (benefits count half)
+- Household on £100,000: weight = (35000/100000)^1.3 = 0.27
+
+Ask the user to estimate the income distribution of beneficiaries and cost-bearers. Compute a weighted NPV alongside the unweighted NPV. Present both.
+
+**US OMB A-4 (2023) approach:**
+The revised A-4 formally endorses income-based distributional weights using a similar framework with e = 1.4. Apply the same formula with US median household income (~$75,000).
+
+For other frameworks, present distributional analysis qualitatively unless the user provides custom weights.
+
+**Always present distributional analysis as supplementary**, alongside (not replacing) the unweighted NPV. The weighted NPV answers: "Does this project disproportionately benefit lower-income groups?"
+
+### Step 3c: Place-based adjustments (UK Green Book only)
+
+If the framework is UK Green Book, ask: "Is this project in a Levelling Up priority area or an area with specific place-based considerations?"
+
+Options:
+- A) **No / Not sure** (skip place-based adjustments)
+- B) **Yes, Levelling Up priority area** (e.g., Category 1 area under the Levelling Up Fund)
+- C) **Yes, devolution deal area** (specific local growth priorities)
+- D) **Yes, Freeport or Investment Zone**
+
+If yes, note the following in the methodology and appraisal summary:
+- The Green Book (2020 update and subsequent guidance) requires consideration of place-based impacts, particularly for projects in areas with lower productivity, higher deprivation, or weaker economic performance.
+- Place-based considerations may justify: lower displacement rates (economic activity is less likely to displace existing activity in weaker economies), lower deadweight (intervention is more likely to be additional in areas with less private investment), and stronger weighting of non-monetised benefits (regeneration, social cohesion).
+- Flag if the project location is in the bottom quartile of the Index of Multiple Deprivation (IMD) or equivalent.
+- Note any alignment with local Industrial Strategy, Local Skills Improvement Plans, or devolution deal priorities.
+
+Place-based analysis does not change the discount rate or core NPV calculation. It provides context for the appraisal and may justify more favourable additionality assumptions.
+
 ### Step 4: Compute
 
 Run the following computations for each option vs Do Nothing:
 
-**Discount factors:**
+**Discount factors (framework-specific):**
+
+For UK Green Book (declining schedule, computed cumulatively):
 ```
-For t = 0 to appraisal_period:
+df(0) = 1.0
+For t = 1 to appraisal_period:
   if t <= 30: r = 0.035
   elif t <= 75: r = 0.030
   elif t <= 125: r = 0.025
@@ -179,19 +427,85 @@ For t = 0 to appraisal_period:
   elif t <= 300: r = 0.015
   else: r = 0.010
 
-  discount_factor(t) = 1 / (1 + r)^t
+  df(t) = df(t-1) / (1 + r)
 
-  Note: for years beyond 30, the discount factor must be computed
-  cumulatively, not by simply using the lower rate for all years.
-  df(31) = df(30) / (1 + 0.030)
-  df(32) = df(31) / (1 + 0.030)
-  etc.
+  CRITICAL: discount factors must be computed cumulatively.
+  Do NOT apply the lower rate from year 0. Each year discounts
+  from the previous year's factor at the rate for that year band.
+```
+
+For US OMB A-4 (declining long-term):
+```
+df(0) = 1.0
+For t = 1 to appraisal_period:
+  if t <= 56: r = 0.020
+  elif t <= 115: r = 0.017
+  else: r = 0.011
+
+  df(t) = df(t-1) / (1 + r)
+```
+
+For all other frameworks (flat rate):
+```
+df(t) = 1 / (1 + r)^t
+where r is the framework's social discount rate.
+```
+
+**Capital cost phasing:**
+```
+If even spread:
+  capex_per_year = total_capex / construction_years
+
+If S-curve (bell-curve distribution):
+  Use a normal-like distribution centred on the middle construction year.
+  For a 5-year build: weights approx [0.10, 0.20, 0.30, 0.25, 0.15]
+  For a 3-year build: weights approx [0.20, 0.50, 0.30]
+  Weights must sum to 1.0. Multiply total_capex by each weight.
+
+If front-loaded:
+  Declining weights (e.g., 5-year: [0.35, 0.25, 0.20, 0.12, 0.08])
 ```
 
 **Optimism bias:**
 ```
 adjusted_capex = capex * (1 + optimism_bias_rate)
 adjusted_opex = opex  (no optimism bias on opex unless user specifies)
+adjusted_renewals = renewals * (1 + optimism_bias_rate)  (same rate as capex)
+```
+
+**Benefit ramp-up:**
+```
+If linear ramp-up over N years:
+  For year i of operation (i = 1 to N):
+    benefit(i) = full_annual_benefit * (i / N)
+  For year i > N:
+    benefit(i) = full_annual_benefit * (1 + growth_rate)^(i - N)
+```
+
+**Whole-life costs:**
+```
+For each renewal event at year Y with cost C:
+  cost(Y) += C * (1 + optimism_bias_rate)
+These are added to the year-by-year cost schedule alongside opex.
+```
+
+**Carbon valuation:**
+```
+If carbon impacts specified:
+  carbon_value(t) = annual_tonnes_CO2e * carbon_price(t)
+  where carbon_price follows the framework-specific schedule.
+  Add as a separate benefit line (if savings) or cost line (if emissions).
+  NOT subject to additionality adjustments.
+```
+
+**Do Nothing costs:**
+```
+If Do Nothing has costs (e.g., deterioration, growing congestion):
+  PV_do_nothing_costs = sum over t of [do_nothing_cost(t) * df(t)]
+  NPV for intervention options is computed as:
+    NPV = (PV_benefits + PV_avoided_do_nothing_costs) - PV_intervention_costs
+  where PV_avoided_do_nothing_costs = PV_do_nothing_costs (these are costs
+  you avoid by intervening, so they count as benefits of the intervention).
 ```
 
 **Present values:**
@@ -205,22 +519,43 @@ PV_benefits = sum over t of [adjusted_benefit(t) * discount_factor(t)]
 NPV = PV_benefits - PV_costs
 BCR = PV_benefits / PV_costs
 
-VfM category:
+VfM category (UK Green Book):
   BCR < 1.0  -> Poor
   1.0 - 1.5  -> Low
   1.5 - 2.0  -> Medium
   2.0 - 4.0  -> High
   > 4.0      -> Very High
+
+For non-UK frameworks, use NPV as the primary metric and note that
+VfM categories are a UK-specific convention.
+```
+
+**Incremental analysis (if 3+ options):**
+```
+In addition to comparing each option vs Do Nothing, compute the
+incremental NPV and BCR of moving from one option to the next:
+
+  incremental_NPV = NPV(Option 3) - NPV(Option 2)
+  incremental_BCR = (PV_benefits_3 - PV_benefits_2) / (PV_costs_3 - PV_costs_2)
+
+This answers: "Is the additional spend to go from Do Minimum to Preferred
+worth it?" A project with high absolute BCR but low incremental BCR may
+not justify the extra cost over a cheaper option.
 ```
 
 **Switching values:**
 For the top 2-3 cost/benefit items, compute the percentage change that would make NPV = 0:
 ```
 switching_value_benefits = -NPV / PV_benefits * 100
-  (benefits would need to fall by this % for NPV to reach zero)
-
 switching_value_costs = NPV / PV_costs * 100
-  (costs would need to rise by this % for NPV to reach zero)
+
+IMPORTANT: Interpret these correctly based on the sign of NPV:
+  If NPV > 0:
+    "Benefits could fall by [X]% before NPV turns negative"
+    "Costs could rise by [X]% before NPV turns negative"
+  If NPV < 0:
+    "Benefits would need to rise by [X]% for NPV to reach zero"
+    "Costs would need to fall by [X]% for NPV to reach zero"
 ```
 
 **Sensitivity analysis:**
@@ -231,26 +566,104 @@ Run three scenarios:
 
 Compute NPV and BCR for each.
 
+**Probabilistic sensitivity / Monte Carlo (optional, offer for large projects):**
+
+For projects with PV costs exceeding £100m (or equivalent), or when the user requests it, offer a probabilistic risk analysis:
+
+Ask: "Would you like a probabilistic (Monte Carlo) sensitivity analysis? This samples from distributions around your cost and benefit estimates to show the probability of achieving positive NPV."
+
+If yes:
+
+```
+Run 10,000 iterations. For each iteration:
+  1. Sample cost multiplier from triangular distribution:
+     - min: 0.80, mode: 1.00, max: 1.50 (skewed upward, reflecting cost overrun risk)
+  2. Sample benefit multiplier from triangular distribution:
+     - min: 0.50, mode: 1.00, max: 1.20 (skewed downward, reflecting optimism in benefit forecasts)
+  3. Compute NPV(i) = PV_benefits * benefit_mult(i) - PV_costs * cost_mult(i)
+  4. Record NPV(i)
+
+Report:
+  - Mean NPV across all iterations
+  - Median NPV
+  - P5 (5th percentile): "There is a 95% chance NPV exceeds this value"
+  - P25 (25th percentile)
+  - P75 (75th percentile)
+  - P95 (95th percentile): "There is only a 5% chance NPV exceeds this value"
+  - Probability of positive NPV: % of iterations where NPV > 0
+  - Probability of BCR > 1.0
+  - Probability of BCR > 2.0
+
+Present as a table:
+
+| Percentile | NPV (£m) | BCR |
+|-----------|----------|-----|
+| P5 (worst) | [val] | [val] |
+| P25 | [val] | [val] |
+| P50 (median) | [val] | [val] |
+| P75 | [val] | [val] |
+| P95 (best) | [val] | [val] |
+| **Mean** | **[val]** | **[val]** |
+
+Probability of positive NPV: [X]%
+Probability of BCR > 1.0: [X]%
+Probability of BCR > 2.0: [X]%
+
+[Interpretation: "There is a [X]% probability that this project delivers positive
+value for money. Under the worst 5% of scenarios, the NPV is [val]. Under the
+best 5%, it is [val]."]
+```
+
+The user may override the distribution parameters if they have better estimates of cost/benefit uncertainty ranges. The triangular distribution is used because it requires only min/mode/max (easy for users to specify) and is standard in Green Book risk analysis.
+
+**Distributional weighting computation (if selected in Step 3b):**
+
+```
+weighted_NPV = sum over t of [
+  (weighted_benefit(t) - weighted_cost(t)) * discount_factor(t)
+]
+
+where weighted_benefit = benefit * weight(income_of_beneficiaries)
+and weighted_cost = cost * weight(income_of_cost_bearers)
+
+Present alongside unweighted NPV:
+  Unweighted NPV: £[val]m
+  Distributionally weighted NPV: £[val]m
+  [If weighted > unweighted: "Distributional weighting improves the case
+  because benefits accrue disproportionately to lower-income groups."]
+```
+
 ### Step 5: Show results and ask what the user needs
 
 ```
-CBA RESULTS
-============
+CBA RESULTS ([Framework])
+==========================
                     Do Nothing    Do Minimum    Preferred
-PV Costs (£m):     0             [val]         [val]
-PV Benefits (£m):  0             [val]         [val]
+PV Costs (£m):     [val]         [val]         [val]
+PV Benefits (£m):  [val]         [val]         [val]
 NPV (£m):          0             [val]         [val]
 BCR:               -             [val]         [val]
 VfM:               -             [val]         [val]
 
-Switching value (benefits): [val]% fall makes NPV = 0
-Switching value (costs):    [val]% rise makes NPV = 0
+Incremental (Do Min -> Preferred):
+  Incremental NPV: [val]    Incremental BCR: [val]
+
+Switching value (benefits): [val]% [rise/fall] makes NPV = 0
+Switching value (costs):    [val]% [fall/rise] makes NPV = 0
 
 Sensitivity:
               Pessimistic    Central    Optimistic
 NPV (£m):    [val]          [val]      [val]
 BCR:         [val]          [val]      [val]
+
+[If distributional weights applied:]
+Distributionally weighted NPV: [val]
+
+[If Monte Carlo run:]
+Probability of positive NPV: [X]%
 ```
+
+Note: PV Costs for Do Nothing may be non-zero if the counterfactual has costs (e.g., deterioration, emergency repairs). In that case, these avoided costs count as benefits of intervention.
 
 **If `--full` was NOT specified**, ask using AskUserQuestion:
 
@@ -268,17 +681,66 @@ Options:
 - Options summary (descriptions and rationale)
 - Cost table (undiscounted and discounted, with optimism bias)
 - Benefit table (undiscounted and discounted, with additionality)
+- Carbon impact (if applicable: tonnes CO2e, carbon price, PV of carbon costs/benefits)
 - NPV and BCR comparison (all options, VfM categories)
+- Incremental analysis (if 3+ options: is the extra spend from Do Min to Preferred worth it?)
 - Switching values (what % change breaks the case)
 - Sensitivity analysis (optimistic/central/pessimistic)
-- Distributional note (who bears costs, who receives benefits)
+- Distributional analysis (who bears costs, who receives benefits; welfare weights if applied)
+- Place-based context (levelling up, IMD ranking, local priorities; UK only)
+- Monte Carlo / probabilistic analysis (probability distribution of NPV outcomes)
+- Financial analysis (cash flow to the investing entity, separate from economic/social CBA)
 - Appraisal summary table (one-page consolidated view)
 - Methodology note (discount rate, optimism bias, additionality assumptions)
 - References
 
+**After the content questions, ask about output formats.**
+
+**If `--format` was NOT specified on the command line**, ask using AskUserQuestion:
+
+Question: "What file formats do you need?"
+
+Options (multiSelect: true):
+- Markdown (.md) : Default, always included. Plain text you can paste anywhere
+- Excel (.xlsx) : Full CBA model workbook with IB-style formatting (blue inputs, linked formulas, scenario toggles)
+- Word (.docx) : Formatted document for editing in Microsoft Word
+- PowerPoint (.pptx) : Slide deck with key numbers, tables, and methodology note
+- PDF : Branded consulting-quality PDF via Quarto
+
+Markdown is always generated regardless of selection. If the user selects nothing beyond markdown, that is fine.
+
+**If `--format` was specified on the command line**, skip the format question and use the specified format(s). If `--format all`, expand to `["markdown", "xlsx", "word", "pptx", "pdf"]`.
+
+**If `--full` was specified** (without `--format`), skip all questions and generate markdown only. If `--full` was specified WITH `--format`, skip content questions but generate the specified format(s).
+
 ### Step 6: Generate the requested output
 
-**Always include key numbers block and companion JSON.**
+**Always include the key numbers block at the very top of any markdown output:**
+
+```markdown
+<!-- KEY NUMBERS
+framework: [framework name]
+project: [project name]
+preferred_option: [option name]
+npv_m: [val]
+bcr: [val]
+vfm: [category]
+pv_costs_m: [val]
+pv_benefits_m: [val]
+switching_value_benefits_pct: [val]
+switching_value_costs_pct: [val]
+optimism_bias_pct: [val]
+additionality_factor: [val]
+discount_rate: [val]
+appraisal_period: [val]
+price_base_year: [val]
+date: [date]
+-->
+```
+
+This block is invisible when rendered but lets the user (or a future tool) extract the headline numbers without parsing the prose.
+
+**Always save a companion JSON file** alongside any markdown output: `cba-data-{project-slug}-{date}.json`.
 
 #### Section templates
 
@@ -347,13 +809,30 @@ Note: BCR thresholds are indicative, not deterministic. The Green Book (2026) st
 ```markdown
 ## Switching Values
 
-| Variable | Central value | Switching value | Change required |
-|----------|--------------|-----------------|-----------------|
-| Total benefits | £[val]m PV | £[val]m PV | [val]% decrease |
-| Total costs | £[val]m PV | £[val]m PV | [val]% increase |
-| [Key benefit] | £[val]m PV | £[val]m PV | [val]% decrease |
+| Variable | Central PV (£m) | Value at NPV = 0 (£m) | Change required |
+|----------|-----------------|----------------------|-----------------|
+| Total benefits | [val] | [val] | [val]% [increase/decrease] |
+| Total costs | [val] | [val] | [val]% [decrease/increase] |
+| [Key benefit] | [val] | [val] | [val]% [increase/decrease] |
 
-Benefits would need to fall by [val]% (or costs rise by [val]%) for the preferred option to no longer represent positive value for money. [If switching value > 30%: "This suggests the case is robust to significant variation in assumptions." If < 15%: "The case is sensitive to assumptions. Small changes could alter the conclusion."]
+[IMPORTANT: Use the correct interpretation based on whether NPV is positive or negative.
+
+If NPV > 0:
+  "Benefits could fall by [val]% (or costs rise by [val]%) before the preferred
+  option ceases to represent positive value for money."
+  If switching value > 30%: "This suggests the case is robust to significant
+  variation in assumptions."
+  If switching value < 15%: "The case is sensitive to assumptions. Small changes
+  could alter the conclusion."
+
+If NPV < 0:
+  "Benefits would need to rise by [val]% (or costs fall by [val]%) for the
+  preferred option to achieve positive value for money on monetised benefits alone."
+  Add: "The gap could narrow if non-monetised benefits were quantified."
+  If switching value < 25%: "The case is close to breakeven and may be viable
+  with refined benefit estimates or inclusion of non-monetised benefits."
+  If switching value > 50%: "The gap is substantial. A strong strategic case
+  or materially higher benefit estimates would be needed."]
 ```
 
 **Sensitivity analysis:**
@@ -367,6 +846,142 @@ Benefits would need to fall by [val]% (or costs rise by [val]%) for the preferre
 | Optimistic (+20% benefits, -20% costs) | [val] | [val] | [val] | [val] |
 
 [Interpretation: does the option still represent positive VfM under pessimistic assumptions?]
+```
+
+**Incremental analysis (if 3+ options):**
+```markdown
+## Incremental Analysis
+
+Comparing the additional cost and benefit of moving from [Option 2] to [Option 3]:
+
+| Metric | [Option 2] vs Do Nothing | [Option 3] vs Do Nothing | Increment ([Option 2] to [Option 3]) |
+|--------|------------------------|------------------------|--------------------------------------|
+| PV Costs (£m) | [val] | [val] | [val] |
+| PV Benefits (£m) | [val] | [val] | [val] |
+| NPV (£m) | [val] | [val] | [val] |
+| BCR | [val] | [val] | [val] |
+
+[If incremental BCR > 1.0: "The additional spend to move from [Option 2] to [Option 3] generates positive incremental value (BCR [val]). The larger option is justified."]
+[If incremental BCR < 1.0: "The additional spend to move from [Option 2] to [Option 3] does not generate sufficient incremental benefit (BCR [val]). Consider whether [Option 2] delivers sufficient outcomes at lower cost."]
+
+Note: NPV is the primary ranking metric (Green Book). However, incremental BCR helps decision-makers understand whether the extra spend on a larger option is justified, or whether a smaller, cheaper option delivers better marginal returns.
+```
+
+**Carbon impact (if applicable):**
+```markdown
+## Carbon Impact
+
+| Carbon category | Annual tCO2e | Direction | PV of carbon value (£m) |
+|----------------|-------------|-----------|------------------------|
+| [Construction embodied carbon] | [val] | Emission (+) | [val] |
+| [Operational carbon savings] | [val] | Saving (-) | [val] |
+| **Net carbon impact** | **[val]** | **[net direction]** | **[val]** |
+
+Carbon valued at [framework-specific price] per tCO2e ([source]: [price path description]).
+
+Carbon values are not subject to additionality adjustments (they are global externalities). They are included in the benefit/cost totals above.
+```
+
+**Financial analysis (if requested):**
+```markdown
+## Financial Analysis
+
+This section presents the financial (cash flow) case for the investing entity, separate from the economic (societal welfare) analysis above. The financial analysis:
+- Includes taxes, grants, and transfers (which cancel in social CBA)
+- Uses a financial discount rate (cost of capital to the investing entity)
+- Shows the funding requirement and financial sustainability
+
+| Year | Capital outlay | Operating costs | Revenue/funding | Net cash flow | Cumulative cash flow |
+|------|---------------|----------------|-----------------|---------------|---------------------|
+| [year-by-year rows] |
+
+| Metric | Value |
+|--------|-------|
+| Total funding requirement | £[val]m |
+| Financial NPV (at [X]% cost of capital) | £[val]m |
+| Financial rate of return (FRR) | [val]% |
+| Payback period | [val] years |
+
+[Note: A negative financial NPV is common for public infrastructure. It means the project requires public subsidy to be financially viable, which is the rationale for public investment. The economic case (positive societal NPV) provides the justification.]
+```
+
+**Distributional analysis (if weights applied or requested):**
+```markdown
+## Distributional Analysis
+
+### Who bears the costs and who receives the benefits
+
+| Group | Share of costs | Share of benefits | Net position |
+|-------|---------------|------------------|-------------|
+| [Group 1, e.g., taxpayers] | [X]% | [X]% | Net [contributor/beneficiary] |
+| [Group 2, e.g., local residents] | [X]% | [X]% | Net [contributor/beneficiary] |
+| [Group 3, e.g., transport users] | [X]% | [X]% | Net [contributor/beneficiary] |
+
+[If welfare weights applied:]
+
+### Distributionally weighted analysis
+
+Using Green Book welfare weights (elasticity of marginal utility = 1.3):
+
+| Income group | Estimated share of benefits | Welfare weight | Weighted share |
+|-------------|---------------------------|---------------|---------------|
+| Below median income | [X]% | [val] | [val]% |
+| Around median income | [X]% | 1.00 | [X]% |
+| Above median income | [X]% | [val] | [val]% |
+
+| Metric | Unweighted | Distributionally weighted |
+|--------|-----------|--------------------------|
+| NPV (£m) | [val] | [val] |
+| BCR | [val] | [val] |
+
+[Interpretation: "Distributional weighting [increases/decreases] the NPV by £[val]m, reflecting that benefits accrue disproportionately to [lower/higher]-income groups."]
+```
+
+**Place-based context (UK Green Book only, if applicable):**
+```markdown
+## Place-Based Context
+
+[Project location] is in [local authority], which ranks [X] of 317 on the Index of Multiple Deprivation ([year]). [Key deprivation characteristics: income, employment, education, health, barriers to housing].
+
+| Place-based indicator | Local value | England average | Comparison |
+|----------------------|-------------|-----------------|------------|
+| IMD rank (1 = most deprived) | [val] | - | [decile] |
+| Claimant count rate | [X]% | [X]% | [above/below] |
+| Median weekly earnings | £[val] | £[val] | [above/below] |
+| GVA per head | £[val] | £[val] | [above/below] |
+| Levelling Up Fund category | [1/2/3] | - | [Priority/Standard] |
+
+[Relevance to the appraisal: "The area's [characteristic] suggests [lower displacement / higher additionality / stronger regeneration case]. This context supports [adjustment or interpretation]."
+
+If the area is a Levelling Up Category 1 area, Freeport, or Investment Zone, note: "This project aligns with government place-based investment priorities."]
+```
+
+**Monte Carlo / probabilistic analysis (if computed):**
+```markdown
+## Probabilistic Risk Analysis
+
+10,000 Monte Carlo iterations with cost uncertainty (triangular: 0.80 to 1.50, mode 1.00) and benefit uncertainty (triangular: 0.50 to 1.20, mode 1.00).
+
+| Percentile | NPV (£m) | BCR |
+|-----------|----------|-----|
+| P5 (worst 5%) | [val] | [val] |
+| P25 | [val] | [val] |
+| **P50 (median)** | **[val]** | **[val]** |
+| P75 | [val] | [val] |
+| P95 (best 5%) | [val] | [val] |
+| **Mean** | **[val]** | **[val]** |
+
+| Probability metric | Value |
+|-------------------|-------|
+| Probability of NPV > 0 | [X]% |
+| Probability of BCR > 1.0 | [X]% |
+| Probability of BCR > 2.0 | [X]% |
+
+[Interpretation: "There is a [X]% probability that this project delivers positive value for money. Even under the worst 5% of scenarios, the NPV is £[val]m, suggesting the downside risk is [limited/significant]. The distribution is [symmetric/skewed toward negative outcomes], reflecting the asymmetric risk profile typical of [infrastructure/policy] projects."
+
+If probability of NPV > 0 exceeds 70%: "The probabilistic analysis supports the central case."
+If probability of NPV > 0 is 40-70%: "The outcome is uncertain. The case depends heavily on benefit realisation."
+If probability of NPV > 0 is below 40%: "The probabilistic analysis suggests the project is more likely than not to deliver negative NPV."]
 ```
 
 **Appraisal summary table:**
@@ -388,20 +1003,45 @@ Benefits would need to fall by [val]% (or costs rise by [val]%) for the preferre
 
 **Methodology note:**
 ```markdown
-**Methodology:** Social cost-benefit analysis following HM Treasury Green Book (2026). Discount rate: social time preference rate of 3.5% for years 0-30, declining to 3.0% for years 31-75, 2.5% for years 76-125. Optimism bias: [X]% on capital costs (Green Book supplementary guidance, [project type]). Additionality: [X]% deadweight, [X]% displacement, [X]% leakage (HM Treasury Additionality Guide, 4th edition, 2014). All costs and benefits in [year] real prices. NPV and BCR computed for each option against the Do Nothing counterfactual.
+**Methodology:** Social cost-benefit analysis following [framework name and edition]. Discount rate: [rate and schedule]. [If optimism bias applied: "Optimism bias: [X]% on capital costs ([source], [project type], [stage])."] [If additionality applied: "Additionality: [X]% deadweight, [X]% displacement, [X]% leakage ([source])."] [If carbon valued: "Carbon valued at [price]/tCO2e ([source])."] All costs and benefits in [year] real prices. NPV and BCR computed for each option against the Do Nothing counterfactual. [If benefit ramp-up used: "Benefits ramped up linearly over [X] years post-construction."] [If S-curve phasing: "Capital costs phased using an S-curve profile over [X] years."]
 ```
 
-**References:**
+**References (framework-specific):**
+
+For UK Green Book:
 ```markdown
 ## References
 
-- HM Treasury (2026). "The Green Book: Central Government Guidance on Appraisal and Evaluation."
+- HM Treasury (2022, updated 2026). "The Green Book: Central Government Guidance on Appraisal and Evaluation."
 - HM Treasury. "Green Book supplementary guidance: optimism bias."
 - HM Treasury. "Green Book supplementary guidance: discounting."
 - HM Treasury (2014). "Additionality Guide", 4th edition.
-- MHCLG (2025). "The Appraisal Guide", 3rd edition.
+- DLUHC (2025). "The Appraisal Guide", 3rd edition.
+- DESNZ (2024). "Valuation of greenhouse gas emissions: for policy appraisal and evaluation."
 - Boardman, A.E. et al. (2018). "Cost-Benefit Analysis: Concepts and Practice", 5th edition. Cambridge University Press.
 ```
+
+For EU Cohesion Policy:
+```markdown
+## References
+
+- European Commission (2014). "Guide to Cost-Benefit Analysis of Investment Projects." DG Regional and Urban Policy.
+- European Commission (2021). "Economic Appraisal Vademecum 2021-2027."
+- European Investment Bank (2023). "The Economic Appraisal of Investment Projects at the EIB", 2nd edition.
+- Boardman, A.E. et al. (2018). "Cost-Benefit Analysis: Concepts and Practice", 5th edition.
+```
+
+For US OMB:
+```markdown
+## References
+
+- Office of Management and Budget (2023). "Circular A-4: Regulatory Analysis." Revised November 2023.
+- Office of Management and Budget (2023). "Circular A-94: Guidelines and Discount Rates for Benefit-Cost Analysis of Federal Programs." Revised November 2023.
+- EPA (2023). "Report on the Social Cost of Greenhouse Gases."
+- Boardman, A.E. et al. (2018). "Cost-Benefit Analysis: Concepts and Practice", 5th edition.
+```
+
+For other frameworks, include the framework's primary guidance document plus Boardman et al. (2018) as a general reference.
 
 **Slide summary:**
 ```markdown
@@ -423,12 +1063,105 @@ Save as `cba-{project-slug}-{date}.md`. Always save `cba-data-{project-slug}-{da
 
 The JSON includes all inputs, computed discount factors, year-by-year PV schedule, summary metrics, sensitivity results, and switching values.
 
-If `--format pdf`, render through the template:
+**Then generate each additional format the user selected:**
+
+**Markdown** (always generated):
+Save as `cba-{project-slug}-{date}.md`. This is the primary output. No extra steps needed.
+
+**Excel (.xlsx)** (if selected):
+Invoke the `/xlsx` skill to create an investment-bank-quality CBA model workbook. Pass the companion JSON data and instruct the skill to create the following sheets:
+
+1. **Cover** sheet: Project name, date, framework, price base year, appraisal period, "Prepared for" (if `--client`). Clean title block, no gridlines. Below the title block, include a **Model Guide** section explaining:
+   - Purpose: "This workbook contains a full cost-benefit analysis following HM Treasury Green Book methodology."
+   - Sheet descriptions: one-line explanation of each sheet and what it contains (Assumptions, Cost Schedule, Benefit Schedule, Summary, Sensitivity)
+   - How to use: "Blue cells are user inputs. Change these to run your own scenarios. All other cells are formulas and should not be edited."
+   - Key conventions: "All values in £m unless stated. Discount factors use the Green Book declining schedule (3.5% years 0-30, 3.0% years 31-75, 2.5% years 76+). Optimism bias is applied to capital costs only."
+   - Caveats: "These are indicative estimates. See the Methodology note in the Summary sheet for full details and limitations."
+
+2. **Assumptions** sheet: All input parameters in a clearly labelled panel:
+   - Discount rate schedule (3.5% / 3.0% / 2.5% with year thresholds)
+   - Optimism bias rate
+   - Additionality rates (deadweight, displacement, leakage, net factor)
+   - Benefit growth rates
+   - Appraisal period
+   - **Formatting:** Blue font (#0000FF) on light blue fill (#DCE6F1) for all user-adjustable inputs. Black font for calculated/derived values. This is the IB convention: blue = input, black = formula.
+
+3. **Cost Schedule** sheet: Year-by-year cost schedule for each option:
+   - Columns: Year | Capex (raw) | Optimism bias adjustment | Capex (adjusted) | Opex | Total cost (undiscounted) | Discount factor | PV cost
+   - Totals row at bottom with SUM formulas
+   - **Formatting:** Header row in dark navy (#003078) with white text. Alternating row stripes (#F2F2F2). Currency formatted to 1 decimal (£m). Discount factors to 6 decimal places.
+
+4. **Benefit Schedule** sheet: Year-by-year benefit schedule for each option:
+   - Columns: Year | Gross benefit | Growth factor | Gross benefit (grown) | Additionality factor | Net benefit | Residual value | Total benefit (undiscounted) | Discount factor | PV benefit
+   - Totals row at bottom
+   - Same formatting as Cost Schedule.
+
+5. **Summary** sheet: The key results dashboard:
+   - Options comparison table (PV costs, PV benefits, NPV, BCR, VfM category for each option)
+   - Switching values table
+   - Sensitivity analysis table (pessimistic/central/optimistic)
+   - **Formatting:** KPI values in large bold font. Positive NPV in green (#006100), negative NPV in red (#9C0006). BCR < 1.0 highlighted red, BCR >= 2.0 highlighted green. Conditional formatting on VfM category.
+
+6. **Sensitivity** sheet: Full sensitivity matrix:
+   - Rows: benefit variation (-30% to +30% in 10% steps)
+   - Columns: cost variation (-30% to +30% in 10% steps)
+   - Cell values: NPV for each combination
+   - **Formatting:** Heat map conditional formatting (red for negative NPV, green for positive). Central case highlighted with thick border.
+
+General Excel formatting rules (IB/Goldman style):
+- Font: Calibri 10pt throughout. Headers Calibri 11pt bold.
+- Blue font (#0000FF) on light blue fill (#DCE6F1) for ALL user inputs/assumptions. This is the single most important formatting convention.
+- Black font for all formulas and calculated values.
+- Thin borders on all data tables. Thick bottom border on header rows and total rows.
+- No gridlines on any sheet. Print area set.
+- Column widths auto-fitted. Row heights consistent.
+- Number formats: currency to 1dp with £ symbol, percentages to 1dp, years as integers, discount factors to 6dp.
+- Freeze panes: freeze header row and year column on schedule sheets.
+- Sheet tab colours: Cover (navy), Assumptions (blue), Cost Schedule (red), Benefit Schedule (green), Summary (gold), Sensitivity (grey).
+
+Save as `cba-{project-slug}-{date}.xlsx`.
+
+**Word (.docx)** (if selected):
+Invoke the `/docx` skill to convert the markdown report into a formatted Word document. Pass the full markdown content and instruct the skill to:
+- Use a professional layout with navy (#003078) headings
+- Format all tables with borders and header row styling
+- Include the report title and subtitle on the first page
+- If `--client` was specified, include "Prepared for: [client]" on the first page
+Save as `cba-{project-slug}-{date}.docx`.
+
+**PowerPoint (.pptx)** (if selected):
+Invoke the `/pptx` skill to create a slide deck. Instruct it to create these slides:
+1. Title slide: "Cost-Benefit Analysis" with project name, framework, and date
+2. Options slide: table of options with descriptions
+3. Key results slide: PV costs, PV benefits, NPV, BCR, VfM for each option in a clean grid
+4. Cost breakdown slide: cost table (capital/operating, optimism bias, PV)
+5. Benefit breakdown slide: benefit table (categories, additionality, PV)
+6. Switching values slide: table showing how far assumptions can move before NPV turns negative/positive
+7. Sensitivity slide: pessimistic/central/optimistic table with interpretation
+8. Methodology slide: one-paragraph methodology summary and key caveats
+Use navy (#003078) as the accent colour. If `--client` was specified, include "Prepared for: [client]" on the title slide.
+Save as `cba-{project-slug}-{date}.pptx`.
+
+**PDF** (if selected):
+Render the markdown through the EconStack template:
 ```bash
 ECONSTACK_DIR="${CLAUDE_SKILL_DIR}/../.."
 "$ECONSTACK_DIR/scripts/render-report.sh" cba-{project-slug}-{date}.md \
   --title "Cost-Benefit Analysis" \
-  --subtitle "[Project name]"
+  --subtitle "[Project name]" \
+  [--client "{client name}" if specified]
+```
+If Quarto is not installed, tell the user: "PDF rendering requires Quarto (https://quarto.org). The markdown report has been saved."
+
+Tell the user what was generated, listing only the files that were actually produced:
+```
+Files saved:
+  cba-{slug}-{date}.md       (report / selected sections)
+  cba-data-{slug}-{date}.json (structured data)
+  cba-{slug}-{date}.xlsx     (if Excel selected)
+  cba-{slug}-{date}.docx     (if Word selected)
+  cba-{slug}-{date}.pptx     (if PowerPoint selected)
+  cba-{slug}-{date}.pdf      (if PDF selected)
 ```
 
 ## Important Rules
@@ -436,8 +1169,13 @@ ECONSTACK_DIR="${CLAUDE_SKILL_DIR}/../.."
 - Never use em dashes.
 - Never attribute econstack to any individual.
 - Every section stands alone.
-- **Discount rate must use the correct declining schedule.** Do not apply 3.5% flat beyond year 30. This is the most common CBA error.
-- **Optimism bias must not be zero** for infrastructure projects unless the user explicitly overrides with justification. Flag it if they set it to 0.
+- **Discount rate must use the correct schedule for the selected framework.** For UK Green Book, do not apply 3.5% flat beyond year 30. For flat-rate frameworks, use the correct rate. This is the most common CBA error.
+- **Optimism bias must not be zero** for UK Green Book infrastructure projects unless the user explicitly overrides with justification. Flag it if they set it to 0. For non-UK frameworks, optimism bias is typically 0% (handled through sensitivity instead); do not apply it unless the user requests it.
+- **Always ask about project stage** for UK Green Book infrastructure appraisals. SOC/OBC/FBC determines the optimism bias rate. Using SOC rates at FBC stage overstates costs; using FBC rates at SOC stage understates risk.
+- **Benefit ramp-up is the default for infrastructure.** Benefits rarely start at full value on day one. Default to a 3-year linear ramp-up for infrastructure unless the user specifies otherwise.
+- **Carbon valuation should be prompted** for any project with plausible environmental impacts. Use framework-specific carbon prices. Carbon costs/benefits are not subject to additionality adjustments.
+- **Incremental analysis is required** when appraising 3+ options. Always show the incremental NPV/BCR of moving between adjacent options, not just each vs Do Nothing.
+- **Switching values must be interpreted correctly.** When NPV is negative, benefits need to rise (not fall). When NPV is positive, benefits can fall. Never state "benefits would need to fall by X%" when NPV is already negative.
 - **Do not double count.** If a benefit appears in two categories (e.g., journey time savings AND land value uplift that derives from those savings), flag the potential overlap.
 - **Transfers are not costs or benefits.** Taxes, subsidies, and grants are transfers between parties. They cancel at the societal level in social CBA. Only include them in financial CBA.
 - **Sunk costs are excluded.** Costs already incurred that cannot be recovered should not be included.
@@ -445,3 +1183,6 @@ ECONSTACK_DIR="${CLAUDE_SKILL_DIR}/../.."
 - **Always compute switching values.** They are the most useful output for decision-makers because they answer "how wrong can we be before this stops being worth doing?"
 - Be specific about price base year, appraisal period, and which Green Book edition.
 - The companion JSON must include the full year-by-year discounted cost/benefit schedule.
+- When Excel, Word, PowerPoint, or PDF format is selected, invoke the corresponding skill (`/xlsx`, `/docx`, `/pptx`, or render script) to generate the file. Pass the markdown content and the companion JSON data so the skill has all the numbers it needs.
+- Markdown is always generated, even when other formats are selected. It is the source for all other formats.
+- The Excel model is the highest-value output for most users. It must be IB-quality: blue inputs, linked formulas, proper number formatting, conditional formatting on NPV/BCR. Do not cut corners on Excel formatting.
