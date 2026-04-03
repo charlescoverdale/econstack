@@ -373,6 +373,17 @@ End with a "Key Differences" paragraph highlighting the 3-4 most notable contras
 
 Save the report as `la-profile-{slug}-{date}.md` in the current working directory.
 
+**If `--format pdf` was specified**, also render as a branded PDF:
+
+```bash
+ECONSTACK_DIR="${CLAUDE_SKILL_DIR}/../.."
+"$ECONSTACK_DIR/scripts/render-report.sh" la-profile-{slug}-{date}.md \
+  --title "Economic Profile: {LA Name}" \
+  --subtitle "{Country} | Data from ONS, BRES, ASHE, DLUHC"
+```
+
+If the render script is not found at the expected path, try `~/.claude/skills/econstack/scripts/render-report.sh`. If Quarto is not installed, tell the user: "PDF rendering requires Quarto (https://quarto.org). The markdown report has been saved."
+
 Present a concise summary to the user:
 
 ```
@@ -389,6 +400,7 @@ House price:       [val] (affordability [X]x earnings)
 IMD rank:          [X] of [Y]
 
 Report saved: la-profile-{slug}-{date}.md
+PDF saved:    la-profile-{slug}-{date}.pdf (if --format pdf)
 ```
 
 ## Important Rules

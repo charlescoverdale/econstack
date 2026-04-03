@@ -80,6 +80,34 @@ Claude writes: impact-report-manchester-2026-04-02.md
 
 No API keys. No build step. No dependencies beyond Claude Code and the data files.
 
+For branded PDF output, add `--format pdf` to any command. This renders through a custom Typst template via Quarto, producing a consulting-quality PDF with cover page, headers, footers, navy branding, and professional table styling.
+
+```
+/impact-report £10m in Manufacturing in Manchester --format pdf
+```
+
+---
+
+## PDF output
+
+Add `--format pdf` to any skill command to generate a branded PDF alongside the markdown report.
+
+The PDF template is designed to consulting standards (BCG, Frontier Economics):
+- **Cover page** with title, subtitle, date, navy accent bar
+- **Headers/footers** with EconStack wordmark, report title, page numbers
+- **Navy heading hierarchy** (#003078) with thin rules under H1
+- **Professional tables**: navy header row, alternating gray stripes, no vertical borders
+- **Callout boxes**: light blue background with navy left border
+- **Two-level section numbering** (1.1, 1.2)
+
+**Requirements:** [Quarto](https://quarto.org) >= 1.5.0 (includes Typst for PDF rendering). On macOS: `brew install quarto`. The render script auto-detects Quarto at `/Applications/quarto/bin/quarto` or on your PATH.
+
+You can also render any existing markdown report manually:
+
+```bash
+~/.claude/skills/econstack/scripts/render-report.sh my-report.md --title "Custom Title"
+```
+
 ---
 
 ## Skills
@@ -118,6 +146,7 @@ Generate an economic impact assessment for an investment or job creation in any 
 | `--optimistic` | 10% deadweight, 10% displacement, 5% leakage |
 | `--no-additionality` | Gross figures only |
 | `--brief` | Executive summary only (1 page) |
+| `--format pdf` | Branded PDF output via Quarto/Typst |
 
 **Methodology:** Regional input-output model using FLQ regionalization (Flegg et al. 1995) of ONS Input-Output Analytical Tables 2023 (Blue Book 2025). 104 industries aggregated to 19 SIC sections. Type I multipliers by default (conservative). Additionality from HM Treasury Additionality Guide (4th edition, 2014) and MHCLG Appraisal Guide (3rd edition, 2025).
 
@@ -160,6 +189,7 @@ All data is benchmarked against the LA's own country (not just England). A Scott
 | `--focus labour` | Emphasise labour market and skills |
 | `--focus housing` | Emphasise housing and affordability |
 | `--focus business` | Emphasise business activity and industry structure |
+| `--format pdf` | Branded PDF output via Quarto/Typst |
 
 ---
 
@@ -266,6 +296,13 @@ climatekit  -> Climate indices
 econstack/
 ├── README.md
 ├── CLAUDE.md                              # Claude Code project context
+├── scripts/
+│   └── render-report.sh                   # Markdown to branded PDF converter
+├── templates/
+│   └── econstack-report/
+│       └── _extensions/econstack/
+│           ├── _extension.yml             # Quarto extension config
+│           └── typst-template.typ         # Typst template (cover, headers, tables)
 └── skills/
     ├── impact-report/
     │   └── SKILL.md                       # Economic impact assessment skill

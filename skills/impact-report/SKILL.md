@@ -312,10 +312,19 @@ The additionality adjustments follow the HM Treasury Additionality Guide (BIS, 2
 
 ### Step 5: Save and present
 
-Save the report as:
-- `impact-report-{la-slug}-{date}.md` in the current working directory
-- If `--format pdf` was specified, also render via Quarto (if available) or note that PDF generation requires Quarto
-- If `--format pptx` was specified, generate a summary slide deck
+Save the report as `impact-report-{la-slug}-{date}.md` in the current working directory.
+
+**If `--format pdf` was specified**, also render as a branded PDF:
+
+```bash
+# The render script wraps the markdown in the EconStack Quarto template and compiles via Typst
+ECONSTACK_DIR="${CLAUDE_SKILL_DIR}/../.."
+"$ECONSTACK_DIR/scripts/render-report.sh" impact-report-{la-slug}-{date}.md \
+  --title "Economic Impact Assessment" \
+  --subtitle "{LA name} | {Sector} | {Amount}"
+```
+
+If the render script is not found at the expected path, try `~/.claude/skills/econstack/scripts/render-report.sh`. If Quarto is not installed, tell the user: "PDF rendering requires Quarto (https://quarto.org). Install with: brew install quarto. The markdown report has been saved and can be converted manually."
 
 Present the key findings to the user in a concise summary:
 ```
@@ -336,6 +345,7 @@ NET ADDITIONAL (after additionality)
   Net jobs:        [val]
 
 Report saved: impact-report-{slug}-{date}.md
+PDF saved:    impact-report-{slug}-{date}.pdf (if --format pdf)
 ```
 
 ## Important Rules
