@@ -10,6 +10,15 @@ allowed-tools:
   - AskUserQuestion
 ---
 
+<!-- preamble: update check -->
+Before starting, run this silently. If it outputs UPDATE_AVAILABLE, tell the user:
+"A new version of econstack is available. Run `cd ~/.claude/skills/econstack && git pull` to update."
+Then continue with the skill normally.
+
+```bash
+~/.claude/skills/econstack/bin/econstack-update-check 2>/dev/null || true
+```
+
 # /fiscal-briefing: UK Public Finances Briefing
 
 Generate a narrative briefing on UK public finances: current borrowing vs OBR forecast, debt position, receipts and spending breakdown, fiscal rules headroom, and outlook. Designed for economic consultants and advisors who need the headline numbers and context, not a full debt sustainability model.

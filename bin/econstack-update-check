@@ -1,0 +1,69 @@
+#!/usr/bin/env bash
+# econstack update checker
+# Compares local VERSION against remote. Outputs one line if update available.
+# Silent on success, network failure, or if check was recent.
+#
+# Output: "UPDATE_AVAILABLE <local> <remote>" or nothing.
+
+set -euo pipefail
+
+# Resolve econstack root (directory containing this script's parent)
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+ECONSTACK_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+
+VERSION_FILE="$ECONSTACK_DIR/VERSION"
+REMOTE_URL="${ECONSTACK_REMOTE_URL:-https://raw.githubusercontent.com/charlescoverdale/econstack/master/VERSION}"
+STATE_DIR="${ECONSTACK_STATE_DIR:-$HOME/.econstack}"
+CACHE_FILE="$STATE_DIR/last-update-check"
+
+# Cache TTL in minutes
+CACHE_TTL=720  # 12 hours
+
+# --- Step 1: Read local version ---
+LOCAL=""
+if [ -f "$VERSION_FILE" ]; then
+  LOCAL="$(cat "$VERSION_FILE" 2>/dev/null | tr -d '[:space:]')"
+fi
+if [ -z "$LOCAL" ]; then exit 0; fi
+
+# --- Step 2: Check cache freshness ---
+mkdir -p "$STATE_DIR" 2>/dev/null || true
+
+if [ -f "$CACHE_FILE" ]; then
+  if [ "$(uname)" = "Darwin" ]; then
+    AGE=$(( ($(date +%s) - $(stat -f %m "$CACHE_FILE")) / 60 ))
+  else
+    AGE=$(( ($(date +%s) - $(stat -c %Y "$CACHE_FILE")) / 60 ))
+  fi
+
+  if [ "$AGE" -lt "$CACHE_TTL" ] && [ "$1" != "--force" ] 2>/dev/null; then
+    # Cache is fresh. Replay cached result if it was an upgrade notice.
+    CACHED="$(cat "$CACHE_FILE" 2>/dev/null || true)"
+    case "$CACHED" in
+      UPDATE_AVAILABLE*) echo "$CACHED" ;;
+    esac
+    exit 0
+  fi
+fi
+
+# --- Step 3: Fetch remote version ---
+REMOTE="$(curl -sf --max-time 5 "$REMOTE_URL" 2>/dev/null || true)"
+REMOTE="$(echo "$REMOTE" | tr -d '[:space:]')"
+
+# Validate: must look like a version number
+if ! echo "$REMOTE" | grep -qE '^[0-9]+\.[0-9.]+$'; then
+  # Invalid response (HTML error page, empty, etc.). Assume up to date.
+  echo "UP_TO_DATE $LOCAL" > "$CACHE_FILE" 2>/dev/null || true
+  exit 0
+fi
+
+# --- Step 4: Compare ---
+if [ "$LOCAL" = "$REMOTE" ]; then
+  echo "UP_TO_DATE $LOCAL" > "$CACHE_FILE" 2>/dev/null || true
+  exit 0
+fi
+
+# Update available
+RESULT="UPDATE_AVAILABLE $LOCAL $REMOTE"
+echo "$RESULT" > "$CACHE_FILE" 2>/dev/null || true
+echo "$RESULT"

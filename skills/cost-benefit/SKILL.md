@@ -10,6 +10,15 @@ allowed-tools:
   - AskUserQuestion
 ---
 
+<!-- preamble: update check -->
+Before starting, run this silently. If it outputs UPDATE_AVAILABLE, tell the user:
+"A new version of econstack is available. Run `cd ~/.claude/skills/econstack && git pull` to update."
+Then continue with the skill normally.
+
+```bash
+~/.claude/skills/econstack/bin/econstack-update-check 2>/dev/null || true
+```
+
 # /cost-benefit: Green Book Cost-Benefit Analysis
 
 Scaffold and compute a cost-benefit analysis following HM Treasury Green Book methodology. Handles discounting (correct declining schedule), NPV, BCR, optimism bias, additionality, sensitivity analysis, and switching values. Generates a structured report matching the Five Case Model economic case.

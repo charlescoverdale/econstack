@@ -11,6 +11,15 @@ allowed-tools:
   - AskUserQuestion
 ---
 
+<!-- preamble: update check -->
+Before starting, run this silently. If it outputs UPDATE_AVAILABLE, tell the user:
+"A new version of econstack is available. Run `cd ~/.claude/skills/econstack && git pull` to update."
+Then continue with the skill normally.
+
+```bash
+~/.claude/skills/econstack/bin/econstack-update-check 2>/dev/null || true
+```
+
 # /la-profile: Local Authority Economic Profile
 
 Generate professional economic profile content for any UK local authority. Covers demographics, labour market, earnings, industry structure, housing, business activity, productivity, deprivation, skills, and national benchmarking.
