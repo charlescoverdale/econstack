@@ -41,58 +41,73 @@ Generate a professional UK macro briefing covering output, labour market, prices
 
 ### Step 1: Fetch the data
 
-Run the following R script to pull the latest data. If R or the required packages are not installed, tell the user what's needed.
+Fetch the latest values directly from ONS and Bank of England. Two approaches, in order of preference:
 
+**Approach A: R packages (if R is available)**
+
+Check if R and the `ons` package are installed:
+```bash
+Rscript -e "library(ons); cat('R_READY')" 2>/dev/null
+```
+
+If R is available, use it (faster, cleaner):
 ```r
 library(ons)
 library(boe)
-
-# Output
 gdp_q <- ons_gdp(frequency = "quarterly")
 gdp_m <- ons_monthly_gdp()
-
-# Labour market
 unemployment <- ons_unemployment()
 employment <- ons_employment()
 wages <- ons_wages()
-inactivity <- ons_inactivity()
-
-# Prices
 cpi <- ons_cpi()
 cpi_core <- ons_cpi(measure = "core")
-
-# Trade
 trade <- ons_trade()
-
-# Public finances
 public_finances <- ons_public_finances()
-
-# Housing
 house_prices <- ons_house_prices()
-
-# Productivity
-productivity <- ons_productivity()
-
-# Retail
 retail <- ons_retail_sales()
-
-# Monetary
 bank_rate <- boe_bank_rate()
-money_supply <- boe_money_supply()
-mortgage_approvals <- boe_mortgage_approvals()
-exchange_rate <- boe_exchange_rate(currency = "USD")
 ```
 
-If `--international` is specified, also fetch:
-```r
-library(fred)
-us_gdp <- fred_series("GDP")
-us_cpi <- fred_series("CPIAUCSL")
-us_unemployment <- fred_series("UNRATE")
-us_fed_funds <- fred_series("FEDFUNDS")
+**Approach B: Direct web fetch (if R is not available)**
+
+Fetch each series directly from the ONS CSV endpoint using WebFetch or curl. Each ONS time series has a four-character CDID code and a URL pattern:
+
+```
+https://www.ons.gov.uk/generator?format=csv&uri=/economy/grossdomesticproductgdp/timeseries/{CDID}/pn2
 ```
 
-Extract the latest values from each series. For each indicator, compute: latest value, previous period value, year-ago value, and period-on-period change.
+Key CDID codes:
+| Indicator | CDID | Topic path |
+|-----------|------|------------|
+| GDP q/q growth | IHYQ | grossdomesticproductgdp |
+| Monthly GDP | ECVM | grossdomesticproductgdp |
+| Unemployment rate | MGSX | employmentandlabourmarket/peoplenotinwork/unemployment |
+| Employment rate | LF24 | employmentandlabourmarket/peopleinwork/employmentandemployeetypes |
+| AWE total pay y/y | KAB9 | employmentandlabourmarket/peopleinwork/earningsandworkinghours |
+| AWE regular pay y/y | KAI7 | employmentandlabourmarket/peopleinwork/earningsandworkinghours |
+| CPI annual rate | D7G7 | inflationandpriceindices |
+| Core CPI | DKO8 | inflationandpriceindices |
+| Retail sales volume | J5EK | retailindustry |
+| Trade balance | BOKI | tradeinthenationalaccounts |
+| PSNB ex | J5II | governmentpublicsectorandtaxes/publicsectorfinance |
+| House price index | HPI | economy/inflationandpriceindices |
+
+For each series, fetch the CSV, skip the metadata rows (lines starting with non-numeric characters), parse the latest value.
+
+For Bank of England data, use the BoE Statistical Interactive Database:
+```
+https://www.bankofengland.co.uk/boeapps/database/fromshowcolumns.asp?SeriesCodes={CODE}&DateFrom=01/Jan/2024&DateTo=01/Jan/2027&csv=true
+```
+
+Key BoE codes:
+| Indicator | Code |
+|-----------|------|
+| Bank Rate | IUDBEDR |
+| GBP/USD | XUDLUSS |
+
+For each indicator, extract: latest value, previous period value, year-ago value, and period-on-period change.
+
+If `--international` is specified and R is available, also fetch US data via `fred_series()`. If R is not available, use the FRED API directly (requires an API key, which the user may not have; skip and note "US comparison requires R with the fred package or a FRED API key").
 
 ### Step 2: Show the dashboard and ask what the user needs
 

@@ -111,10 +111,6 @@ Expanded outputs:
 ```
 gvaImpact = round(totalOutput * gvaToOutputRatio)
 earningsImpact = round(totalJobs * averageEarningsPerJob)
-estimatedIncomeTax = round(earningsImpact * 0.20)
-estimatedNICs = round(earningsImpact * 0.218)
-estimatedVAT = round(earningsImpact * 0.35 * 0.20)
-totalTax = estimatedIncomeTax + estimatedNICs + estimatedVAT
 ```
 
 Additionality:
@@ -143,7 +139,7 @@ Key numbers:
   Gross output:           [val]  (before additionality)
   Gross jobs:             [val]
   GVA contribution:       [val]
-  Estimated tax:          [val]
+  Earnings impact:        [val]
   Output multiplier:      [val]x
   Additionality factor:   [val]%
 ```
@@ -210,7 +206,6 @@ Save as `impact-data-{la-slug}-{date}.json` with all computed values, inputs, an
   "grossImpact": { "output": 0, "jobs": 0, "gva": 0, "directOutput": 0, "directJobs": 0, "indirectOutput": 0, "indirectJobs": 0, "inducedOutput": 0, "inducedJobs": 0 },
   "additionality": { "deadweight": 0, "displacement": 0, "leakage": 0, "substitution": 0, "factor": 0 },
   "netImpact": { "output": 0, "jobs": 0, "gva": 0 },
-  "tax": { "incomeTax": 0, "nics": 0, "vat": 0, "total": 0, "caveat": "Rough estimates, 30-50% margin of error" },
   "sensitivity": {
     "multiplier": { "low": { "output": 0, "jobs": 0 }, "high": { "output": 0, "jobs": 0 } },
     "additionality": { "optimistic": { "output": 0, "jobs": 0 }, "conservative": { "output": 0, "jobs": 0 } }
@@ -230,7 +225,7 @@ Use these templates for each requested section. Each section should stand alone 
 
 A [amount] [sector] investment in [LA name] would support an estimated [net jobs] net additional jobs and generate [net output] in net additional economic output, after accounting for deadweight, displacement, and leakage.
 
-Before these adjustments, the gross impact is [total output] in total economic output and [total jobs] jobs, comprising [direct output] in direct output and [indirect output] in indirect (supply chain) effects. The estimated GVA contribution is [GVA], with approximately [total tax] in associated tax revenue.
+Before these adjustments, the gross impact is [total output] in total economic output and [total jobs] jobs, comprising [direct output] in direct output and [indirect output] in indirect (supply chain) effects. The estimated GVA contribution is [GVA] and total earnings impact is [earnings].
 
 These estimates use Type I input-output multipliers from ONS 2023 data with standard HM Treasury additionality adjustments. They should be treated as indicative upper bounds. [If the area has notable characteristics from the risk analysis, mention the most important one here.]
 ```
@@ -249,18 +244,10 @@ These estimates use Type I input-output multipliers from ONS 2023 data with stan
 | Economic output | [val] | [val] |
 | Employment | [val] jobs | [val] jobs |
 | GVA | [val] | [val] |
-| Tax revenue | [val] | [val] |
-
-| Fiscal breakdown | Value |
+| Expanded outputs | Value |
 |-----------------|-------|
 | GVA contribution | [val] |
 | Earnings impact | [val] |
-| Est. income tax | [val] |
-| Est. NICs | [val] |
-| Est. VAT | [val] |
-| **Est. total tax** | **[val]** |
-
-Tax estimates are rough approximations based on sector-average earnings and standard rates (20% income tax, 21.8% total NICs, VAT at 20% on 35% of earnings). Margin of error: 30-50%.
 ```
 
 **Additionality adjustment:**
@@ -371,7 +358,6 @@ Based on HM Treasury Additionality Guide (BIS, 2009; updated 2014) and MHCLG App
 - No price effects. Large investments can push up local costs.
 - Based on 2023 economic structure (ONS Blue Book 2025).
 - 19-sector aggregation averages sub-industries with different characteristics.
-- Tax estimates are rough (30-50% margin of error).
 - LA boundaries are administrative, not economic. Impacts spill across boundaries.
 - IO multipliers are generally indicative upper bounds.
 - These are indicative estimates, not formal economic impact assessments.
@@ -403,7 +389,7 @@ Based on HM Treasury Additionality Guide (BIS, 2009; updated 2014) and MHCLG App
 
 - Generates **[net output] net additional economic output** ([gross output] gross)
 - Supports **[net jobs] net additional jobs** ([gross jobs] gross)
-- GVA contribution of **[GVA]**, with approximately **[tax] in tax revenue**
+- GVA contribution of **[GVA]**, earnings impact of **[earnings]**
 - Based on Type [I/II] IO multipliers (ONS 2023) with [standard/conservative/optimistic] additionality
 - [One sentence on the area's key characteristic, e.g. "Manchester's service-dominated economy has limited local manufacturing supply chains, producing a modest 1.06x multiplier"]
 
@@ -442,7 +428,6 @@ Files saved:
 - Cross-check every number in the executive summary against the tables. They must match.
 - Always save the companion JSON file regardless of which sections are selected.
 - The methodology section is the credibility layer. When included, include it in full.
-- Tax estimates get the strongest caveats. Always note the 30-50% margin of error.
 - Type I is the default (conservative). Only use Type II when explicitly requested.
 - If the user asks for a sector that doesn't match the 19-sector list, map it and note the mapping.
 - The key numbers block at the top of the markdown is always included, even for partial outputs.

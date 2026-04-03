@@ -65,13 +65,9 @@ cat "$DATA_DIR/${LA_SLUG}/housing.json"
 cat "$DATA_DIR/${LA_SLUG}/population.json"
 
 # Extended (may not exist)
-cat "$DATA_DIR/${LA_SLUG}/gva.json" 2>/dev/null
 cat "$DATA_DIR/${LA_SLUG}/industry.json" 2>/dev/null
-cat "$DATA_DIR/${LA_SLUG}/deprivation.json" 2>/dev/null
-cat "$DATA_DIR/${LA_SLUG}/business.json" 2>/dev/null
 cat "$DATA_DIR/${LA_SLUG}/skills.json" 2>/dev/null
 cat "$DATA_DIR/${LA_SLUG}/commuting.json" 2>/dev/null
-cat "$DATA_DIR/${LA_SLUG}/business-demography.json" 2>/dev/null
 
 # Benchmarks
 cat "$DATA_DIR/national-benchmarks.json"
@@ -106,7 +102,7 @@ IMD rank:          [X] of [Y] (if available)
 Question: "What output do you need for [LA name]?"
 
 Options:
-- A) **Full profile** : Complete 10-section economic profile
+- A) **Full profile** : Complete 7-section economic profile
 - B) **Pick sections** : Let me choose which sections I want
 - C) **Elevator pitch** : One paragraph characterizing this economy (for meetings or email intros)
 - D) **Slide summary** : 5-6 bullet points ready for PowerPoint
@@ -122,9 +118,6 @@ Options (multiSelect: true):
 - Labour market (employment by sector, specialisation, shift-share)
 - Earnings and income (percentiles, gender pay gap, inequality)
 - Housing and affordability (prices, tenure, price-to-earnings)
-- Business activity (enterprise counts, size bands, birth/death rates)
-- Productivity (GVA per job, sector breakdown, rank)
-- Deprivation (IMD rank, domain scores, England only)
 - Skills and commuting (occupations, qualifications, commute modes)
 - National benchmarking (vs country and GB averages)
 - Methodology note (one paragraph on data sources)
@@ -297,58 +290,6 @@ Median house price: [val] ([year change]% year-on-year). Price-to-earnings: [val
 | Private rented | [val]% | [val]% |
 
 [2-3 sentences. How does affordability compare? What does the tenure mix tell us? High social renting = council housing legacy. High private renting = transient population or student city.]
-```
-
-**Business activity:**
-```markdown
-## Business Activity
-
-Total enterprises: [val]. Micro (0-4 employees): [val]%.
-
-| Size band | [LA Name] | England |
-|-----------|-----------|---------|
-| 0-4 | [val]% | [val]% |
-| 5-49 | [val]% | [val]% |
-| 50-249 | [val]% | [val]% |
-| 250+ | [val]% | [val]% |
-
-[If business demography available:]
-Business birth rate: [val]%. Death rate: [val]%. Net formation: [val]%.
-
-[1-2 sentences. Entrepreneurial area? How does the size distribution compare?]
-```
-
-**Productivity:**
-```markdown
-## Productivity
-
-GVA per job: [val] (national: [val]). Rank: [X] of 391. [X]% above/below national average.
-
-| Sector | GVA | Share |
-|--------|-----|-------|
-| [sector] | [val] | [val]% |
-| ... | ... | ... |
-
-[1-2 sentences interpreting.]
-```
-
-**Deprivation (England only):**
-```markdown
-## Deprivation
-
-IMD rank: [X] of [Y] (1 = most deprived).
-
-| Domain | Rank | Percentile |
-|--------|------|------------|
-| Income | [val] | [val]% |
-| Employment | [val] | [val]% |
-| Education | [val] | [val]% |
-| Health | [val] | [val]% |
-| Crime | [val] | [val]% |
-| Housing & services | [val] | [val]% |
-| Living environment | [val] | [val]% |
-
-[1-2 sentences. Which domains are most challenging? Is this area deprived overall or only in specific dimensions?]
 ```
 
 **Skills and commuting:**
