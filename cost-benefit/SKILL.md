@@ -45,6 +45,8 @@ The skill handles the computation and structure. You provide the substance (what
 - `--full` : Skip interactive menus where possible
 - `--client "Name"` : Add "Prepared for"
 - `--format <type>` : Output format(s): `markdown`, `xlsx`, `word`, `pptx`, `pdf`, or `all`. Comma-separate for multiple (e.g. `--format xlsx,word`). Default: markdown only
+- `--from <file.json>` : Import all inputs from a JSON file. Skips all interactive questions. Use `--from schema` to print the expected JSON schema.
+- `--audit` : After generating the report, automatically run `/econ-audit` on the output
 
 **Supported frameworks:**
 
@@ -62,6 +64,60 @@ The skill handles the computation and structure. You provide the substance (what
 ## Instructions
 
 ### Step 1: Project setup
+
+**JSON import mode:**
+
+If `--from <file.json>` is specified, read and parse the JSON file. The expected schema:
+
+```json
+{
+  "project": "Project name",
+  "framework": "uk",
+  "stage": "obc",
+  "sector": "transport",
+  "appraisal_period": 60,
+  "price_base_year": 2026,
+  "prices": "real",
+  "optimism_bias_pct": null,
+  "discount_rate": null,
+  "options": [
+    {
+      "name": "Do Nothing",
+      "description": "Counterfactual description",
+      "costs": { "annual_m": 2 }
+    },
+    {
+      "name": "Option name",
+      "description": "Option description",
+      "costs": {
+        "capex_total_m": 50,
+        "capex_years": 2,
+        "capex_phasing": "even | scurve | frontloaded",
+        "opex_annual_m": 1,
+        "opex_start_year": 2,
+        "renewals": [{ "year": 25, "cost_m": 15, "description": "Deck resurfacing" }],
+        "residual_pct": 10
+      },
+      "benefits": {
+        "annual_m": 5,
+        "start_year": 3,
+        "growth_rate": 0.01,
+        "ramp_up_years": 3
+      }
+    }
+  ],
+  "additionality": "standard | conservative | optimistic | none",
+  "carbon": { "annual_tco2e": -5000, "direction": "savings | emissions | both" },
+  "distributional_weights": false,
+  "place_based": false
+}
+```
+
+Null values use framework defaults. Validate all required fields (project, framework, options with at least 2 entries). If any required field is missing, list the missing fields and stop.
+
+If `--from schema` is specified, print the schema above and stop.
+
+Skip all interactive questions in Steps 1-3. Proceed directly to Step 4 (Compute). Still ask about output sections and file formats (Step 5) unless `--full` is also specified.
 
 **Framework selection:**
 
@@ -230,6 +286,8 @@ If carbon impacts exist, ask for estimated annual tonnes of CO2e (positive = emi
 - US framework: use EPA social cost of carbon (~$51/tCO2 at 2% discount rate, 2020 dollars)
 - Other frameworks: ask the user for a carbon price or use a default of $50/tCO2
 
+*Data vintage: DESNZ 2024 carbon values; EIB 2023 shadow carbon price; EPA 2023 social cost of carbon. Carbon prices are updated periodically. Verify against latest published schedules.*
+
 Carbon benefits/costs are included as a separate line item in the benefit/cost tables, not subject to additionality adjustments (they are global externalities, not local economic activity).
 
 **If B (year-by-year):**
@@ -247,21 +305,50 @@ Parse the table. If costs and benefits are already broken into categories, prese
 
 **If C (describe):**
 
-Ask the user to describe the costs and benefits in plain English. Then structure them into categories:
+Ask structured questions to extract quantifiable information:
 
-Costs:
-- Capital/construction
-- Operating/maintenance
-- Transition/implementation
+For costs, ask:
+  "What is the total capital/construction cost? (If unsure, give a range e.g., '£50-100m'. I'll use the midpoint for the central estimate and the bounds for sensitivity.)"
+  "What are the ongoing annual costs to operate and maintain?"
+  "Are there any one-off transition or implementation costs?"
 
-Benefits:
+For benefits, ask sector-specific questions:
+
+  If transport:
+  - "How many people will use this per day/year?"
+  - "How much journey time will they save (minutes per trip)?"
+  - "What mix of trip purposes? (work/commute/leisure)"
+  - "Are there safety improvements? (fewer accidents expected?)"
+  -> Apply TAG values automatically from the tables in this skill
+
+  If health/social care:
+  - "How many patients/people benefit per year?"
+  - "What health outcome improvement do you expect? (QALYs, life years, reduced hospital admissions?)"
+  -> Apply QALY/DALY values automatically from the tables in this skill
+
+  If housing/regeneration:
+  - "How many homes will be built/improved?"
+  - "What is the expected land value uplift?"
+  - "Are there construction jobs during the build phase?"
+
+  If environment/energy:
+  - "What are the carbon savings (tonnes CO2e per year)?"
+  - "Are there air quality or noise improvements?"
+  -> Apply carbon values automatically from the tables in this skill
+
+  For all sectors:
+  - "What is the main benefit to users? (time saved, money saved, improved quality?)"
+  - "How many people benefit per year?"
+  - "Can you estimate the value per person per year? (If not, I'll note it as non-monetised.)"
+
+If the user gives a range for any value, use the midpoint for the central estimate and the bounds for sensitivity analysis (low = lower bound, high = upper bound). This is more useful than asking for a single point estimate.
+
+Then structure the responses into the standard benefit categories:
 - Direct user benefits (time savings, cost savings, revenue)
 - Wider economic benefits (employment, GVA, agglomeration)
 - Environmental benefits (carbon, air quality, noise)
 - Social benefits (health, safety, wellbeing)
-- Non-monetised benefits (describe qualitatively)
-
-For each benefit category, ask: "Can you estimate the annual value? If not, I'll note it as non-monetised."
+- Non-monetised benefits (describe qualitatively with direction and magnitude)
 
 **Transport benefit monetisation (if sector is Transport):**
 
@@ -287,6 +374,8 @@ Ask for physical quantities (e.g., "How many person-hours of journey time will b
 
 Note: TAG values are updated annually. These are indicative. For a formal WebTAG appraisal, use the current TAG Data Book.
 
+*Data vintage: 2026 TAG Data Book. Updated annually by DfT. If this analysis is more than 12 months after 2026, verify against the latest TAG Data Book at https://www.gov.uk/government/publications/tag-data-book.*
+
 **Health benefit monetisation (if sector is Health or benefits include safety/health):**
 
 If health outcomes are described in physical units, offer to monetise using framework-specific QALY/DALY/VPF values:
@@ -299,6 +388,8 @@ If health outcomes are described in physical units, offer to monetise using fram
 | Value of a prevented fatality (VPF) | £2.35m | DfT TAG A4.1 |
 | DALY (disability-adjusted life year) averted | £70,000 | Equivalent to QALY by convention |
 
+*Data vintage: 2024-2026 published values. Verify against latest published guidance if preparing analysis more than 12 months after these dates.*
+
 **US (OMB / EPA / HHS):**
 | Health metric | Value | Source |
 |--------------|-------|--------|
@@ -306,6 +397,8 @@ If health outcomes are described in physical units, offer to monetise using fram
 | QALY | $190,000-$250,000 | Derived from VSL; varies by agency |
 | DALY averted | ~$190,000-$250,000 | Symmetric with QALY by convention |
 | FDA cost-effectiveness threshold | $150,000/QALY | FDA regulatory analysis |
+
+*Data vintage: 2024-2026 published values. Verify against latest published guidance if preparing analysis more than 12 months after these dates.*
 
 **Australia (PBAC / MSAC / OBPR):**
 | Health metric | Value | Source |
@@ -315,6 +408,8 @@ If health outcomes are described in physical units, offer to monetise using fram
 | Value of a statistical life (VSL) | AUD 5.7m (2024 AUD) | OBPR Best Practice Regulation Guidance |
 | Value of a statistical life year (VSLY) | AUD 227,000 (2024 AUD) | OBPR; derived from VSL |
 
+*Data vintage: 2024-2026 published values. Verify against latest published guidance if preparing analysis more than 12 months after these dates.*
+
 **EU (EIB / EC):**
 | Health metric | Value | Source |
 |--------------|-------|--------|
@@ -322,12 +417,16 @@ If health outcomes are described in physical units, offer to monetise using fram
 | VSL | EUR 3.6m (EU average) | OECD / EC Impact Assessment guidelines |
 | DALY averted | EUR 40,000-€100,000 | Symmetric with QALY |
 
+*Data vintage: 2024-2026 published values. Verify against latest published guidance if preparing analysis more than 12 months after these dates.*
+
 **New Zealand:**
 | Health metric | Value | Source |
 |--------------|-------|--------|
 | QALY | NZD 56,000-$68,000 | PHARMAC implicit threshold |
 | VSL | NZD 4.99m (2024 NZD) | NZ Treasury CBAx; Ministry of Transport |
 | VSLY | NZD 198,000 | Derived from VSL |
+
+*Data vintage: 2024-2026 published values. Verify against latest published guidance if preparing analysis more than 12 months after these dates.*
 
 Use the values matching the selected framework. If the user provides health outcomes in DALYs rather than QALYs, note that for CBA purposes these are typically treated symmetrically (1 DALY averted = 1 QALY gained), though they are conceptually different measures (DALYs measure burden of disease; QALYs measure health utility).
 
@@ -546,8 +645,8 @@ not justify the extra cost over a cheaper option.
 **Switching values:**
 For the top 2-3 cost/benefit items, compute the percentage change that would make NPV = 0:
 ```
-switching_value_benefits = -NPV / PV_benefits * 100
-switching_value_costs = NPV / PV_costs * 100
+switching_value_benefits_pct = abs(NPV / PV_benefits) * 100
+switching_value_costs_pct = abs(NPV / PV_costs) * 100
 
 IMPORTANT: Interpret these correctly based on the sign of NPV:
   If NPV > 0:
@@ -692,6 +791,8 @@ Options:
 - Financial analysis (cash flow to the investing entity, separate from economic/social CBA)
 - Appraisal summary table (one-page consolidated view)
 - Methodology note (discount rate, optimism bias, additionality assumptions)
+- Risk register (project-specific risks with likelihood, impact, mitigation)
+- Multi-criteria analysis (non-monetised benefits scoring)
 - References
 
 **After the content questions, ask about output formats.**
@@ -1001,6 +1102,50 @@ If probability of NPV > 0 is below 40%: "The probabilistic analysis suggests the
 | **VfM assessment** | **[category]** | **[category]** |
 ```
 
+**Risk register:**
+```markdown
+## Risk Register
+
+| # | Risk | Likelihood | Impact | Mitigation | Residual risk |
+|---|------|-----------|--------|------------|---------------|
+| R1 | Cost overrun beyond optimism bias | Medium/High | High | Reference class forecasting, fixed-price contracts | Medium |
+| R2 | Benefit shortfall / demand below forecast | Medium | High | Conservative demand assumptions, phased delivery | Medium |
+| R3 | Construction delay | Medium | Medium | Programme contingency, early contractor engagement | Low |
+| R4 | Regulatory/planning risk | Low/Medium | High | Early engagement, planning pre-application | Low |
+
+[Generate 4-6 project-specific risks based on:
+- Sector (transport: demand risk, induced traffic; health: clinical outcomes; energy: technology risk)
+- Scale (larger projects: supply chain, labour market constraints)
+- Location (urban: planning, disruption; rural: access, connectivity)
+- Framework (UK: spending review risk; EU: co-financing conditions)
+- Stage (SOC: scope creep; OBC: procurement risk; FBC: delivery risk)]
+
+Likelihood: Low / Low-Medium / Medium / Medium-High / High
+Impact: Low / Medium / High / Very High
+Residual risk: the risk level after mitigation measures are applied.
+```
+
+**Multi-criteria analysis:**
+```markdown
+## Multi-Criteria Analysis: Non-Monetised Benefits
+
+| Criterion | Weight | Do Nothing | [Option 2] | [Option 3] |
+|-----------|--------|-----------|------------|------------|
+| [Regeneration impact] | [X]/10 | 0 | [1-5] | [1-5] |
+| [Environmental quality] | [X]/10 | 0 | [1-5] | [1-5] |
+| [Social inclusion / equity] | [X]/10 | 0 | [1-5] | [1-5] |
+| [Deliverability / feasibility] | [X]/10 | [1-5] | [1-5] | [1-5] |
+| [Strategic alignment] | [X]/10 | [1-5] | [1-5] | [1-5] |
+| **Weighted total** | | **[val]** | **[val]** | **[val]** |
+
+Scoring: 0 = no impact, 1 = slight positive, 2 = moderate positive, 3 = significant positive, 4 = large positive, 5 = transformative.
+
+[Ask the user to score each criterion, or suggest scores based on the project description with justification. Criteria should be tailored to the project type and sector.]
+
+This analysis complements the monetised NPV/BCR assessment. Where non-monetised benefits are significant, the MCA may support a different option ranking than NPV alone.
+```
+
+
 **Methodology note:**
 ```markdown
 **Methodology:** Social cost-benefit analysis following [framework name and edition]. Discount rate: [rate and schedule]. [If optimism bias applied: "Optimism bias: [X]% on capital costs ([source], [project type], [stage])."] [If additionality applied: "Additionality: [X]% deadweight, [X]% displacement, [X]% leakage ([source])."] [If carbon valued: "Carbon valued at [price]/tCO2e ([source])."] All costs and benefits in [year] real prices. NPV and BCR computed for each option against the Do Nothing counterfactual. [If benefit ramp-up used: "Benefits ramped up linearly over [X] years post-construction."] [If S-curve phasing: "Capital costs phased using an S-curve profile over [X] years."]
@@ -1163,6 +1308,13 @@ Files saved:
   cba-{slug}-{date}.pptx     (if PowerPoint selected)
   cba-{slug}-{date}.pdf      (if PDF selected)
 ```
+
+**If `--audit` was specified:**
+
+After saving all files, invoke the `/econ-audit` skill on the generated markdown file:
+  /econ-audit cba-{project-slug}-{date}.md
+
+This produces an audit scorecard alongside the report, catching any methodology issues before submission. The audit will cross-check the companion JSON against the prose numbers.
 
 ## Important Rules
 

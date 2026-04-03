@@ -49,6 +49,7 @@ Generate professional economic impact assessment content for an investment or jo
 - `--client "Name"` : Add "Prepared for: [Name]" on outputs
 - `--full` : Skip the interactive menu, generate the complete report
 - `--format <type>` : Output format(s): `markdown`, `html`, `word`, `pptx`, `pdf`, or `all`. Comma-separate for multiple (e.g. `--format word,pdf`). Default: markdown only
+- `--audit` : After generating the report, automatically run `/econ-audit` on the output
 
 ## Instructions
 
@@ -58,18 +59,37 @@ Extract from the user's input:
 - **amount**: The investment in GBP, or number of direct jobs
 - **input_type**: "output" (investment in GBP) or "jobs" (direct job creation)
 - **sector**: One of the 19 SIC sections. If the user says something informal, map it:
-  - "tech"/"software" -> Information & Communication
-  - "hospitality"/"hotels" -> Accommodation & Food
-  - "banking"/"finance" -> Financial & Insurance
-  - "pharma"/"chemicals" -> Manufacturing
-  - "logistics"/"shipping" -> Transportation
-  - "housing"/"development" -> Construction
+  - "tech"/"software" -> Information & Communication (J)
+  - "hospitality"/"hotels" -> Accommodation & Food (I)
+  - "banking"/"finance" -> Financial & Insurance (K)
+  - "pharma"/"chemicals" -> Manufacturing (C)
+  - "logistics"/"shipping" -> Transportation (H)
+  - "housing"/"development" -> Construction (F)
+  - "retail"/"shops"/"supermarket" -> Wholesale & Retail (G)
+  - "farming"/"agriculture"/"agri" -> Agriculture (A)
+  - "defence"/"military" -> Public Administration (O)
+  - "care"/"social care"/"NHS"/"hospital" -> Health & Social Work (Q)
+  - "restaurants"/"pubs"/"cafes"/"bars" -> Accommodation & Food (I)
+  - "warehousing"/"distribution"/"logistics" -> Transportation (H)
+  - "data centres"/"AI"/"cyber"/"digital" -> Information & Communication (J)
+  - "clean energy"/"renewables"/"solar"/"wind"/"nuclear" -> Electricity & Gas (D)
+  - "biotech"/"life sciences"/"R&D" -> Professional & Scientific (M)
+  - "creative"/"media"/"film"/"gaming" -> Arts & Recreation (R)
+  - "insurance"/"banking"/"fintech" -> Financial & Insurance (K)
+  - "property"/"housing"/"development" -> Real Estate (L) or Construction (F)
+  - "waste"/"recycling"/"water" -> Water & Waste (E)
+  - "admin"/"outsourcing"/"facilities"/"cleaning"/"security" -> Administrative & Support (N)
+  - "schools"/"university"/"training" -> Education (P)
+
+  If the sector still cannot be mapped after checking all mappings, display the full list of 19 SIC sections and use AskUserQuestion with the top 4 most likely matches as options (based on keyword similarity to the user's input).
+
 - **local_authority**: The LA name or slug
 - **multiplier_type**: "typeI" (default) or "typeII" (if --type2)
 - **additionality**: "standard" (default), "conservative", "optimistic", or "none"
 - **client**: Optional client name
 - **full**: If true, skip the interactive menu and generate the complete report
 - **formats**: List of output formats. Default: `["markdown"]`. Parse `--format` flag by splitting on commas. If `--format all`, expand to `["markdown", "html", "word", "pptx", "pdf"]`
+- **audit**: If true, run `/econ-audit` after generating the report
 
 ### Step 2: Load data and compute
 
@@ -83,10 +103,33 @@ cat "$DATA_DIR/${LA_SLUG}/employment.json"
 cat "$DATA_DIR/national-benchmarks.json"
 ```
 
-If the LA slug is not found:
-```bash
-ls "$DATA_DIR/" | grep -i "<search_term>"
-```
+**LA fuzzy matching:**
+
+If the LA slug is not found exactly in ~/econstack-data/src/data/:
+
+1. Slugify the input (lowercase, replace spaces with hyphens, remove apostrophes).
+2. Try exact match on the slugified version.
+3. Try case-insensitive partial match: ls ~/econstack-data/src/data/ | grep -i "{slug}"
+4. Try matching on just the first word: ls ~/econstack-data/src/data/ | grep -i "{first_word}"
+5. Try common aliases:
+   - "London" -> suggest "city-of-london", "westminster", "camden", "tower-hamlets", "southwark"
+   - "Edinburgh" -> "city-of-edinburgh"
+   - "Bristol" -> "bristol-city-of"
+   - "Hull" -> "kingston-upon-hull-city-of"
+   - "Stoke" -> "stoke-on-trent"
+   - "Brighton" -> "brighton-and-hove"
+   - "Newcastle" -> "newcastle-upon-tyne"
+   - "Southend" -> "southend-on-sea"
+6. If multiple matches found, present them as AskUserQuestion options (max 4).
+7. If no matches: "No local authority found matching '[input]'. The data covers 391 UK local authorities. Try the official LA name (e.g., 'Kingston upon Hull' not 'Hull', 'City of Edinburgh' not 'Edinburgh')."
+
+**Input validation (before computing):**
+
+Before proceeding to computation, validate:
+- If amount <= 0: "Investment amount must be positive. Got [amount]." Stop and ask for a valid amount.
+- If the sector's `directEmploymentPerMillion` is 0, null, or missing in multipliers.json: "No employment intensity data available for [sector] in [LA]. This sector may be too small locally to produce reliable estimates. Try a broader sector classification or a neighbouring authority." Stop.
+- If the LA slug directory does not exist in ~/econstack-data/src/data/: follow the fuzzy matching procedure below.
+- If multipliers.json is missing or cannot be parsed: "Multiplier data not found for [LA]. The econstack-data package may need updating. Run: cd ~/econstack-data && git pull" Stop.
 
 **Compute the impact using these formulas:**
 
@@ -124,6 +167,37 @@ gvaImpact = round(totalOutput * gvaToOutputRatio)
 earningsImpact = round(totalJobs * averageEarningsPerJob)
 ```
 
+**Tax revenue estimate:**
+
+Compute estimated Exchequer contributions from the generated employment:
+
+```
+# Effective income tax rate (simplified, based on sector average earnings)
+if averageEarningsPerJob <= 12570:
+    effective_income_tax_rate = 0.0
+elif averageEarningsPerJob <= 50270:
+    effective_income_tax_rate = (averageEarningsPerJob - 12570) * 0.20 / averageEarningsPerJob
+else:
+    effective_income_tax_rate = ((50270 - 12570) * 0.20 + (averageEarningsPerJob - 50270) * 0.40) / averageEarningsPerJob
+
+income_tax = round(totalJobs * averageEarningsPerJob * effective_income_tax_rate)
+
+# Employee NICs (8% on earnings above £12,570)
+nics_employee = round(totalJobs * max(0, averageEarningsPerJob - 12570) * 0.08)
+
+# Employer NICs (13.8% on earnings above £9,100)
+nics_employer = round(totalJobs * max(0, averageEarningsPerJob - 9100) * 0.138)
+
+# VAT on consumer spending from wages
+# Assumption: 60% of net earnings spent locally, 50% of spending is VATable, 20% VAT rate
+net_earnings = averageEarningsPerJob * (1 - effective_income_tax_rate - 0.08)
+vat_estimate = round(totalJobs * net_earnings * 0.60 * 0.50 * 0.20)
+
+total_tax_revenue = income_tax + nics_employee + nics_employer + vat_estimate
+```
+
+These are indicative estimates using simplified effective rates. Actual tax revenue depends on individual circumstances, allowances, and reliefs. The estimates assume all jobs are filled by UK taxpayers.
+
 Additionality:
 ```
 Standard:      deadweight=20%, displacement=25%, leakage=10%, substitution=0%
@@ -134,6 +208,23 @@ factor = (1 - deadweight/100) * (1 - displacement/100) * (1 - leakage/100) * (1 
 netOutput = round(totalOutput * factor)
 netJobs = round(totalJobs * factor)
 ```
+
+**Temporal profile (optional):**
+
+After computing the steady-state impact, ask: "Do you want a multi-year impact profile showing construction and operational phases?"
+
+Options:
+- A) **No** (single steady-state estimate, the default)
+- B) **Yes** (show construction phase, ramp-up, and steady-state separately)
+
+If yes, ask:
+- "How many years is the construction/build phase?" (Default: 2 years)
+- "What percentage of the investment is construction spend?" (Default: 100% for infrastructure, 50% for mixed projects)
+
+Compute:
+- Construction phase: apply the Construction sector (F) multiplier to the construction spend, spread over the build years
+- Operational ramp-up: 50% of steady-state impact in year 1 of operations, 75% in year 2, 100% from year 3
+- Steady-state: the full operational impact as already computed
 
 ### Step 3: Show the key numbers and ask what the user needs
 
@@ -151,6 +242,7 @@ Key numbers:
   Gross jobs:             [val]
   GVA contribution:       [val]
   Earnings impact:        [val]
+  Tax revenue:            [val]
   Output multiplier:      [val]x
   Additionality factor:   [val]%
 ```
@@ -172,10 +264,12 @@ Question: "Which sections? (pick all that apply)"
 Options (multiSelect: true):
 - Executive summary (3 paragraphs, leads with net impact)
 - Impact tables (gross and net, direct/indirect/induced breakdown)
+- Tax revenue estimate (income tax, NICs, VAT from generated employment)
 - Additionality adjustment (HM Treasury defaults, net impact calculation)
 - Sensitivity analysis (multiplier +/-15% AND additionality scenarios)
 - Key risks (2-3 project-specific observations from LA data)
 - Local economic context (employment, earnings, claimant rate vs benchmarks)
+- Multi-year impact profile (construction, ramp-up, and steady-state phases)
 - Full methodology (IO model, FLQ, technical parameters, 2 pages)
 - Methodology summary (one paragraph for slide footers or email footnotes)
 - References (10 academic and government citations)
@@ -207,18 +301,21 @@ Markdown is always generated regardless of selection. If the user selects nothin
 
 ```markdown
 <!-- KEY NUMBERS
-net_output: [val]
-net_jobs: [val]
-gross_output: [val]
-gross_jobs: [val]
-gva: [val]
-tax: [val]
-multiplier: [val]
-additionality_factor: [val]
+type: impact
+date: [YYYY-MM-DD]
+framework: uk
 la: [LA name]
 sector: [sector]
 amount: [amount]
-date: [date]
+net_output_m: [val]
+net_jobs_n: [val]
+gross_output_m: [val]
+gross_jobs_n: [val]
+gva_m: [val]
+tax_revenue: [val]
+multiplier_output: [val]
+multiplier_employment: [val]
+additionality_factor: [val]
 -->
 ```
 
@@ -231,7 +328,7 @@ Save as `impact-data-{la-slug}-{date}.json` with all computed values, inputs, an
 {
   "input": { "la": "", "sector": "", "amount": 0, "inputType": "", "multiplierType": "", "additionality": "" },
   "multiplier": { "output": 0, "employment": 0, "lambda": 0, "method": "FLQ", "delta": 0.3 },
-  "grossImpact": { "output": 0, "jobs": 0, "gva": 0, "directOutput": 0, "directJobs": 0, "indirectOutput": 0, "indirectJobs": 0, "inducedOutput": 0, "inducedJobs": 0 },
+  "grossImpact": { "output": 0, "jobs": 0, "gva": 0, "directOutput": 0, "directJobs": 0, "indirectOutput": 0, "indirectJobs": 0, "inducedOutput": 0, "inducedJobs": 0, "taxRevenue": { "incomeTax": 0, "nicsEmployee": 0, "nicsEmployer": 0, "vatEstimate": 0, "total": 0 } },
   "additionality": { "deadweight": 0, "displacement": 0, "leakage": 0, "substitution": 0, "factor": 0 },
   "netImpact": { "output": 0, "jobs": 0, "gva": 0 },
   "sensitivity": {
@@ -254,6 +351,8 @@ Use these templates for each requested section. Each section should stand alone 
 A [amount] [sector] investment in [LA name] would support an estimated [net jobs] net additional jobs and generate [net output] in net additional economic output, after accounting for deadweight, displacement, and leakage.
 
 Before these adjustments, the gross impact is [total output] in total economic output and [total jobs] jobs, comprising [direct output] in direct output and [indirect output] in indirect (supply chain) effects. The estimated GVA contribution is [GVA] and total earnings impact is [earnings].
+
+The estimated annual Exchequer contribution is [total_tax_revenue] in income tax, NICs, and VAT.
 
 These estimates use Type I input-output multipliers from ONS 2023 data with standard HM Treasury additionality adjustments. They should be treated as indicative upper bounds. [If the area has notable characteristics from the risk analysis, mention the most important one here.]
 ```
@@ -278,6 +377,25 @@ These estimates use Type I input-output multipliers from ONS 2023 data with stan
 | Earnings impact | [val] |
 ```
 
+**Tax revenue estimate:**
+```markdown
+## Estimated Exchequer Contribution
+
+| Tax type | Gross estimate (£) | Net additional (£) |
+|----------|-------------------|-------------------|
+| Income tax | [val] | [val] |
+| Employee NICs | [val] | [val] |
+| Employer NICs | [val] | [val] |
+| VAT (on wage spending) | [val] | [val] |
+| **Total** | **[val]** | **[val]** |
+
+Net additional figures apply the same additionality factor ([X]%) as the employment estimates.
+
+These are indicative estimates using simplified effective tax rates. Actual Exchequer receipts depend on individual circumstances, tax allowances, pension contributions, and reliefs. The estimates assume all jobs are filled by UK taxpayers paying standard rates.
+
+*Methodology: income tax computed at 20% basic rate on earnings above £12,570 personal allowance (2024/25 thresholds). Employee NICs at 8% above £12,570. Employer NICs at 13.8% above £9,100. VAT estimated on 60% of net earnings spent locally, with 50% of spending subject to 20% standard rate.*
+```
+
 **Additionality adjustment:**
 ```markdown
 ## Additionality Adjustment
@@ -289,7 +407,7 @@ Not all estimated impact is genuinely new. Adjustments based on HM Treasury Addi
 | Deadweight | [X]% | Activity that would have occurred without the intervention |
 | Displacement | [X]% | Activity shifted from other businesses or areas |
 | Leakage | [X]% | Benefits flowing outside the target area |
-| Substitution | [X]% | Firms replacing one activity with another |
+| Substitution | [X]% | Replacing existing activity. Typically low for investment interventions |
 | **Net additionality factor** | **[X]%** | |
 
 These are median values from HM Treasury guidance. Actual rates vary by intervention type. For retail/leisure, displacement is typically higher (40-75%). For export-oriented manufacturing, it may be lower (10-15%). Users should adjust based on the specific intervention.
@@ -330,6 +448,9 @@ The choice of additionality assumptions has a larger effect on results than mult
 - If claimant rate < 2%: "Tight labour market (claimant rate [X]%) means new jobs may be filled by commuters or migrants rather than local residents."
 - If GVA per job significantly differs from national: "Local productivity ([val]) is [X]% [above/below] national, which [supports/complicates] the GVA estimates."
 - On sector aggregation: "The '[sector]' classification averages sub-industries with very different characteristics."
+- Always include a multiplier benchmark: "[LA]'s [sector] output multiplier of [X]x compares to the national average of [national_multiplier]x. [If local < national by >10%: 'The local economy has thinner supply chains for this sector, meaning more spending leaks to other areas.' If local > national by >10%: 'Strong local supply chains in this sector support above-average multiplier effects.' If within 10%: 'This is broadly in line with the national average.']"
+
+To compute the national benchmark, load 3-5 other LA multipliers for the same sector from ~/econstack-data/src/data/ (choose LAs with similar lambda values, or well-known comparators like Manchester, Birmingham, Leeds). Compute the unweighted average as a benchmark.
 ```
 
 **Local economic context:**
@@ -339,6 +460,23 @@ The choice of additionality assumptions has a larger effect on results than mult
 [LA name] supports [total employment] workplace jobs with median earnings of [val], [X]% [above/below] the [country] average of [val]. The claimant rate is [X]%, [comparison to country and GB]. Productivity (GVA per job) is [val], ranking [X]th of 391 local authorities.
 
 [1-2 sentences characterizing the economy: service-dominated? manufacturing heritage? public sector dependent? Use the sector employment data.]
+```
+
+**Multi-year impact profile:**
+```markdown
+## Multi-Year Impact Profile
+
+| Phase | Year | Output (£m) | Jobs | GVA (£m) | Tax revenue (£) |
+|-------|------|-------------|------|----------|-----------------|
+| Construction | 1 | [val] | [val] | [val] | [val] |
+| Construction | 2 | [val] | [val] | [val] | [val] |
+| Operational (50% ramp-up) | 3 | [val] | [val] | [val] | [val] |
+| Operational (75% ramp-up) | 4 | [val] | [val] | [val] | [val] |
+| **Operational (steady-state)** | **5+** | **[val]** | **[val]** | **[val]** | **[val]** |
+
+Construction phase impacts use the Construction sector (SIC F) multiplier ([val]x) applied to the annual construction spend. Operational impacts use the [sector] multiplier ([val]x). Benefits ramp up over 2 years as the project reaches full operational capacity.
+
+Note: Construction jobs are temporary (lasting the build period only). Operational jobs are sustained annually at steady-state.
 ```
 
 **Full methodology:**
@@ -476,6 +614,13 @@ Files saved:
   impact-report-{slug}-{date}.pptx   (if PowerPoint selected)
   impact-report-{slug}-{date}.pdf    (if PDF selected)
 ```
+
+**If `--audit` was specified:**
+
+After saving all files, invoke the `/econ-audit` skill on the generated markdown file:
+  /econ-audit impact-report-{la-slug}-{date}.md
+
+This produces an audit scorecard alongside the report, catching any methodology issues. The audit will cross-check the companion JSON against the prose numbers.
 
 ## Important Rules
 

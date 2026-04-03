@@ -60,7 +60,7 @@ Read the file(s) specified. Detect the document type from content:
 | NPV, BCR, discount rate, appraisal period | CBA | Green Book / EU Guide / OMB A-4 |
 | Output multiplier, employment multiplier, IO model | Impact assessment | ONS IOAT, Flegg et al., HMT Additionality |
 | Borrowing, debt, receipts, PSNB | Fiscal briefing | OBR methodology, fiscal rules |
-| GDP, inflation, unemployment, CPI | Macro briefing | ONS methodology, academic standards |
+| GDP, inflation, unemployment, CPI | Macro briefing | ONS methodology, data quality standards |
 | Yield curve, duration, convexity | Financial analysis | Fixed income conventions |
 
 Also look for the hidden `<!-- KEY NUMBERS -->` block or companion JSON file. If found, parse it for structured data to cross-check against the prose.
@@ -112,6 +112,7 @@ Run every applicable check from the master checklist below. Each check produces 
 | C4 | Is Monte Carlo / probabilistic analysis included for projects > £100m PV? | AMBER |
 | C5 | Are switching values computed and interpreted correctly? (direction must match NPV sign) | RED |
 | C6 | Does the sensitivity analysis cover a meaningful range (not just +/-5%)? | AMBER |
+| C7 | Are residual values unreasonably high? (flag if residual > 15% of capex for assets with 60+ year appraisal periods; > 20% for shorter periods) | AMBER |
 
 #### D. Additionality
 
@@ -132,6 +133,8 @@ Run every applicable check from the master checklist below. Each check produces 
 | E3 | If both economic AND financial analysis are presented, are transfers handled differently in each? | AMBER |
 | E4 | Are wider economic impacts (agglomeration, labour supply) presented separately from core benefits? | AMBER |
 | E5 | Is there clear separation between gross and net figures throughout? | AMBER |
+| E6 | Are sunk costs included? (costs already incurred that cannot be recovered should be excluded from the appraisal) | RED |
+| E7 | Is the counterfactual (Do Nothing) static? (it should evolve over time to reflect deterioration, demand growth, committed policies, not be fixed at the current state) | AMBER |
 
 #### F. Multiplier and IO model checks (impact assessments)
 
@@ -160,6 +163,8 @@ Run every applicable check from the master checklist below. Each check produces 
 | G8 | Are incremental costs/benefits shown when comparing 3+ options? | AMBER |
 | G9 | Is the methodology section sufficient for a reviewer to replicate the analysis? | AMBER |
 | G10 | Are references provided to the framework and supplementary guidance used? | AMBER |
+| G11 | Are all benefits independent? (flag if benefit B depends on benefit A materialising first, creating a dependency chain that inflates total benefits) | AMBER |
+| G12 | Are real and nominal values mixed in the same table or computation? (all values must be in consistent price terms) | RED |
 
 #### H. Sector-specific checks
 
@@ -193,6 +198,22 @@ Run every applicable check from the master checklist below. Each check produces 
 | I3 | Benefit optimism: are benefit estimates consistent with ex-post evaluations of similar projects? (Flyvbjerg 2005 found benefits overestimated by 50% on average for transport) | AMBER |
 | I4 | Discount rate justification: does the chosen rate align with the Ramsey formula parameters for the relevant economy? | AMBER |
 | I5 | Does the analysis acknowledge key empirical findings relevant to the project type (e.g., Crompton 1995 on sports facility overestimation, Venables 2007 on agglomeration)? | AMBER |
+| I6 | For residual values: is the assumed remaining asset life consistent with engineering benchmarks for this asset type? (e.g., bridges 100-120 years, buildings 60 years, IT systems 5-10 years) | AMBER |
+
+#### J. Data quality and interpretation (macro briefings)
+
+| # | Check | Severity if failed |
+|---|-------|--------------------|
+| J1 | Is the data freshness stated? (date of latest data point for each indicator must be visible) | AMBER |
+| J2 | Are seasonal adjustments consistently applied? (do not mix SA and NSA series in comparisons) | RED |
+| J3 | Is the unemployment rate the ILO measure (not claimant count)? These are different concepts. | AMBER |
+| J4 | Is CPI or CPIH specified? (ONS lead measure is now CPIH; if using CPI, note the distinction) | AMBER |
+| J5 | Are real wages correctly computed? (nominal wage growth minus CPI inflation, not divided by CPI) | RED |
+| J6 | Is the GDP measure specified? (quarterly growth, annual growth, or level; q/q and y/y must not be confused) | AMBER |
+| J7 | Are labour market figures described as 3-month rolling averages (not point-in-time monthly data)? | AMBER |
+| J8 | Are comparisons like-for-like? (q/q compared to q/q, not q/q compared to y/y) | RED |
+| J9 | Are pre-pandemic comparisons dated? (specify which quarter/year, not just "pre-pandemic levels") | AMBER |
+| J10 | Are forward-looking statements clearly attributed? (BoE, OBR, market expectations; not presented as fact) | AMBER |
 
 ### Step 3: Present the scorecard
 
@@ -208,15 +229,16 @@ SCORECARD
 Category                    RED   AMBER   GREEN   Score
 A. Numerical consistency     0      1       9     9/10
 B. Discount rate & horizon   0      0       7     7/7
-C. Optimism bias & risk      1      2       3     3/6
+C. Optimism bias & risk      1      2       4     4/7
 D. Additionality             0      1       4     4/5
-E. Double counting           0      0       5     5/5
+E. Double counting           0      0       7     7/7
 F. Multiplier/IO model       -      -       -     n/a
-G. Framing & interpretation  0      3       7     7/10
+G. Framing & interpretation  0      3       9     9/12
 H. Sector-specific           0      1       3     3/4
-I. Academic/empirical        0      2       3     3/5
+I. Academic/empirical        0      2       4     4/6
+J. Data quality (macro)      0      0      10    10/10
 -------------------------------------------------
-OVERALL                      1     10      41    41/52
+OVERALL                      1     10      57    57/68
 
 GRADE: [A / B / C / D / F]
   A (90%+):  Publication-ready. Minor improvements possible.
@@ -224,6 +246,20 @@ GRADE: [A / B / C / D / F]
   C (60-74%): Adequate but has gaps. Needs revision.
   D (40-59%): Significant issues. Major revision required.
   F (<40%):   Fundamental errors. Redo the analysis.
+
+Grade capping rules (override the mechanical percentage):
+- If 1-2 RED issues exist: grade is capped at C (regardless of overall %).
+- If 3-4 RED issues exist: grade is capped at D.
+- If 5+ RED issues exist: grade is F.
+
+A single RED error (e.g., wrong discount rate applied to all 60 years) is a
+fundamental methodological failure. It should not be masked by passing all
+other checks. These caps ensure the grade reflects the severity of issues,
+not just their quantity.
+
+Note: Category F applies only to impact assessments. Category J applies only
+to macro briefings. Categories not applicable to the document type are marked
+n/a and excluded from the score calculation.
 ```
 
 Then list each non-GREEN issue:
@@ -396,5 +432,6 @@ The audit draws on these sources. Cite them when flagging issues:
 - Cross-check every number you can. Recompute NPV, BCR, and switching values independently and compare.
 - If a companion JSON file exists, verify every number in the prose against the JSON. Mismatches between prose and data are RED.
 - Be precise about which academic finding supports each flag. Do not vaguely cite "the literature."
-- The grade is mechanical (% of checks that pass). Do not override it with subjective judgment.
+- The grade is mechanical (% of checks that pass) with RED caps applied. If any RED issues exist, the grade is capped at C regardless of overall percentage. If 3+ RED issues exist, capped at D. If 5+ RED, grade is F. Do not override with subjective judgment beyond these caps.
 - If the document type is not recognized, tell the user and ask what type of analysis it is.
+- If the document references hardcoded values (TAG rates, carbon prices, QALY values, median incomes), check their vintage. Flag as AMBER if more than 12 months old with: "[Value] dated [year] may be outdated. Verify against latest [source]."
