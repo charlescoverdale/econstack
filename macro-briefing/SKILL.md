@@ -169,121 +169,199 @@ Fetch international data from three sources in priority order:
 2. **ECB** (via readecb): best for Euro area data. No API key required.
 3. **OECD** (via readoecd): best for cross-country comparisons and countries not covered by FRED/ECB. No API key required. Use as backup when FRED is unavailable.
 
+**FRED series codes for the top 30 economies:**
+
+FRED hosts OECD Main Economic Indicators (MEI) series for most major economies using standardised code patterns. The key patterns are:
+
+| Indicator | FRED code pattern | Example (Germany) |
+|-----------|------------------|-------------------|
+| Real GDP (quarterly) | NAEXKP01{CC}Q189S | NAEXKP01DEQ189S |
+| CPI (monthly) | CPALTT01{CC}M661N | CPALTT01DEM661N |
+| Unemployment (monthly) | LRUNTTTT{CC}M156S | LRUNTTTTDEM156S |
+| Policy rate (monthly) | IRSTCB01{CC}M156N | IRSTCB01DEM156N |
+
+Where {CC} is the 2-letter ISO country code. Exceptions noted in the table below.
+
+| # | Economy | ISO | FRED GDP | FRED CPI | FRED Unemployment | OECD code | Notes |
+|---|---------|-----|----------|----------|-------------------|-----------|-------|
+| 1 | United States | US | A191RL1Q225SBEA | CPIAUCSL | UNRATE | USA | GDP is BEA annualized; also fetch PCEPI, FEDFUNDS, GS10 |
+| 2 | China | CN | CHNRGDPEXP | CHNCPIALLMINMEI | LRUN64TTCNM156S | CHN | Urban surveyed unemployment only |
+| 3 | Germany | DE | NAEXKP01DEQ189S | CPALTT01DEM661N | LRUNTTTTDEM156S | DEU | |
+| 4 | Japan | JP | JPNRGDPEXP | JPNCPIALLMINMEI | LRUNTTTTJPM156S | JPN | Also IRSTCB01JPM156N for BOJ rate |
+| 5 | India | IN | NAEXKP01INQ189S | CPALTT01INM661N | LRUNTTTTINM156S | IND | Unemployment data patchy on FRED; OECD backup |
+| 6 | United Kingdom | GB | - | - | - | GBR | UK data from ons/boe packages (primary briefing) |
+| 7 | France | FR | NAEXKP01FRQ189S | CPALTT01FRM661N | LRUNTTTTFRM156S | FRA | |
+| 8 | Italy | IT | NAEXKP01ITQ189S | CPALTT01ITM661N | LRUNTTTTITM156S | ITA | |
+| 9 | Brazil | BR | NAEXKP01BRQ189S | CPALTT01BRM661N | LRUNTTTTBRM156S | BRA | |
+| 10 | Canada | CA | NAEXKP01CAQ189S | CPALTT01CAM661N | LRUNTTTTCAM156S | CAN | Also IRSTCB01CAM156N for BOC rate |
+| 11 | Russia | RU | NAEXKP01RUQ189S | CPALTT01RUM661N | LRUNTTTTRUM156S | RUS | Data may be incomplete post-2022 |
+| 12 | South Korea | KR | NAEXKP01KRQ189S | CPALTT01KRM661N | LRUNTTTTKRM156S | KOR | Also IRSTCB01KRM156N for BOK rate |
+| 13 | Australia | AU | NAEXKP01AUQ189S | CPALTT01AUM661N | LRUNTTTTAUM156S | AUS | Also IRSTCB01AUM156N for RBA rate |
+| 14 | Mexico | MX | NAEXKP01MXQ189S | CPALTT01MXM661N | LRUNTTTTMXM156S | MEX | |
+| 15 | Spain | ES | NAEXKP01ESQ189S | CPALTT01ESM661N | LRUNTTTTESM156S | ESP | |
+| 16 | Indonesia | ID | NAEXKP01IDQ189S | CPALTT01IDM661N | LRUNTTTTIDM156S | IDN | Quarterly unemployment only |
+| 17 | Netherlands | NL | NAEXKP01NLQ189S | CPALTT01NLM661N | LRUNTTTTNLM156S | NLD | |
+| 18 | Saudi Arabia | SA | - | CPALTT01SAM661N | - | SAU | GDP via OECD only; limited FRED coverage |
+| 19 | Turkey | TR | NAEXKP01TRQ189S | CPALTT01TRM661N | LRUNTTTTTRM156S | TUR | |
+| 20 | Switzerland | CH | NAEXKP01CHQ189S | CPALTT01CHM661N | LRUNTTTTCHM156S | CHE | Also IRSTCB01CHM156N for SNB rate |
+| 21 | Poland | PL | NAEXKP01PLQ189S | CPALTT01PLM661N | LRUNTTTTPLM156S | POL | |
+| 22 | Taiwan | TW | - | - | - | - | Not on FRED or OECD; skip |
+| 23 | Belgium | BE | NAEXKP01BEQ189S | CPALTT01BEM661N | LRUNTTTTBEM156S | BEL | |
+| 24 | Sweden | SE | NAEXKP01SEQ189S | CPALTT01SEM661N | LRUNTTTTSEM156S | SWE | Also IRSTCB01SEM156N for Riksbank rate |
+| 25 | Argentina | AR | NAEXKP01ARQ189S | CPALTT01ARM661N | LRUNTTTTARM156S | ARG | CPI data unreliable pre-2017 |
+| 26 | Ireland | IE | NAEXKP01IEQ189S | CPALTT01IEM661N | LRUNTTTTIEM156S | IRL | GDP distorted by multinationals; modified domestic demand (GNI*) preferred |
+| 27 | Norway | NO | NAEXKP01NOQ189S | CPALTT01NOM661N | LRUNTTTTNOM156S | NOR | Also IRSTCB01NOM156N for Norges Bank rate |
+| 28 | Israel | IL | NAEXKP01ILQ189S | CPALTT01ILM661N | LRUNTTTTILM156S | ISR | |
+| 29 | Austria | AT | NAEXKP01ATQ189S | CPALTT01ATM661N | LRUNTTTTATM156S | AUT | |
+| 30 | Nigeria | NG | - | - | - | - | Not on FRED MEI; skip |
+
 ```bash
 Rscript -e '
   library(jsonlite)
   intl <- list()
 
-  # --- US data via FRED (primary source for US) ---
+  # ================================================================
+  # FRED: fetch top 30 economies using standardised MEI series codes
+  # ================================================================
   if (requireNamespace("fred", quietly = TRUE)) {
-    tryCatch({
-      library(fred)
-      intl$us <- list(
-        gdp       = tail(fred_series("A191RL1Q225SBEA"), 8),   # Real GDP growth (quarterly, annualized)
-        cpi       = tail(fred_series("CPIAUCSL"), 12),          # CPI-U (monthly, index)
-        pce       = tail(fred_series("PCEPI"), 12),             # PCE price index (monthly)
-        unemployment = tail(fred_series("UNRATE"), 12),         # Unemployment rate
-        fed_rate  = tail(fred_series("FEDFUNDS"), 12),          # Fed Funds effective rate
-        treasury_10y = tail(fred_series("GS10"), 12)            # 10-year Treasury yield
-      )
-    }, error = function(e) message("FRED fetch failed: ", e$message))
+    library(fred)
+
+    # Country definitions: name, ISO, GDP code, CPI code, unemployment code, policy rate code (if available)
+    countries <- list(
+      list(key="us", name="United States",
+           gdp="A191RL1Q225SBEA", cpi="CPIAUCSL", unemp="UNRATE",
+           rate="FEDFUNDS", extras=list(pce="PCEPI", treasury_10y="GS10")),
+      list(key="china", name="China",
+           gdp="CHNRGDPEXP", cpi="CHNCPIALLMINMEI", unemp="LRUN64TTCNM156S"),
+      list(key="germany", name="Germany",
+           gdp="NAEXKP01DEQ189S", cpi="CPALTT01DEM661N", unemp="LRUNTTTTDEM156S"),
+      list(key="japan", name="Japan",
+           gdp="JPNRGDPEXP", cpi="JPNCPIALLMINMEI", unemp="LRUNTTTTJPM156S",
+           rate="IRSTCB01JPM156N"),
+      list(key="india", name="India",
+           gdp="NAEXKP01INQ189S", cpi="CPALTT01INM661N", unemp="LRUNTTTTINM156S"),
+      list(key="france", name="France",
+           gdp="NAEXKP01FRQ189S", cpi="CPALTT01FRM661N", unemp="LRUNTTTTFRM156S"),
+      list(key="italy", name="Italy",
+           gdp="NAEXKP01ITQ189S", cpi="CPALTT01ITM661N", unemp="LRUNTTTTITM156S"),
+      list(key="brazil", name="Brazil",
+           gdp="NAEXKP01BRQ189S", cpi="CPALTT01BRM661N", unemp="LRUNTTTTBRM156S"),
+      list(key="canada", name="Canada",
+           gdp="NAEXKP01CAQ189S", cpi="CPALTT01CAM661N", unemp="LRUNTTTTCAM156S",
+           rate="IRSTCB01CAM156N"),
+      list(key="russia", name="Russia",
+           gdp="NAEXKP01RUQ189S", cpi="CPALTT01RUM661N", unemp="LRUNTTTTRUM156S"),
+      list(key="south_korea", name="South Korea",
+           gdp="NAEXKP01KRQ189S", cpi="CPALTT01KRM661N", unemp="LRUNTTTTKRM156S",
+           rate="IRSTCB01KRM156N"),
+      list(key="australia", name="Australia",
+           gdp="NAEXKP01AUQ189S", cpi="CPALTT01AUM661N", unemp="LRUNTTTTAUM156S",
+           rate="IRSTCB01AUM156N"),
+      list(key="mexico", name="Mexico",
+           gdp="NAEXKP01MXQ189S", cpi="CPALTT01MXM661N", unemp="LRUNTTTTMXM156S"),
+      list(key="spain", name="Spain",
+           gdp="NAEXKP01ESQ189S", cpi="CPALTT01ESM661N", unemp="LRUNTTTTESM156S"),
+      list(key="indonesia", name="Indonesia",
+           gdp="NAEXKP01IDQ189S", cpi="CPALTT01IDM661N", unemp="LRUNTTTTIDM156S"),
+      list(key="netherlands", name="Netherlands",
+           gdp="NAEXKP01NLQ189S", cpi="CPALTT01NLM661N", unemp="LRUNTTTTNLM156S"),
+      list(key="saudi_arabia", name="Saudi Arabia",
+           cpi="CPALTT01SAM661N"),
+      list(key="turkey", name="Turkey",
+           gdp="NAEXKP01TRQ189S", cpi="CPALTT01TRM661N", unemp="LRUNTTTTTRM156S"),
+      list(key="switzerland", name="Switzerland",
+           gdp="NAEXKP01CHQ189S", cpi="CPALTT01CHM661N", unemp="LRUNTTTTCHM156S",
+           rate="IRSTCB01CHM156N"),
+      list(key="poland", name="Poland",
+           gdp="NAEXKP01PLQ189S", cpi="CPALTT01PLM661N", unemp="LRUNTTTTPLM156S"),
+      list(key="belgium", name="Belgium",
+           gdp="NAEXKP01BEQ189S", cpi="CPALTT01BEM661N", unemp="LRUNTTTTBEM156S"),
+      list(key="sweden", name="Sweden",
+           gdp="NAEXKP01SEQ189S", cpi="CPALTT01SEM661N", unemp="LRUNTTTTSEM156S",
+           rate="IRSTCB01SEM156N"),
+      list(key="argentina", name="Argentina",
+           gdp="NAEXKP01ARQ189S", cpi="CPALTT01ARM661N", unemp="LRUNTTTTARM156S"),
+      list(key="ireland", name="Ireland",
+           gdp="NAEXKP01IEQ189S", cpi="CPALTT01IEM661N", unemp="LRUNTTTTIEM156S"),
+      list(key="norway", name="Norway",
+           gdp="NAEXKP01NOQ189S", cpi="CPALTT01NOM661N", unemp="LRUNTTTTNOM156S",
+           rate="IRSTCB01NOM156N"),
+      list(key="israel", name="Israel",
+           gdp="NAEXKP01ILQ189S", cpi="CPALTT01ILM661N", unemp="LRUNTTTTILM156S"),
+      list(key="austria", name="Austria",
+           gdp="NAEXKP01ATQ189S", cpi="CPALTT01ATM661N", unemp="LRUNTTTTATM156S")
+    )
+
+    for (c in countries) {
+      tryCatch({
+        d <- list()
+        if (!is.null(c$gdp))   d$gdp          <- tail(fred_series(c$gdp), 8)
+        if (!is.null(c$cpi))   d$cpi          <- tail(fred_series(c$cpi), 12)
+        if (!is.null(c$unemp)) d$unemployment <- tail(fred_series(c$unemp), 12)
+        if (!is.null(c$rate))  d$policy_rate  <- tail(fred_series(c$rate), 12)
+        if (!is.null(c$extras)) {
+          for (nm in names(c$extras)) {
+            d[[nm]] <- tail(fred_series(c$extras[[nm]]), 12)
+          }
+        }
+        if (length(d) > 0) intl[[c$key]] <- d
+      }, error = function(e) message(c$name, " FRED fetch failed: ", e$message))
+    }
   }
 
-  # --- Japan via FRED ---
-  if (requireNamespace("fred", quietly = TRUE) && !is.null(intl$us)) {
-    tryCatch({
-      intl$japan <- list(
-        gdp       = tail(fred_series("JPNRGDPEXP"), 8),        # Japan real GDP (quarterly)
-        cpi       = tail(fred_series("JPNCPIALLMINMEI"), 12),   # Japan CPI
-        unemployment = tail(fred_series("LRUNTTTTJPM156S"), 12),# Japan unemployment
-        policy_rate = tail(fred_series("IRSTCB01JPM156N"), 12)  # BOJ policy rate
-      )
-    }, error = function(e) message("Japan FRED fetch failed: ", e$message))
-  }
-
-  # --- China via FRED ---
-  if (requireNamespace("fred", quietly = TRUE) && !is.null(intl$us)) {
-    tryCatch({
-      intl$china <- list(
-        gdp       = tail(fred_series("CHNRGDPEXP"), 8),        # China real GDP (quarterly)
-        cpi       = tail(fred_series("CHNCPIALLMINMEI"), 12),   # China CPI
-        unemployment = tail(fred_series("LRUN64TTCNM156S"), 12) # China urban unemployment
-      )
-    }, error = function(e) message("China FRED fetch failed: ", e$message))
-  }
-
-  # --- Canada via FRED ---
-  if (requireNamespace("fred", quietly = TRUE) && !is.null(intl$us)) {
-    tryCatch({
-      intl$canada <- list(
-        gdp       = tail(fred_series("NAEXKP01CAQ189S"), 8),   # Canada real GDP (quarterly)
-        cpi       = tail(fred_series("CPALTT01CAM661N"), 12),   # Canada CPI
-        unemployment = tail(fred_series("LRUNTTTTCAM156S"), 12),# Canada unemployment
-        policy_rate = tail(fred_series("IRSTCB01CAM156N"), 12)  # BOC policy rate
-      )
-    }, error = function(e) message("Canada FRED fetch failed: ", e$message))
-  }
-
-  # --- Australia via FRED ---
-  if (requireNamespace("fred", quietly = TRUE) && !is.null(intl$us)) {
-    tryCatch({
-      intl$australia <- list(
-        gdp       = tail(fred_series("NAEXKP01AUQ189S"), 8),   # Australia real GDP (quarterly)
-        cpi       = tail(fred_series("CPALTT01AUM661N"), 12),   # Australia CPI
-        unemployment = tail(fred_series("LRUNTTTTAUM156S"), 12),# Australia unemployment
-        policy_rate = tail(fred_series("IRSTCB01AUM156N"), 12)  # RBA cash rate
-      )
-    }, error = function(e) message("Australia FRED fetch failed: ", e$message))
-  }
-
-  # --- Euro area via ECB (primary source for EA) ---
+  # ================================================================
+  # ECB: Euro area aggregate (primary source, more timely than FRED)
+  # ================================================================
   if (requireNamespace("readecb", quietly = TRUE)) {
     tryCatch({
       library(readecb)
       intl$euro_area <- list(
-        gdp       = tail(ecb_get("MNA.Q.Y.I8.W2.S1.S1.B.B1GQ._Z._Z._Z.EUR.LR.GY"), 8),
-        hicp      = tail(ecb_get("ICP.M.U2.N.000000.4.ANR"), 12),
+        gdp          = tail(ecb_get("MNA.Q.Y.I8.W2.S1.S1.B.B1GQ._Z._Z._Z.EUR.LR.GY"), 8),
+        hicp         = tail(ecb_get("ICP.M.U2.N.000000.4.ANR"), 12),
         unemployment = tail(ecb_get("STS.M.I8.S.UNEH.RTT000.4.000"), 12),
-        ecb_rate  = tail(ecb_get("FM.D.U2.EUR.4F.KR.MRR_FR.LEV"), 30)
+        ecb_rate     = tail(ecb_get("FM.D.U2.EUR.4F.KR.MRR_FR.LEV"), 30)
       )
     }, error = function(e) message("ECB fetch failed: ", e$message))
   }
 
-  # --- OECD aggregates and backup (for G7, OECD totals, and any country FRED missed) ---
+  # ================================================================
+  # OECD: aggregates (G7, OECD, G20) and backup for missing countries
+  # ================================================================
   if (requireNamespace("readoecd", quietly = TRUE)) {
     tryCatch({
       library(readoecd)
-      # G7 and OECD aggregate GDP growth
-      intl$oecd <- list(
-        gdp_g7    = tail(get_oecd_gdp("G-7"), 8),
-        gdp_oecd  = tail(get_oecd_gdp("OECD"), 8),
-        cpi_g7    = tail(get_oecd_cpi("G-7"), 12),
-        cpi_oecd  = tail(get_oecd_cpi("OECD"), 12),
-        unemp_g7  = tail(get_oecd_unemployment("G-7"), 12),
+      intl$aggregates <- list(
+        gdp_g7     = tail(get_oecd_gdp("G-7"), 8),
+        gdp_g20    = tail(get_oecd_gdp("G-20"), 8),
+        gdp_oecd   = tail(get_oecd_gdp("OECD"), 8),
+        cpi_g7     = tail(get_oecd_cpi("G-7"), 12),
+        cpi_oecd   = tail(get_oecd_cpi("OECD"), 12),
+        unemp_g7   = tail(get_oecd_unemployment("G-7"), 12),
         unemp_oecd = tail(get_oecd_unemployment("OECD"), 12)
       )
 
-      # Fill gaps: if any country was missed by FRED, try OECD
-      if (is.null(intl$japan)) {
-        intl$japan <- list(
-          gdp = tail(get_oecd_gdp("JPN"), 8),
-          cpi = tail(get_oecd_cpi("JPN"), 12),
-          unemployment = tail(get_oecd_unemployment("JPN"), 12)
-        )
-      }
-      if (is.null(intl$canada)) {
-        intl$canada <- list(
-          gdp = tail(get_oecd_gdp("CAN"), 8),
-          cpi = tail(get_oecd_cpi("CAN"), 12),
-          unemployment = tail(get_oecd_unemployment("CAN"), 12)
-        )
-      }
-      if (is.null(intl$australia)) {
-        intl$australia <- list(
-          gdp = tail(get_oecd_gdp("AUS"), 8),
-          cpi = tail(get_oecd_cpi("AUS"), 12),
-          unemployment = tail(get_oecd_unemployment("AUS"), 12)
-        )
+      # Fill any country that FRED missed (no API key, or series unavailable)
+      oecd_backfill <- list(
+        japan     = "JPN", india     = "IND", france    = "FRA",
+        italy     = "ITA", brazil    = "BRA", canada    = "CAN",
+        south_korea = "KOR", australia = "AUS", mexico  = "MEX",
+        spain     = "ESP", indonesia = "IDN", netherlands = "NLD",
+        turkey    = "TUR", switzerland = "CHE", poland  = "POL",
+        belgium   = "BEL", sweden    = "SWE", ireland  = "IRL",
+        norway    = "NOR", israel    = "ISR", austria  = "AUT",
+        germany   = "DEU", argentina = "ARG"
+      )
+      for (key in names(oecd_backfill)) {
+        if (is.null(intl[[key]])) {
+          cc <- oecd_backfill[[key]]
+          tryCatch({
+            intl[[key]] <- list(
+              gdp          = tail(get_oecd_gdp(cc), 8),
+              cpi          = tail(get_oecd_cpi(cc), 12),
+              unemployment = tail(get_oecd_unemployment(cc), 12)
+            )
+          }, error = function(e) NULL)
+        }
       }
     }, error = function(e) message("OECD fetch failed: ", e$message))
   }
@@ -502,34 +580,60 @@ Public sector net debt stands at [val]% of GDP (£[val]bn). Debt interest paymen
 ```markdown
 ## International Comparison
 
-### Major economies
+### G7 economies
 
-| Indicator | UK | US | Euro area | Japan | China | Canada | Australia | G7 avg |
-|-----------|----|----|-----------|-------|-------|--------|-----------|--------|
+| Indicator | UK | US | Germany | Japan | France | Italy | Canada | G7 avg |
+|-----------|----|----|---------|-------|--------|-------|--------|--------|
 | GDP growth | [val]% | [val]% | [val]% | [val]% | [val]% | [val]% | [val]% | [val]% |
 | Inflation | [val]% | [val]% | [val]% | [val]% | [val]% | [val]% | [val]% | [val]% |
 | Unemployment | [val]% | [val]% | [val]% | [val]% | [val]% | [val]% | [val]% | [val]% |
-| Policy rate | [val]% | [val]% | [val]% | [val]% | - | [val]% | [val]% | - |
+| Policy rate | [val]% | [val]% | ECB [val]% | [val]% | ECB [val]% | ECB [val]% | [val]% | - |
 
-[Only include columns for countries where data was successfully retrieved. If a country was skipped (package missing or fetch failed), omit the column rather than showing blanks.]
+### Major emerging and other advanced economies
+
+| Indicator | China | India | Brazil | S. Korea | Australia | Mexico | Indonesia | Turkey |
+|-----------|-------|-------|--------|----------|-----------|--------|-----------|--------|
+| GDP growth | [val]% | [val]% | [val]% | [val]% | [val]% | [val]% | [val]% | [val]% |
+| Inflation | [val]% | [val]% | [val]% | [val]% | [val]% | [val]% | [val]% | [val]% |
+| Unemployment | [val]% | [val]% | [val]% | [val]% | [val]% | [val]% | [val]% | [val]% |
+
+### European peers
+
+| Indicator | UK | Germany | France | Spain | Netherlands | Switzerland | Sweden | Poland |
+|-----------|----|----|---------|-------|-------------|-------------|--------|--------|
+| GDP growth | [val]% | [val]% | [val]% | [val]% | [val]% | [val]% | [val]% | [val]% |
+| Inflation | [val]% | [val]% | [val]% | [val]% | [val]% | [val]% | [val]% | [val]% |
+| Unemployment | [val]% | [val]% | [val]% | [val]% | [val]% | [val]% | [val]% | [val]% |
+
+### Aggregates
+
+| Indicator | UK | G7 | G20 | OECD | Euro area |
+|-----------|----|----|-----|------|-----------|
+| GDP growth | [val]% | [val]% | [val]% | [val]% | [val]% |
+| Inflation | [val]% | [val]% | - | [val]% | [val]% |
+| Unemployment | [val]% | [val]% | - | [val]% | [val]% |
+
+[Only include rows/columns for countries where data was successfully retrieved. Omit countries rather than showing blanks. If fewer than 4 countries available in a sub-table, merge into the table above it.]
 
 ### Interpretation
 
 [Address these questions:
-- Where is the UK in the global cycle? (leading, lagging, or in line with peers)
-- Are policy rates converging or diverging? (implications for GBP and capital flows)
-- Is the UK an outlier on any indicator? (e.g., higher inflation than peers, weaker growth)
-- What are the trade implications? (UK's major trading partners are the EU, US, and China)]
+- Where is the UK in the global cycle? (leading, lagging, or in line with G7 peers)
+- How does the UK compare to its European peers specifically? (post-Brexit divergence or convergence)
+- Are policy rates converging or diverging across major central banks? (implications for GBP and capital flows)
+- Is the UK an outlier on any indicator? (e.g., higher inflation than peers, weaker growth, tighter labour market)
+- What are the trade-weighted implications? (UK's major partners: EU ~42% of trade, US ~16%, China ~7%)]
 
 ### Data sources and comparability notes
 
-- GDP: quarterly real growth rates. US reports annualized; others report q/q. Comparisons use q/q where possible.
-- Inflation: CPI for UK/Japan/Canada/Australia, PCE for US (the Fed's preferred measure; CPI-U also available), HICP for Euro area, CPI for China. Direct comparison requires caution as basket weights differ.
-- Unemployment: ILO definition for UK/Euro area/Japan/Canada/Australia. US uses BLS definition (similar to ILO). China uses surveyed urban unemployment (narrower scope).
-- Policy rates: Bank Rate (UK), Fed Funds target midpoint (US), ECB main refinancing rate (Euro area), BOJ overnight call rate (Japan), BOC overnight rate (Canada), RBA cash rate (Australia).
-- G7/OECD averages from OECD Economic Outlook database via readoecd package.
+- GDP: quarterly real growth rates. US reports annualized (divide by ~4 for approximate q/q comparison); all others report q/q. OECD data standardised to q/q.
+- Inflation: CPI for most countries, PCE for US (Fed's preferred measure), HICP for Euro area and individual EU members. Basket weights and methodologies differ across jurisdictions.
+- Unemployment: ILO harmonised definition for OECD countries. China uses surveyed urban unemployment (narrower scope). India data has longer publication lags.
+- Policy rates: Bank Rate (UK), Fed Funds (US), ECB main refinancing rate (Euro area members), BOJ (Japan), BOC (Canada), RBA (Australia), Riksbank (Sweden), SNB (Switzerland), BOK (South Korea), Norges Bank (Norway).
+- Aggregates: G7, G20, and OECD totals from OECD Economic Outlook database.
+- Countries not covered: Taiwan (not on FRED or OECD), Nigeria (limited FRED coverage), Saudi Arabia (GDP via OECD only).
 
-*Data sources: FRED (US, Japan, China, Canada, Australia), ECB Statistical Data Warehouse (Euro area), OECD (G7/OECD aggregates and backup). ONS and BoE for UK data.*
+*Data sources: FRED (27 countries via OECD MEI series), ECB Statistical Data Warehouse (Euro area aggregate), OECD (G7/G20/OECD aggregates and backup for missing countries). ONS and BoE for UK data.*
 ```
 
 **Outlook and risks:**
