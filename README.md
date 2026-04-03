@@ -317,9 +317,51 @@ All data is benchmarked against the LA's own country (not just England). A Scott
 
 ---
 
+### `/cost-benefit`
+
+Green Book cost-benefit analysis, with support for 8 international frameworks.
+
+```
+/cost-benefit
+/cost-benefit --framework eu
+/cost-benefit --from assumptions.json --full --format xlsx,pdf
+```
+
+Interactive options appraisal: define your options (do nothing, do minimum, preferred), enter costs and benefits (summary figures, year-by-year, or describe in plain English), and the skill handles the rest. Or skip the questions entirely with `--from file.json`.
+
+**8 frameworks:** UK Green Book, EU Cohesion Policy, US OMB A-4, World Bank, Australian Government, NZ Treasury CBAx, EIB, ADB. Auto-detected from your project description.
+
+**What it computes:**
+- Correct declining discount rate schedule (framework-specific)
+- Optimism bias by project type and stage (SOC/OBC/FBC)
+- S-curve capital phasing, benefit ramp-up, whole-life costing
+- Additionality adjustments (deadweight, displacement, leakage)
+- Carbon valuation (DESNZ, EIB, or EPA prices)
+- Switching values (correctly interpreted for positive and negative NPV)
+- Sensitivity analysis (+/-20%) and optional Monte Carlo (10,000 iterations)
+- Incremental analysis between options
+- Distributional welfare weights and place-based adjustments
+- TAG transport values, QALY/DALY health values (country-specific)
+
+**Output formats:** Markdown, Excel (IB-style blue inputs, linked formulas, heat-map sensitivity), Word, PowerPoint, PDF. Chain with `--audit` to auto-run `/econ-audit` on the output.
+
+### `/econ-audit`
+
+Audit any economic analysis output against methodology standards and academic literature.
+
+```
+/econ-audit cba-london-bridge-2026-04-03.md
+/econ-audit impact-report-manchester-2026-04-03.md --strict
+/econ-audit . --fix
+```
+
+Reads your CBA, impact assessment, fiscal briefing, or macro briefing. Runs 60+ checks across 10 categories: numerical consistency, discount rates, optimism bias, additionality, double counting, multiplier plausibility, framing, sector-specific (TAG, QALY, carbon), academic benchmarks (Flyvbjerg cost overruns, Moretti multipliers), and data quality.
+
+Each issue is graded RED (must fix), AMBER (should address), or GREEN (pass). Every RED issue includes a concrete fix and a specific reference. Letter grade A through F, with RED issues capping the grade at C or below. Option to auto-fix and recompute.
+
 ### `/macro-briefing`
 
-UK macroeconomic monitor. GDP, inflation, employment, wages, monetary conditions, fiscal position, trade, housing.
+UK macroeconomic monitor with international comparison across the top 30 economies.
 
 ```
 /macro-briefing
@@ -328,7 +370,11 @@ UK macroeconomic monitor. GDP, inflation, employment, wages, monetary conditions
 /macro-briefing --international
 ```
 
-Follows the Bank of England Monetary Policy Report narrative structure: output, labour market, prices, monetary conditions, fiscal, trade, housing, outlook. Uses `ons` (16 functions) + `boe` (11 functions) + `obr` (15 functions).
+Follows the Bank of England Monetary Policy Report narrative structure: output, labour market, prices, wages, financial conditions, monetary policy, fiscal, trade, housing, outlook.
+
+**UK data** from `ons` and `boe` R packages: GDP, monthly GDP, unemployment, employment, inactivity, vacancies, wages, CPI, CPIH, core CPI, retail sales, trade, public finances, productivity, house prices, Bank Rate, gilt yields, SONIA, mortgage approvals, exchange rates.
+
+**International data** (with `--international`): 27 countries via FRED, Euro area via ECB, G7/G20/OECD aggregates via readoecd. Covers the US, China, Germany, Japan, India, France, Italy, Brazil, Canada, Russia, South Korea, Australia, Mexico, Spain, Indonesia, Netherlands, Turkey, Switzerland, Poland, Belgium, Sweden, Argentina, Ireland, Norway, Israel, Austria, and Saudi Arabia.
 
 ### `/fiscal-briefing`
 
@@ -339,25 +385,14 @@ UK public finances briefing: borrowing, debt, receipts, spending, fiscal rules.
 /fiscal-briefing --full
 ```
 
-Covers: current PSNB/PSND vs OBR forecast, tax receipts breakdown, expenditure and debt interest, fiscal rules headroom (PSNFL target), and outlook. Uses `obr` (15 functions) + `ons`, or falls back to direct ONS web fetch if R is not available.
-
-### `/cost-benefit`
-
-Green Book cost-benefit analysis. Discounting, NPV, BCR, optimism bias, sensitivity, switching values.
-
-```
-/cost-benefit
-/cost-benefit --framework eu
-```
-
-Interactive options appraisal: define your options (do nothing, do minimum, preferred), enter costs and benefits (summary figures, year-by-year, or plain English descriptions), and the skill handles the computation. Correct declining discount rate schedule (3.5% years 0-30, 3.0% years 31-75, 2.5% years 76+), optimism bias by project type, additionality adjustments, sensitivity analysis (+/-20%), and switching values. Output matches the Five Case Model economic case structure. No R required.
+Covers: current PSNB/PSND vs OBR forecast, tax receipts breakdown, expenditure and debt interest, fiscal rules headroom (PSNFL target), and outlook. Uses `obr` (15 functions) + `ons`.
 
 ### Coming soon
 
 | Skill | What it does |
 |-------|-------------|
-| `/sector-analysis` | Industry deep dive: BRES employment, IO multipliers, shift-share, LQ analysis. |
-| `/benchmarking` | Cross-area or cross-country comparison across standardised indicators. |
+| `/sector-analysis` | Industry deep dive: BRES employment, IO multipliers, shift-share, LQ analysis |
+| `/benchmarking` | Cross-area or cross-country comparison across standardised indicators |
 
 ---
 
@@ -451,6 +486,9 @@ climatekit  -> Climate indices
 econstack/
 ├── README.md
 ├── CLAUDE.md                              # Claude Code project context
+├── VERSION
+├── bin/
+│   └── econstack-update-check             # Version checking
 ├── scripts/
 │   └── render-report.sh                   # Markdown to branded PDF converter
 ├── templates/
@@ -458,11 +496,18 @@ econstack/
 │       └── _extensions/econstack/
 │           ├── _extension.yml             # Quarto extension config
 │           └── typst-template.typ         # Typst template (cover, headers, tables)
-└── skills/
-    ├── impact-report/
-    │   └── SKILL.md                       # Economic impact assessment skill
-    └── la-profile/
-        └── SKILL.md                       # Local authority profile skill
+├── impact-report/
+│   └── SKILL.md                           # Economic impact assessment
+├── la-profile/
+│   └── SKILL.md                           # Local authority profile
+├── cost-benefit/
+│   └── SKILL.md                           # Green Book CBA (8 frameworks)
+├── econ-audit/
+│   └── SKILL.md                           # Methodology audit (60+ checks)
+├── macro-briefing/
+│   └── SKILL.md                           # UK macro monitor (30 countries)
+└── fiscal-briefing/
+    └── SKILL.md                           # UK public finances
 ```
 
 Each skill is a single SKILL.md file. No code, no dependencies, no build step. The SKILL.md contains:
