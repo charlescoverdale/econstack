@@ -52,15 +52,15 @@ Open [Claude Code](https://claude.ai/code) and type:
 
 Claude reads the local authority data, runs the IO computation, applies HM Treasury additionality adjustments, and writes a full report to your working directory. Takes about 30 seconds.
 
-**Step 3: Get a PDF (optional)**
+**Step 3: Choose your output format (optional)**
 
-Add `--format pdf` for a branded, consulting-quality PDF:
+Add `--format` for Word, PowerPoint, HTML, or PDF output:
 
 ```
-/impact-report £10m in Manufacturing in Manchester --format pdf --client "Manchester City Council"
+/impact-report £10m in Manufacturing in Manchester --format word,pdf --client "Manchester City Council"
 ```
 
-Requires [Quarto](https://quarto.org) for PDF rendering (`brew install quarto` on macOS).
+Or skip the flag and the skill will ask you interactively which formats you need. PDF requires [Quarto](https://quarto.org) (`brew install quarto` on macOS). Word and PowerPoint are generated automatically.
 
 ### More examples
 
@@ -69,7 +69,7 @@ Requires [Quarto](https://quarto.org) for PDF rendering (`brew install quarto` o
 /impact-report £10m in Manufacturing in Manchester
 /impact-report 500 jobs in Construction in Glasgow --type2
 /impact-report £25m in Financial & Insurance in City of London --conservative
-/impact-report £5m in Accommodation & Food in Brighton and Hove --format pdf
+/impact-report £5m in Accommodation & Food in Brighton and Hove --format word,pptx
 
 # Local authority economic profile
 /la-profile Manchester
@@ -117,6 +117,15 @@ Claude:  Which sections?
 
          [Generates only the 3 selected sections]
          [Saves companion JSON with all computed values]
+
+Claude:  What file formats do you need?
+         ☑ Markdown (.md)
+         ☐ HTML
+         ☑ Word (.docx)
+         ☐ PowerPoint (.pptx)
+         ☐ PDF
+
+         [Generates markdown + Word document]
 ```
 
 **The idea:** you don't need a 10-page report. You need the exec summary for an email, the tables for your spreadsheet, and a one-paragraph methodology note for a footnote. Pick the pieces and build your own deliverable.
@@ -126,10 +135,20 @@ Claude:  Which sections?
 | Option | What you get | Use it for |
 |--------|-------------|------------|
 | Full report | All sections, 5-10 pages | Formal business cases, funding bids |
-| Pick sections | Only what you select | Dropping into your own Word doc or deck |
-| Slide summary | 5 bullet points | Pasting straight into PowerPoint |
+| Pick sections | Only what you select | Dropping into your own document or deck |
+| Slide summary | 5 bullet points | Quick talking points |
 | Elevator pitch | One paragraph (la-profile) | Meeting prep, email intros |
 | Data only | `.json` file | Your own Excel model, charts, analysis |
+
+**Output formats** (choose one or more):
+
+| Format | File | Use it for |
+|--------|------|------------|
+| Markdown | `.md` | Default. Paste into any editor, convert to anything |
+| HTML | `.html` | Self-contained branded page. Email or open in browser |
+| Word | `.docx` | Edit in Microsoft Word, add to your own report |
+| PowerPoint | `.pptx` | Client presentation with key numbers and tables |
+| PDF | `.pdf` | Branded consulting-quality document (requires Quarto) |
 
 Every output includes a **companion `.json` file** with all computed values. The skills produce building blocks, not finished deliverables. You take the 80% first draft and make it yours.
 
@@ -172,27 +191,40 @@ Claude writes: impact-report-manchester-2026-04-02.md
 
 No API keys. No build step. No dependencies beyond Claude Code and the data files.
 
-For branded PDF output, add `--format pdf` to any command. This renders through a custom Typst template via Quarto, producing a consulting-quality PDF with cover page, headers, footers, navy branding, and professional table styling.
+For additional output formats, add `--format` to any command. You can request Word, PowerPoint, HTML, or PDF (or combine them):
 
 ```
-/impact-report £10m in Manufacturing in Manchester --format pdf
+/impact-report £10m in Manufacturing in Manchester --format word,pdf
 ```
+
+Or skip the flag entirely and the skill will ask you interactively which formats you need.
 
 ---
 
-## PDF output
+## Output formats
 
-Add `--format pdf` to any skill command to generate a branded PDF alongside the markdown report.
+Every skill generates **Markdown + JSON** by default. You can also get HTML, Word, PowerPoint, or PDF, either via the `--format` flag or by answering the interactive format question.
 
-The PDF template is designed to consulting standards (BCG, Frontier Economics):
-- **Cover page** with title, subtitle, date, navy accent bar
-- **Headers/footers** with EconStack wordmark, report title, page numbers
-- **Navy heading hierarchy** (#003078) with thin rules under H1
-- **Professional tables**: navy header row, alternating gray stripes, no vertical borders
-- **Callout boxes**: light blue background with navy left border
-- **Two-level section numbering** (1.1, 1.2)
+```
+/impact-report £10m in Manufacturing in Manchester --format word,pptx
+```
 
-**Requirements:** [Quarto](https://quarto.org) >= 1.5.0 (includes Typst for PDF rendering). On macOS: `brew install quarto`. The render script auto-detects Quarto at `/Applications/quarto/bin/quarto` or on your PATH.
+### Markdown (.md)
+Always generated. Plain text with tables, ready to paste into any editor or convert to other formats.
+
+### HTML (.html)
+Self-contained single-page report with inline CSS. GOV.UK-style navy branding, KPI cards, professional tables. No external dependencies. Open in a browser, attach to an email, or host on an intranet.
+
+### Word (.docx)
+Formatted Word document with navy headings, styled tables, and title page. Ready to edit, add your own branding, or drop sections into a client deliverable.
+
+### PowerPoint (.pptx)
+Slide deck with title slide, key numbers, impact tables, sensitivity analysis, and methodology note. Navy accent colour. Ready for client presentations.
+
+### PDF
+Branded consulting-quality PDF rendered via Quarto and Typst. Cover page, headers/footers, navy heading hierarchy, professional tables with alternating stripes, callout boxes, section numbering.
+
+**Requirements:** [Quarto](https://quarto.org) >= 1.5.0 (includes Typst). On macOS: `brew install quarto`. The render script auto-detects Quarto at `/Applications/quarto/bin/quarto` or on your PATH.
 
 You can also render any existing markdown report manually:
 
@@ -238,7 +270,7 @@ Generate an economic impact assessment for an investment or job creation in any 
 | `--optimistic` | 10% deadweight, 10% displacement, 5% leakage |
 | `--no-additionality` | Gross figures only |
 | `--brief` | Executive summary only (1 page) |
-| `--format pdf` | Branded PDF output via Quarto/Typst |
+| `--format <type>` | Output format(s): `markdown`, `html`, `word`, `pptx`, `pdf`, or `all`. Comma-separate for multiple (e.g. `--format word,pdf`) |
 
 **Methodology:** Regional input-output model using FLQ regionalization (Flegg et al. 1995) of ONS Input-Output Analytical Tables 2023 (Blue Book 2025). 104 industries aggregated to 19 SIC sections. Type I multipliers by default (conservative). Additionality from HM Treasury Additionality Guide (4th edition, 2014) and MHCLG Appraisal Guide (3rd edition, 2025).
 
@@ -281,7 +313,7 @@ All data is benchmarked against the LA's own country (not just England). A Scott
 | `--focus labour` | Emphasise labour market and skills |
 | `--focus housing` | Emphasise housing and affordability |
 | `--focus business` | Emphasise business activity and industry structure |
-| `--format pdf` | Branded PDF output via Quarto/Typst |
+| `--format <type>` | Output format(s): `markdown`, `html`, `word`, `pptx`, `pdf`, or `all` |
 
 ---
 

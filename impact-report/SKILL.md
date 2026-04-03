@@ -9,6 +9,7 @@ allowed-tools:
   - Grep
   - Agent
   - AskUserQuestion
+  - Skill
 ---
 
 <!-- preamble: update check -->
@@ -47,7 +48,7 @@ Generate professional economic impact assessment content for an investment or jo
 - `--no-additionality` : Report gross figures only
 - `--client "Name"` : Add "Prepared for: [Name]" on outputs
 - `--full` : Skip the interactive menu, generate the complete report
-- `--format pdf` : Also render branded PDF via Quarto/Typst
+- `--format <type>` : Output format(s): `markdown`, `html`, `word`, `pptx`, `pdf`, or `all`. Comma-separate for multiple (e.g. `--format word,pdf`). Default: markdown only
 
 ## Instructions
 
@@ -68,6 +69,7 @@ Extract from the user's input:
 - **additionality**: "standard" (default), "conservative", "optimistic", or "none"
 - **client**: Optional client name
 - **full**: If true, skip the interactive menu and generate the complete report
+- **formats**: List of output formats. Default: `["markdown"]`. Parse `--format` flag by splitting on commas. If `--format all`, expand to `["markdown", "html", "word", "pptx", "pdf"]`
 
 ### Step 2: Load data and compute
 
@@ -180,7 +182,24 @@ Options (multiSelect: true):
 
 Then generate ONLY the selected sections, each clearly separated.
 
-**If `--full` was specified**, skip the questions and generate the complete report.
+**After the content questions (or immediately after showing key numbers for options A/C/D), ask about output formats.**
+
+**If `--format` was NOT specified on the command line**, ask using AskUserQuestion:
+
+Question: "What file formats do you need?"
+
+Options (multiSelect: true):
+- Markdown (.md) : Default, always included. Plain text you can paste anywhere
+- HTML : Branded single-page report, ready to open in a browser or email
+- Word (.docx) : Formatted document for editing in Microsoft Word
+- PowerPoint (.pptx) : Slide deck with key numbers, tables, and methodology note
+- PDF : Branded consulting-quality PDF via Quarto
+
+Markdown is always generated regardless of selection. If the user selects nothing beyond markdown, that is fine.
+
+**If `--format` was specified on the command line**, skip the format question and use the specified format(s).
+
+**If `--full` was specified** (without `--format`), skip all questions and generate markdown only. If `--full` was specified WITH `--format`, skip content questions but generate the specified format(s).
 
 ### Step 4: Generate the requested output
 
@@ -410,7 +429,34 @@ Based on HM Treasury Additionality Guide (BIS, 2009; updated 2014) and MHCLG App
 Save the output as `impact-report-{la-slug}-{date}.md` (or just the selected sections).
 Always save the companion `impact-data-{la-slug}-{date}.json`.
 
-**If `--format pdf` was specified**, render the markdown through the EconStack template:
+**Then generate each additional format the user selected:**
+
+**Markdown** (always generated):
+Save as `impact-report-{slug}-{date}.md`. This is the primary output. No extra steps needed.
+
+**HTML** (if selected):
+Generate a self-contained HTML file with inline CSS. Use GOV.UK-style navy branding (#003078), KPI cards at the top, professional tables with navy headers and alternating row stripes, callout boxes for key notes. The HTML must be fully self-contained (no external CSS/JS) so it can be emailed or opened offline. Save as `impact-report-{slug}-{date}.html`.
+
+**Word (.docx)** (if selected):
+Invoke the `/docx` skill to convert the markdown report into a formatted Word document. Pass the full markdown content and instruct the skill to:
+- Use a professional layout with navy (#003078) headings
+- Format all tables with borders and header row styling
+- Include the report title and subtitle on the first page
+- If `--client` was specified, include "Prepared for: [client]" on the first page
+Save as `impact-report-{slug}-{date}.docx`.
+
+**PowerPoint (.pptx)** (if selected):
+Invoke the `/pptx` skill to create a slide deck. Instruct it to create these slides:
+1. Title slide: "Economic Impact Assessment" with LA name, sector, amount, and date
+2. Key numbers slide: the 6 KPI values (net output, net jobs, gross output, gross jobs, GVA, multiplier) in a clean grid layout
+3. Impact breakdown slide: the direct/indirect/total table
+4. Sensitivity slide: the additionality scenarios table
+5. Methodology slide: one-paragraph methodology summary and key caveats
+Use navy (#003078) as the accent colour. If `--client` was specified, include "Prepared for: [client]" on the title slide.
+Save as `impact-report-{slug}-{date}.pptx`.
+
+**PDF** (if selected):
+Render the markdown through the EconStack template:
 ```bash
 ECONSTACK_DIR="${CLAUDE_SKILL_DIR}/../.."
 "$ECONSTACK_DIR/scripts/render-report.sh" impact-report-{la-slug}-{date}.md \
@@ -418,15 +464,17 @@ ECONSTACK_DIR="${CLAUDE_SKILL_DIR}/../.."
   --subtitle "{LA name} | {Sector} | {Amount}" \
   [--client "{client name}" if specified]
 ```
-
 If Quarto is not installed, tell the user: "PDF rendering requires Quarto (https://quarto.org). The markdown report has been saved."
 
-Tell the user what was generated:
+Tell the user what was generated, listing only the files that were actually produced:
 ```
 Files saved:
   impact-report-{slug}-{date}.md     (report / selected sections)
-  impact-data-{slug}-{date}.json     (structured data for your own analysis)
-  impact-report-{slug}-{date}.pdf    (if --format pdf)
+  impact-data-{slug}-{date}.json     (structured data)
+  impact-report-{slug}-{date}.html   (if HTML selected)
+  impact-report-{slug}-{date}.docx   (if Word selected)
+  impact-report-{slug}-{date}.pptx   (if PowerPoint selected)
+  impact-report-{slug}-{date}.pdf    (if PDF selected)
 ```
 
 ## Important Rules
@@ -440,3 +488,5 @@ Files saved:
 - Type I is the default (conservative). Only use Type II when explicitly requested.
 - If the user asks for a sector that doesn't match the 19-sector list, map it and note the mapping.
 - The key numbers block at the top of the markdown is always included, even for partial outputs.
+- When Word or PowerPoint format is selected, invoke the `/docx` or `/pptx` skill to generate the file. Pass the markdown content and the companion JSON data so the skill has all the numbers it needs.
+- Markdown is always generated, even when other formats are selected. It is the source for all other formats.
