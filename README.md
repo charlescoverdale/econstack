@@ -2,13 +2,15 @@
 
 Professional economic analysis, powered by AI.
 
-econstack is a set of [Claude Code](https://claude.ai/code) skills that generate client-ready economic reports. Type a slash command, get a 10-page impact assessment with IO methodology, HM Treasury additionality adjustments, sensitivity analysis, and full academic references. The methodology, caveats, and data sources are baked in.
+econstack is a set of [Claude Code](https://claude.ai/code) skills that generate professional economic analysis. Type a slash command, get the key numbers in seconds, then pick the output you need: a full report, specific sections for your own document, slide-ready bullets, an elevator pitch, or just the raw data as JSON.
 
 ```
 /impact-report £10m in Manufacturing in Manchester
 ```
 
-That's it. You get a structured report you could hand to a client, submit with a funding bid, or attach to a business case. No spreadsheets, no manual chart formatting, no copy-pasting from ONS.
+The skill computes the impact, shows you the key numbers, then asks what you need. Full report? Just the sensitivity table for your Excel model? Slide bullets for a client presentation? The methodology appendix for a business case? You pick the pieces and build your own deliverable.
+
+Every output includes a companion `.json` file with all computed values, so you can plug the numbers into your own tools.
 
 ---
 
@@ -78,21 +80,15 @@ Requires [Quarto](https://quarto.org) for PDF rendering (`brew install quarto` o
 
 ### What you get
 
-An `/impact-report` generates a **9-section report** (typically 5-8 pages):
+**Both skills are interactive.** They compute the numbers, show you the headline stats, then ask what output format you need:
 
-1. **Executive summary** leading with the net impact number (the one you put in the business case)
-2. **Gross impact** with direct/indirect/induced breakdown
-3. **Additionality adjustment** per HM Treasury/MHCLG guidance
-4. **Sensitivity analysis** across both multiplier variation and additionality assumptions
-5. **Key risks** specific to this area and sector (not generic caveats)
-6. **Local economic context** with benchmarks
-7. **Full methodology** (IO model, FLQ regionalization, Leontief inverse)
-8. **Caveats** (honest about limitations)
-9. **Academic references** (10 citations)
+- **Full report** : every section, 5-10 pages
+- **Pick sections** : choose only what you need (exec summary, tables, methodology, risks, etc.)
+- **Slide summary** : 5 bullet points for PowerPoint
+- **Elevator pitch** (la-profile) : one paragraph characterizing the economy
+- **Data only** : just the `.json` file for your own analysis
 
-An `/la-profile` generates a **10-section economic profile** covering demographics, labour market, earnings, industry structure, housing, business activity, productivity, deprivation, skills, and national benchmarking.
-
-Both can output markdown (default) or branded PDF.
+Every output includes a **companion JSON file** with all computed values, so you can feed the numbers into Excel, build your own charts, or cross-check against other sources. The skills produce building blocks, not finished deliverables. You take the 80% first draft and make it yours.
 
 ### Data path
 

@@ -1,6 +1,6 @@
 ---
 name: impact-report
-description: Generate a professional economic impact assessment report using regional input-output multipliers.
+description: Generate economic impact assessment sections using regional input-output multipliers. Interactive, lets you pick which sections you need.
 allowed-tools:
   - Bash
   - Read
@@ -8,19 +8,14 @@ allowed-tools:
   - Glob
   - Grep
   - Agent
-  - WebSearch
-  - WebFetch
+  - AskUserQuestion
 ---
 
 # /impact-report: Economic Impact Assessment
 
-Generate a professional, client-ready economic impact assessment for an investment or job creation in any UK local authority. Uses regional input-output multipliers with FLQ regionalization, additionality adjustments per HM Treasury Green Book guidance, and full methodology documentation.
+Generate professional economic impact assessment content for an investment or job creation in any UK local authority. Uses regional input-output multipliers with FLQ regionalization, additionality adjustments per HM Treasury Green Book guidance, and full methodology documentation.
 
-## When to use
-
-- A client asks "what's the economic impact of our £X investment in [area]?"
-- A local authority needs an impact estimate for a business case or funding bid
-- A consultancy needs a quick-turnaround impact assessment with proper methodology
+**This skill is interactive.** It computes the impact, shows you the key numbers, then asks what output you need: a full report, specific sections, slide-ready bullets, or just the data.
 
 ## Arguments
 
@@ -33,26 +28,17 @@ Generate a professional, client-ready economic impact assessment for an investme
 /impact-report £10m in Manufacturing in Manchester
 /impact-report 500 jobs in Construction in Glasgow
 /impact-report £25m in Financial & Insurance in City of London --type2
-/impact-report £5m in Accommodation & Food in Brighton and Hove --conservative
+/impact-report £5m in Accommodation & Food in Brighton and Hove --full
 ```
 
 **Options:**
 - `--type2` : Include household spending (induced) effects (default: Type I only)
 - `--conservative` : Use conservative additionality (35% deadweight, 40% displacement, 20% leakage)
 - `--optimistic` : Use optimistic additionality (10% deadweight, 10% displacement, 5% leakage)
-- `--no-additionality` : Report gross figures only (no deadweight/displacement/leakage adjustment)
-- `--client "Name"` : Add "Prepared for: [Name]" on the cover page
-- `--format pdf` : Generate Quarto PDF (default: markdown report)
-- `--format pptx` : Generate PowerPoint summary
-- `--brief` : Executive summary only (1 page)
-
-## How it works
-
-1. Loads the multiplier data for the specified local authority from econprofile data
-2. Runs the IO model computation (same methodology as econprofile.com/impact)
-3. Applies additionality adjustments (HM Treasury defaults or user-specified)
-4. Generates a structured report with: executive summary, methodology, results, sensitivity analysis, caveats, and references
-5. Outputs as markdown (default), PDF, or PPTX
+- `--no-additionality` : Report gross figures only
+- `--client "Name"` : Add "Prepared for: [Name]" on outputs
+- `--full` : Skip the interactive menu, generate the complete report
+- `--format pdf` : Also render branded PDF via Quarto/Typst
 
 ## Instructions
 
@@ -61,166 +47,227 @@ Generate a professional, client-ready economic impact assessment for an investme
 Extract from the user's input:
 - **amount**: The investment in GBP, or number of direct jobs
 - **input_type**: "output" (investment in GBP) or "jobs" (direct job creation)
-- **sector**: One of the 19 SIC sections (Agriculture, Mining & Quarrying, Manufacturing, Electricity & Gas, Water & Waste, Construction, Wholesale & Retail, Transportation, Accommodation & Food, Information & Communication, Financial & Insurance, Real Estate, Professional & Scientific, Administrative & Support, Public Administration, Education, Health & Social Work, Arts & Recreation, Other Services)
+- **sector**: One of the 19 SIC sections. If the user says something informal, map it:
+  - "tech"/"software" -> Information & Communication
+  - "hospitality"/"hotels" -> Accommodation & Food
+  - "banking"/"finance" -> Financial & Insurance
+  - "pharma"/"chemicals" -> Manufacturing
+  - "logistics"/"shipping" -> Transportation
+  - "housing"/"development" -> Construction
 - **local_authority**: The LA name or slug
-- **multiplier_type**: "typeI" (default) or "typeII" (if --type2 flag)
+- **multiplier_type**: "typeI" (default) or "typeII" (if --type2)
 - **additionality**: "standard" (default), "conservative", "optimistic", or "none"
-- **client**: Optional client name for the cover page
-- **format**: "markdown" (default), "pdf", or "pptx"
+- **client**: Optional client name
+- **full**: If true, skip the interactive menu and generate the complete report
 
-If the sector doesn't exactly match one of the 19 SIC sections, use your best judgement to map it. For example:
-- "tech" or "software" -> "Information & Communication"
-- "hospitality" or "hotels" -> "Accommodation & Food"
-- "banking" or "finance" -> "Financial & Insurance"
-- "pharma" or "chemicals" -> "Manufacturing"
-- "logistics" or "shipping" -> "Transportation"
-- "housing" or "development" -> "Construction"
+### Step 2: Load data and compute
 
-If the local authority name is ambiguous, search the econprofile data directory for the closest match.
-
-### Step 2: Load multiplier data
+Load the multiplier data from econprofile:
 
 ```bash
-# Find the LA's multiplier data
-LA_SLUG="manchester"  # derived from LA name
-cat /Users/charlescoverdale/Documents/2026/Claude/Sandbox/econprofile/src/data/${LA_SLUG}/multipliers.json
+DATA_DIR="/Users/charlescoverdale/Documents/2026/Claude/Sandbox/econprofile/src/data"
+cat "$DATA_DIR/${LA_SLUG}/multipliers.json"
+cat "$DATA_DIR/${LA_SLUG}/summary.json"
+cat "$DATA_DIR/${LA_SLUG}/employment.json"
+cat "$DATA_DIR/national-benchmarks.json"
 ```
 
-Also load the LA's summary data for context:
+If the LA slug is not found:
 ```bash
-cat /Users/charlescoverdale/Documents/2026/Claude/Sandbox/econprofile/src/data/${LA_SLUG}/summary.json
+ls "$DATA_DIR/" | grep -i "<search_term>"
 ```
 
-And the national benchmarks:
-```bash
-cat /Users/charlescoverdale/Documents/2026/Claude/Sandbox/econprofile/src/data/national-benchmarks.json
-```
+**Compute the impact using these formulas:**
 
-If the LA slug is not found, search:
-```bash
-ls /Users/charlescoverdale/Documents/2026/Claude/Sandbox/econprofile/src/data/ | grep -i "<search_term>"
-```
-
-### Step 3: Compute the impact
-
-Use the same methodology as econprofile's ImpactCalculator. The computation is:
-
-**If input is investment (GBP):**
+If input is investment (GBP):
 ```
 directOutput = amount
-directJobs = (amount / 1,000,000) * directEmploymentPerMillion
+directJobs = round((amount / 1,000,000) * directEmploymentPerMillion)
 ```
 
-**If input is jobs:**
+If input is jobs:
 ```
 directJobs = amount
-directOutput = (amount / directEmploymentPerMillion) * 1,000,000
+directOutput = round((amount / directEmploymentPerMillion) * 1,000,000)
 ```
 
-**Type I totals:**
+Type I:
 ```
-totalOutput = directOutput * outputMultiplier
+totalOutput = round(directOutput * outputMultiplier)
 indirectOutput = totalOutput - directOutput
-totalJobs = directJobs * employmentMultiplier
+totalJobs = round(directJobs * employmentMultiplier)
 indirectJobs = totalJobs - directJobs
 ```
 
-**Type II (if requested):**
+Type II (if requested):
 ```
-totalOutputII = directOutput * outputMultiplierTypeII
+totalOutputII = round(directOutput * outputMultiplierTypeII)
 inducedOutput = totalOutputII - totalOutputI
-totalJobsII = directJobs * employmentMultiplierTypeII
+totalJobsII = round(directJobs * employmentMultiplierTypeII)
 inducedJobs = totalJobsII - totalJobsI
 ```
 
-**Expanded outputs:**
+Expanded outputs:
 ```
-gvaImpact = totalOutput * gvaToOutputRatio
-earningsImpact = totalJobs * averageEarningsPerJob
-estimatedIncomeTax = earningsImpact * 0.20
-estimatedNICs = earningsImpact * 0.218
-estimatedVAT = earningsImpact * 0.35 * 0.20
+gvaImpact = round(totalOutput * gvaToOutputRatio)
+earningsImpact = round(totalJobs * averageEarningsPerJob)
+estimatedIncomeTax = round(earningsImpact * 0.20)
+estimatedNICs = round(earningsImpact * 0.218)
+estimatedVAT = round(earningsImpact * 0.35 * 0.20)
 totalTax = estimatedIncomeTax + estimatedNICs + estimatedVAT
 ```
 
-**Additionality adjustment:**
+Additionality:
 ```
 Standard:      deadweight=20%, displacement=25%, leakage=10%, substitution=0%
 Conservative:  deadweight=35%, displacement=40%, leakage=20%, substitution=5%
 Optimistic:    deadweight=10%, displacement=10%, leakage=5%,  substitution=0%
 
-additionalityFactor = (1 - deadweight/100) * (1 - displacement/100) * (1 - leakage/100) * (1 - substitution/100)
-netOutput = totalOutput * additionalityFactor
-netJobs = totalJobs * additionalityFactor
+factor = (1 - deadweight/100) * (1 - displacement/100) * (1 - leakage/100) * (1 - substitution/100)
+netOutput = round(totalOutput * factor)
+netJobs = round(totalJobs * factor)
 ```
 
-### Step 4: Generate the report
+### Step 3: Show the key numbers and ask what the user needs
 
-Write the report to a file in the current working directory. Use the following structure.
+After computing, present the results and ask what output format they want:
 
-**Critical rules for the report:**
-- Lead with the net impact (the number the client will use), then explain the gross figure.
-- Cross-check every number in the executive summary against the detailed tables. They must match exactly.
-- Generate 2-3 project-specific risk observations from the LA data (see section 5 below).
-- Use action titles for findings sections (what the section SAYS, not what it IS). Keep label titles for methodology and reference sections.
+```
+IMPACT COMPUTED
+===============
+£[amount] in [sector] in [LA name]
+
+Key numbers:
+  Net additional output:  [val]  (after additionality)
+  Net additional jobs:    [val]
+  Gross output:           [val]  (before additionality)
+  Gross jobs:             [val]
+  GVA contribution:       [val]
+  Estimated tax:          [val]
+  Output multiplier:      [val]x
+  Additionality factor:   [val]%
+```
+
+**If `--full` was NOT specified**, ask the user what they need using AskUserQuestion:
+
+Question: "What output do you need?"
+
+Options:
+- A) **Full report** : Complete 8-section report (exec summary, impact tables, additionality, sensitivity, risks, local context, methodology, references)
+- B) **Key sections only** : Let me pick which sections I want
+- C) **Slide summary** : 5 bullet points ready for PowerPoint, plus a one-line methodology note
+- D) **Data only** : Just the JSON file with all computed values (for my own analysis)
+
+**If user picks B**, ask a follow-up:
+
+Question: "Which sections? (pick all that apply)"
+
+Options (multiSelect: true):
+- Executive summary (3 paragraphs, leads with net impact)
+- Impact tables (gross and net, direct/indirect/induced breakdown)
+- Additionality adjustment (HM Treasury defaults, net impact calculation)
+- Sensitivity analysis (multiplier +/-15% AND additionality scenarios)
+- Key risks (2-3 project-specific observations from LA data)
+- Local economic context (employment, earnings, claimant rate vs benchmarks)
+- Full methodology (IO model, FLQ, technical parameters, 2 pages)
+- Methodology summary (one paragraph for slide footers or email footnotes)
+- References (10 academic and government citations)
+
+Then generate ONLY the selected sections, each clearly separated.
+
+**If `--full` was specified**, skip the questions and generate the complete report.
+
+### Step 4: Generate the requested output
+
+**Always include at the very top of any output file:**
 
 ```markdown
-# Economic Impact Assessment: [Investment Description]
+<!-- KEY NUMBERS
+net_output: [val]
+net_jobs: [val]
+gross_output: [val]
+gross_jobs: [val]
+gva: [val]
+tax: [val]
+multiplier: [val]
+additionality_factor: [val]
+la: [LA name]
+sector: [sector]
+amount: [amount]
+date: [date]
+-->
+```
 
-**Prepared for:** [Client name, if --client specified, otherwise omit this line]
-**Prepared by:** EconStack
-**Date:** [today's date]
-**Local authority:** [LA name]
-**Methodology:** Regional input-output model (FLQ regionalization)
+This block is invisible when rendered but lets the user (or a future tool) extract the headline numbers without parsing the prose.
 
----
+**Always write a companion JSON file** alongside any markdown output:
+Save as `impact-data-{la-slug}-{date}.json` with all computed values, inputs, and metadata.
 
+```json
+{
+  "input": { "la": "", "sector": "", "amount": 0, "inputType": "", "multiplierType": "", "additionality": "" },
+  "multiplier": { "output": 0, "employment": 0, "lambda": 0, "method": "FLQ", "delta": 0.3 },
+  "grossImpact": { "output": 0, "jobs": 0, "gva": 0, "directOutput": 0, "directJobs": 0, "indirectOutput": 0, "indirectJobs": 0, "inducedOutput": 0, "inducedJobs": 0 },
+  "additionality": { "deadweight": 0, "displacement": 0, "leakage": 0, "substitution": 0, "factor": 0 },
+  "netImpact": { "output": 0, "jobs": 0, "gva": 0 },
+  "tax": { "incomeTax": 0, "nics": 0, "vat": 0, "total": 0, "caveat": "Rough estimates, 30-50% margin of error" },
+  "sensitivity": {
+    "multiplier": { "low": { "output": 0, "jobs": 0 }, "high": { "output": 0, "jobs": 0 } },
+    "additionality": { "optimistic": { "output": 0, "jobs": 0 }, "conservative": { "output": 0, "jobs": 0 } }
+  },
+  "context": { "totalEmployment": 0, "medianEarnings": 0, "claimantRate": 0, "gvaPerJob": 0 },
+  "metadata": { "dataYear": 2023, "source": "ONS IOAT 2023 (Blue Book 2025)", "generatedAt": "" }
+}
+```
+
+#### Section templates
+
+Use these templates for each requested section. Each section should stand alone (do not reference "Section 3" or "as noted above"). A consultant may use any section independently.
+
+**Executive summary:**
+```markdown
 ## Executive Summary
-
-[IMPORTANT: Lead with the net additional impact, not the gross figure. The net number is what goes into the business case.]
-
-[Example structure:]
 
 A [amount] [sector] investment in [LA name] would support an estimated [net jobs] net additional jobs and generate [net output] in net additional economic output, after accounting for deadweight, displacement, and leakage.
 
-Before these adjustments, the gross impact is [total output] in total economic output and [total jobs] jobs. The estimated GVA contribution is [GVA], with approximately [total tax] in associated tax revenue.
+Before these adjustments, the gross impact is [total output] in total economic output and [total jobs] jobs, comprising [direct output] in direct output and [indirect output] in indirect (supply chain) effects. The estimated GVA contribution is [GVA], with approximately [total tax] in associated tax revenue.
 
-These estimates are based on Type I input-output multipliers using ONS 2023 data, with additionality adjustments per HM Treasury guidance. They should be treated as indicative upper bounds. See the methodology section and caveats for important limitations.
+These estimates use Type I input-output multipliers from ONS 2023 data with standard HM Treasury additionality adjustments. They should be treated as indicative upper bounds. [If the area has notable characteristics from the risk analysis, mention the most important one here.]
+```
 
-## 1. The investment generates [total output] in total output and supports [total jobs] jobs
+**Impact tables:**
+```markdown
+## Impact Breakdown
 
-| Parameter | Value |
-|-----------|-------|
-| Investment / Direct jobs | [amount] |
-| Sector | [sector] |
-| Local authority | [LA name] |
-| Multiplier type | Type I / Type II |
-| Output multiplier | [value]x |
-| Employment multiplier | [value]x |
-
-| Impact | Direct | Indirect (supply chain) | [Induced (household)] | Total |
-|--------|--------|------------------------|----------------------|-------|
-| Economic output (GBP) | [val] | [val] | [val] | [val] |
+| Impact | Direct | Indirect (supply chain) | [Induced] | Total |
+|--------|--------|------------------------|-----------|-------|
+| Economic output | [val] | [val] | [val] | [val] |
 | Employment (jobs) | [val] | [val] | [val] | [val] |
 
-For every pound of direct spending, an additional [X]p circulates through the local economy via supply chain purchases from local firms. [1-2 sentences interpreting what the multiplier means for this specific area and sector.]
+| Metric | Gross | Net additional |
+|--------|-------|----------------|
+| Economic output | [val] | [val] |
+| Employment | [val] jobs | [val] jobs |
+| GVA | [val] | [val] |
+| Tax revenue | [val] | [val] |
 
-### GVA and fiscal effects
-
-| Metric | Value |
-|--------|-------|
+| Fiscal breakdown | Value |
+|-----------------|-------|
 | GVA contribution | [val] |
 | Earnings impact | [val] |
-| Estimated income tax | [val] |
-| Estimated NICs | [val] |
-| Estimated VAT | [val] |
-| **Estimated total tax** | **[val]** |
+| Est. income tax | [val] |
+| Est. NICs | [val] |
+| Est. VAT | [val] |
+| **Est. total tax** | **[val]** |
 
-> Tax estimates are rough approximations based on sector-average earnings and standard rates (20% income tax, 21.8% total NICs, VAT at 20% on 35% of earnings). Margin of error: 30-50%.
+Tax estimates are rough approximations based on sector-average earnings and standard rates (20% income tax, 21.8% total NICs, VAT at 20% on 35% of earnings). Margin of error: 30-50%.
+```
 
-## 2. After additionality adjustments, the net additional impact is [net output]
+**Additionality adjustment:**
+```markdown
+## Additionality Adjustment
 
-Not all estimated impact is genuinely new. The following adjustments are applied based on HM Treasury Additionality Guide (4th edition, 2014) and MHCLG Appraisal Guide (3rd edition, 2025).
+Not all estimated impact is genuinely new. Adjustments based on HM Treasury Additionality Guide (4th edition, 2014) and MHCLG Appraisal Guide (3rd edition, 2025):
 
 | Adjustment | Rate | Rationale |
 |------------|------|-----------|
@@ -230,16 +277,14 @@ Not all estimated impact is genuinely new. The following adjustments are applied
 | Substitution | [X]% | Firms replacing one activity with another |
 | **Net additionality factor** | **[X]%** | |
 
-| Metric | Gross | Net additional |
-|--------|-------|----------------|
-| Economic output | [val] | [val] |
-| Employment | [val] jobs | [val] jobs |
-| GVA | [val] | [val] |
-| Tax revenue | [val] | [val] |
+These are median values from HM Treasury guidance. Actual rates vary by intervention type. For retail/leisure, displacement is typically higher (40-75%). For export-oriented manufacturing, it may be lower (10-15%). Users should adjust based on the specific intervention.
+```
 
-## 3. Results are robust to variation in key assumptions
+**Sensitivity analysis:**
+```markdown
+## Sensitivity Analysis
 
-### Multiplier sensitivity (+/- 15%)
+### Multiplier variation (+/- 15%)
 
 | Scenario | Output multiplier | Total output | Total jobs |
 |----------|-------------------|--------------|------------|
@@ -247,9 +292,7 @@ Not all estimated impact is genuinely new. The following adjustments are applied
 | **Central** | **[val]x** | **[val]** | **[val]** |
 | High (+15%) | [val]x | [val] | [val] |
 
-### Additionality sensitivity
-
-The choice of additionality assumptions has a larger effect on results than the multiplier variation. The table below shows how net impact changes across the three HM Treasury presets:
+### Additionality scenarios
 
 | Scenario | Deadweight | Displacement | Leakage | Net output | Net jobs |
 |----------|-----------|--------------|---------|-----------|---------|
@@ -257,102 +300,123 @@ The choice of additionality assumptions has a larger effect on results than the 
 | **Standard** | **20%** | **25%** | **10%** | **[val]** | **[val]** |
 | Conservative | 35% | 40% | 20% | [val] | [val] |
 
-[1-2 sentences interpreting the range. Example: "Even under conservative assumptions, the investment generates [X] net additional jobs and [Y] in net output."]
+The choice of additionality assumptions has a larger effect on results than multiplier variation. [1-2 sentences interpreting the range.]
+```
 
-## 4. Key risks to this estimate
+**Key risks:**
+```markdown
+## Key Risks to This Estimate
 
-[Generate 2-3 project-specific observations from the LA data. These should be specific to the area and sector, not generic. Use the employment data, LQ, claimant rate, and other LA stats to make these concrete.]
+[Generate 2-3 project-specific observations from the LA data. Use these patterns:]
 
-**Use these patterns:**
+- If sector LQ < 0.5: "[LA]'s [sector] sector is small (LQ [X]), meaning local supply chains may be thinner than the multiplier implies."
+- If sector LQ > 2.0: "[LA] is highly specialised in [sector] (LQ [X]), which supports the multiplier but increases exposure to sector-specific shocks."
+- If claimant rate > 5%: "Claimant rate of [X]% suggests labour market slack, supporting the spare capacity assumption."
+- If claimant rate < 2%: "Tight labour market (claimant rate [X]%) means new jobs may be filled by commuters or migrants rather than local residents."
+- If GVA per job significantly differs from national: "Local productivity ([val]) is [X]% [above/below] national, which [supports/complicates] the GVA estimates."
+- On sector aggregation: "The '[sector]' classification averages sub-industries with very different characteristics."
+```
 
-- If the sector's LQ < 0.5 in this LA: "[LA]'s [sector] sector is small relative to the national economy (location quotient [X]), meaning local supply chains may be thinner than the multiplier implies. The actual indirect impact could be lower."
-- If the sector's LQ > 2.0: "[LA] has a highly specialised [sector] economy (location quotient [X]), which supports the multiplier estimate. However, specialisation also means the area is more exposed to sector-specific shocks."
-- If claimant rate > 5%: "The claimant rate of [X]% is above the national average, suggesting some labour market slack. This supports the spare capacity assumption underlying the model."
-- If claimant rate < 2%: "The claimant rate of [X]% is well below the national average, suggesting a tight labour market. In practice, new jobs may be filled by commuters or migrants rather than local residents, which would reduce local spending effects."
-- If GVA per job is significantly above/below national: "Productivity in [LA] ([GVA per job]) is [X]% [above/below] the national average, which [supports/complicates] the use of national-average GVA-to-output ratios."
-- On sector aggregation: "The '[sector]' classification covers a range of sub-industries with different multiplier profiles. If this specific investment is in [plausible high-value subsector], the actual multiplier may be higher than the sector average."
+**Local economic context:**
+```markdown
+## Local Economic Context
 
-## 5. Local economic context
+[LA name] supports [total employment] workplace jobs with median earnings of [val], [X]% [above/below] the [country] average of [val]. The claimant rate is [X]%, [comparison to country and GB]. Productivity (GVA per job) is [val], ranking [X]th of 391 local authorities.
 
-[LA name] supports [total employment] workplace jobs with median earnings of [val], which is [X]% [above/below] the [country] average of [val]. The claimant rate is [X]%. Productivity (GVA per job) is [val], ranking [X]th of 391 local authorities.
+[1-2 sentences characterizing the economy: service-dominated? manufacturing heritage? public sector dependent? Use the sector employment data.]
+```
 
-[1-2 additional sentences on the area's economic character: service-dominated? Manufacturing heritage? Public sector dependent? Use the employment sector data to characterize the economy.]
+**Full methodology:**
+```markdown
+## Methodology
 
-## 6. Methodology
-
-### 6.1 Input-output model
+### Input-output model
 
 This assessment uses a regional input-output (IO) model derived from the ONS Input-Output Analytical Tables (2023), published as part of Blue Book 2025. The national technical coefficients matrix at 104 industries is aggregated to 19 SIC sections using output-weighted averaging. This matrix is regionalized using the Flegg Location Quotient (FLQ) method (Flegg et al. 1995), which adjusts national coefficients to reflect the local economy's sectoral structure and size.
 
-The Leontief inverse of the regionalized matrix yields Type I multipliers, capturing direct effects (the initial expenditure) and indirect effects (supply chain purchases from local firms). [If Type II: The matrix is augmented with a household row and column representing the wage-consumption loop, yielding Type II multipliers that additionally capture induced effects.]
+The Leontief inverse of the regionalized matrix yields Type I multipliers, capturing direct effects (the initial expenditure) and indirect effects (supply chain purchases from local firms). [If Type II: When household spending is included, the matrix is augmented with a household row and column, yielding Type II multipliers that additionally capture induced effects.]
 
 Employment multipliers are derived by weighting the Leontief inverse columns by sector-level employment intensity (jobs per million pounds of output), sourced from BRES via Nomis.
 
-### 6.2 Why [LA name]'s multiplier is [X]x
+### Why [LA name]'s multiplier is [X]x
 
-Multipliers vary by area because local economies differ in their supply chain linkages. [LA name]'s regional size parameter (lambda) is [val]. [Interpretation: high = larger, more self-sufficient economy; low = smaller, more import-dependent.]
+Multipliers vary by area because local economies differ in their supply chain linkages. [LA name]'s regional size parameter (lambda) is [val]. [Interpretation.]
 
-Lambda is computed as [log2(1 + RE/NE)]^delta, where RE is total local employment (BRES) and NE is total national employment. Delta = 0.3, a conventional value (Flegg et al. 1995, Bonfiglio & Chelli 2008; optimal range 0.1-0.4 per Flegg & Tohmo 2013). The geography used is the local authority district boundary.
+Lambda is computed as [log2(1 + RE/NE)]^delta, where RE is total local employment (BRES) and NE is total national employment. Delta = 0.3 (Flegg et al. 1995; optimal range 0.1-0.4 per Flegg & Tohmo 2013). The geography is the local authority district boundary.
 
-### 6.3 Technical parameters
+### Technical parameters
 
 | Parameter | Value |
 |-----------|-------|
 | Data source | ONS Input-Output Analytical Tables, 2023 (Blue Book 2025) |
 | Sector classification | 19 SIC sections (A-S), aggregated from 104 industries |
-| Regionalization method | Flegg Location Quotient (FLQ) |
-| FLQ delta parameter | 0.3 |
+| Regionalization | Flegg Location Quotient (FLQ), delta = 0.3 |
 | Lambda for [LA] | [val] |
 | Multiplier type | Type I [or Type II] |
-| Additionality source | HM Treasury (2014); MHCLG (2025) |
+| Additionality | HM Treasury (2014); MHCLG (2025) |
 
-### 6.4 Additionality framework
+### Additionality framework
 
-The additionality adjustments follow the HM Treasury Additionality Guide (BIS, 2009; updated 2014) and are consistent with the MHCLG Appraisal Guide (3rd edition, 2025).
+Based on HM Treasury Additionality Guide (BIS, 2009; updated 2014) and MHCLG Appraisal Guide (3rd edition, 2025):
 
-- **Deadweight:** Activity that would have occurred without the intervention. Green Book range: 0-40%.
-- **Displacement:** Activity shifted from other businesses or areas. Range: 0-75%. Higher for retail/leisure, lower for export-oriented sectors.
-- **Leakage:** Benefits flowing outside the target area. Range: 5-50%, depending on area size.
-- **Substitution:** Firms replacing one activity with another. Typically low for investment-driven interventions.
+- **Deadweight:** Activity that would have occurred anyway. Range: 0-40%.
+- **Displacement:** Activity shifted from elsewhere. Range: 0-75%.
+- **Leakage:** Benefits flowing outside the area. Range: 5-50%.
+- **Substitution:** Replacing existing activity. Typically low for investment interventions.
 
-## 7. Important caveats
+### Caveats
 
-- **Spare capacity assumed.** The model assumes the local economy can absorb additional demand. In a tight labour market, actual impacts may be smaller.
-- **Fixed input proportions.** If input prices change, the model still assumes the same quantities. No substitution or efficiency gains are captured.
-- **No price effects.** Large investments can push up local wages and costs, reducing net benefit.
-- **Data vintage.** Based on 2023 economic structure (ONS Blue Book 2025). The economy continues to evolve.
-- **Sector aggregation.** The 19-sector classification averages sub-industries with very different characteristics. A specific investment may have a higher or lower multiplier than the sector average suggests.
-- **Tax estimates are rough approximations** based on sector-average earnings and standard rates. Margin of error: 30-50%.
-- **LA boundaries are administrative, not economic.** Commuting, supply chains, and spending cross LA boundaries. Impacts may spill into neighbouring areas.
-- **IO multipliers are generally considered indicative upper bounds.** Econometric evidence from the What Works Centre for Local Economic Growth suggests real-world local employment multipliers are often lower than IO estimates.
-- These are indicative estimates, not formal economic impact assessments. For investment decisions exceeding £50m, consider commissioning a bespoke Computable General Equilibrium (CGE) model or econometric study.
+- Spare capacity assumed. In a tight labour market, actual impacts may be smaller.
+- Fixed input proportions. No substitution or efficiency gains captured.
+- No price effects. Large investments can push up local costs.
+- Based on 2023 economic structure (ONS Blue Book 2025).
+- 19-sector aggregation averages sub-industries with different characteristics.
+- Tax estimates are rough (30-50% margin of error).
+- LA boundaries are administrative, not economic. Impacts spill across boundaries.
+- IO multipliers are generally indicative upper bounds.
+- These are indicative estimates, not formal economic impact assessments.
+```
 
-## 8. References
+**Methodology summary (one paragraph):**
+```markdown
+**Methodology:** Estimates from a regional input-output model using ONS 2023 data (Blue Book 2025), regionalized via the Flegg Location Quotient method (Flegg et al. 1995). [Standard/Conservative/Optimistic] additionality adjustments applied per HM Treasury guidance (2014) and MHCLG (2025). Type [I/II] multipliers. Indicative upper bounds, not a formal assessment. See full methodology for details and limitations.
+```
 
-- ONS (2025). "UK Input-Output Analytical Tables: industry by industry, 2023". Office for National Statistics. Blue Book 2025.
+**References:**
+```markdown
+## References
+
+- ONS (2025). "UK Input-Output Analytical Tables: industry by industry, 2023". Blue Book 2025.
 - Flegg, A.T., Webber, C.D. and Elliott, M.V. (1995). "On the Appropriate Use of Location Quotients in Generating Regional Input-Output Tables". Regional Studies, 29(6), pp. 547-561.
-- Flegg, A.T. and Tohmo, T. (2013). "Regional Input-Output Tables and the FLQ Formula: A Case Study of Finland". Regional Studies, 47(5), pp. 703-721.
+- Flegg, A.T. and Tohmo, T. (2013). "Regional Input-Output Tables and the FLQ Formula". Regional Studies, 47(5), pp. 703-721.
 - Bonfiglio, A. and Chelli, F. (2008). "Assessing the Behaviour of Non-Survey Methods for Constructing Regional Input-Output Tables". Economic Systems Research, 20(3), pp. 301-315.
-- HM Treasury (2014). "Additionality Guide: A Standard Approach to Assessing the Additional Impact of Interventions", 4th edition. Department for Business, Innovation and Skills.
-- MHCLG (2025). "The Appraisal Guide", 3rd edition. Ministry of Housing, Communities and Local Government.
-- HM Treasury (2022). "The Green Book: Central Government Guidance on Appraisal and Evaluation".
-- What Works Centre for Local Economic Growth (2024). "Toolkit: Local Multipliers". whatworksgrowth.org/resource-library/toolkit-local-multipliers.
-- Crompton, J.L. (1995). "Economic Impact Analysis of Sports Facilities and Events: Eleven Sources of Misapplication". Journal of Sport Management, 9(1), pp. 14-35.
+- HM Treasury (2014). "Additionality Guide", 4th edition.
+- MHCLG (2025). "The Appraisal Guide", 3rd edition.
+- HM Treasury (2022). "The Green Book".
+- What Works Centre for Local Economic Growth (2024). "Toolkit: Local Multipliers".
+- Crompton, J.L. (1995). "Economic Impact Analysis of Sports Facilities and Events". Journal of Sport Management, 9(1).
+```
 
----
+**Slide summary:**
+```markdown
+**[Amount] [Sector] Investment in [LA Name]**
 
-*Indicative estimates based on regional input-output modelling. Not a formal economic impact assessment. See methodology and caveats for limitations.*
-*Powered by EconStack. Data from ONS, BRES, DLUHC via econprofile.com.*
+- Generates **[net output] net additional economic output** ([gross output] gross)
+- Supports **[net jobs] net additional jobs** ([gross jobs] gross)
+- GVA contribution of **[GVA]**, with approximately **[tax] in tax revenue**
+- Based on Type [I/II] IO multipliers (ONS 2023) with [standard/conservative/optimistic] additionality
+- [One sentence on the area's key characteristic, e.g. "Manchester's service-dominated economy has limited local manufacturing supply chains, producing a modest 1.06x multiplier"]
+
+*Methodology: Regional IO model, FLQ regionalization, ONS Blue Book 2025. HM Treasury additionality adjustments. Indicative estimates.*
 ```
 
 ### Step 5: Save and present
 
-Save the report as `impact-report-{la-slug}-{date}.md` in the current working directory.
+Save the output as `impact-report-{la-slug}-{date}.md` (or just the selected sections).
+Always save the companion `impact-data-{la-slug}-{date}.json`.
 
-**If `--format pdf` was specified**, also render as a branded PDF:
-
+**If `--format pdf` was specified**, render the markdown through the EconStack template:
 ```bash
-# The render script wraps the markdown in the EconStack Quarto template and compiles via Typst
 ECONSTACK_DIR="${CLAUDE_SKILL_DIR}/../.."
 "$ECONSTACK_DIR/scripts/render-report.sh" impact-report-{la-slug}-{date}.md \
   --title "Economic Impact Assessment" \
@@ -360,39 +424,25 @@ ECONSTACK_DIR="${CLAUDE_SKILL_DIR}/../.."
   [--client "{client name}" if specified]
 ```
 
-If the render script is not found at the expected path, try `~/.claude/skills/econstack/scripts/render-report.sh`. If Quarto is not installed, tell the user: "PDF rendering requires Quarto (https://quarto.org). Install with: brew install quarto. The markdown report has been saved and can be converted manually."
+If Quarto is not installed, tell the user: "PDF rendering requires Quarto (https://quarto.org). The markdown report has been saved."
 
-Present the key findings to the user in a concise summary:
+Tell the user what was generated:
 ```
-IMPACT REPORT GENERATED
-=======================
-Location:    [LA name]
-Sector:      [sector]
-Investment:  [amount]
-
-GROSS IMPACT
-  Total output:    [val]
-  Total jobs:      [val]
-  GVA:             [val]
-  Tax revenue:     [val]
-
-NET ADDITIONAL (after additionality)
-  Net output:      [val]
-  Net jobs:        [val]
-
-Report saved: impact-report-{slug}-{date}.md
-PDF saved:    impact-report-{slug}-{date}.pdf (if --format pdf)
+Files saved:
+  impact-report-{slug}-{date}.md     (report / selected sections)
+  impact-data-{slug}-{date}.json     (structured data for your own analysis)
+  impact-report-{slug}-{date}.pdf    (if --format pdf)
 ```
 
 ## Important Rules
 
 - Never use em dashes. Use colons, periods, commas, or parentheses.
-- Never attribute econprofile or econstack to any individual. Present as a brand/product.
-- Always include the full methodology section. This is what makes the report credible.
-- Always include caveats. Honest about limitations.
-- Format currency as GBP with commas (e.g. "GBP 5,000,000" or "£5.0m" in summaries).
-- Round jobs to whole numbers. Round currency to nearest pound (or £Xm/£Xk in summaries).
-- The additionality section is what separates this from naive IO analysis. Always include it unless --no-additionality is specified.
-- Tax estimates get the strongest caveats. They are the least reliable output.
-- Type I is the default because it is more conservative. Only use Type II when explicitly requested.
-- If the user asks for a sector that doesn't exist in the 19-sector classification, map it to the closest match and note the mapping in the report.
+- Never attribute econprofile or econstack to any individual. Present as brands/products.
+- Every section must stand alone. Do not reference "Section 3" or "as discussed above." A consultant may use any section independently.
+- Cross-check every number in the executive summary against the tables. They must match.
+- Always save the companion JSON file regardless of which sections are selected.
+- The methodology section is the credibility layer. When included, include it in full.
+- Tax estimates get the strongest caveats. Always note the 30-50% margin of error.
+- Type I is the default (conservative). Only use Type II when explicitly requested.
+- If the user asks for a sector that doesn't match the 19-sector list, map it and note the mapping.
+- The key numbers block at the top of the markdown is always included, even for partial outputs.
