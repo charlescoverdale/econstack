@@ -57,7 +57,7 @@ Claude reads the local authority data, runs the IO computation, applies HM Treas
 Add `--format` for Word, PowerPoint, HTML, or PDF output:
 
 ```
-/impact-report £10m in Manufacturing in Manchester --format word,pdf --client "Manchester City Council"
+/impact-report £10m in Manufacturing in Manchester --format word,pdf
 ```
 
 Or skip the flag and the skill will ask you interactively which formats you need. PDF requires [Quarto](https://quarto.org) (`brew install quarto` on macOS). Word and PowerPoint are generated automatically.
