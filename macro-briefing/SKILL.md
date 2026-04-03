@@ -42,7 +42,7 @@ Generate a professional UK macro briefing covering output, labour market, prices
 **Options:**
 - `--full` : Skip the interactive menu, generate all sections
 - `--focus <area>` : Emphasise a specific area (output, labour, prices, monetary, fiscal, trade, housing)
-- `--international` : Include US and Euro area comparison
+- `--international` : Include major economies (US, Euro area, Japan, China, Canada, Australia, G7/OECD aggregates)
 - `--client "Name"` : Add "Prepared for" on outputs
 - `--format pdf` : Also render branded PDF
 
@@ -164,38 +164,145 @@ Add a "Data freshness" footer to EVERY output (markdown, HTML, PDF, etc.):
 
 **If `--international` is specified:**
 
-Fetch international comparison data:
+Fetch international data from three sources in priority order:
+1. **FRED** (US Federal Reserve): best for US data and some international series. Requires API key.
+2. **ECB** (via readecb): best for Euro area data. No API key required.
+3. **OECD** (via readoecd): best for cross-country comparisons and countries not covered by FRED/ECB. No API key required. Use as backup when FRED is unavailable.
 
-US data (via fred package, requires FRED API key):
 ```bash
 Rscript -e '
-  library(fred); library(jsonlite)
-  us <- list(
-    gdp = fred_search("GDP"),
-    cpi = fred_search("CPIAUCSL"),
-    unemployment = fred_search("UNRATE"),
-    fed_rate = fred_search("FEDFUNDS")
-  )
-  cat(toJSON(us, auto_unbox=TRUE, pretty=TRUE))
+  library(jsonlite)
+  intl <- list()
+
+  # --- US data via FRED (primary source for US) ---
+  if (requireNamespace("fred", quietly = TRUE)) {
+    tryCatch({
+      library(fred)
+      intl$us <- list(
+        gdp       = tail(fred_series("A191RL1Q225SBEA"), 8),   # Real GDP growth (quarterly, annualized)
+        cpi       = tail(fred_series("CPIAUCSL"), 12),          # CPI-U (monthly, index)
+        pce       = tail(fred_series("PCEPI"), 12),             # PCE price index (monthly)
+        unemployment = tail(fred_series("UNRATE"), 12),         # Unemployment rate
+        fed_rate  = tail(fred_series("FEDFUNDS"), 12),          # Fed Funds effective rate
+        treasury_10y = tail(fred_series("GS10"), 12)            # 10-year Treasury yield
+      )
+    }, error = function(e) message("FRED fetch failed: ", e$message))
+  }
+
+  # --- Japan via FRED ---
+  if (requireNamespace("fred", quietly = TRUE) && !is.null(intl$us)) {
+    tryCatch({
+      intl$japan <- list(
+        gdp       = tail(fred_series("JPNRGDPEXP"), 8),        # Japan real GDP (quarterly)
+        cpi       = tail(fred_series("JPNCPIALLMINMEI"), 12),   # Japan CPI
+        unemployment = tail(fred_series("LRUNTTTTJPM156S"), 12),# Japan unemployment
+        policy_rate = tail(fred_series("IRSTCB01JPM156N"), 12)  # BOJ policy rate
+      )
+    }, error = function(e) message("Japan FRED fetch failed: ", e$message))
+  }
+
+  # --- China via FRED ---
+  if (requireNamespace("fred", quietly = TRUE) && !is.null(intl$us)) {
+    tryCatch({
+      intl$china <- list(
+        gdp       = tail(fred_series("CHNRGDPEXP"), 8),        # China real GDP (quarterly)
+        cpi       = tail(fred_series("CHNCPIALLMINMEI"), 12),   # China CPI
+        unemployment = tail(fred_series("LRUN64TTCNM156S"), 12) # China urban unemployment
+      )
+    }, error = function(e) message("China FRED fetch failed: ", e$message))
+  }
+
+  # --- Canada via FRED ---
+  if (requireNamespace("fred", quietly = TRUE) && !is.null(intl$us)) {
+    tryCatch({
+      intl$canada <- list(
+        gdp       = tail(fred_series("NAEXKP01CAQ189S"), 8),   # Canada real GDP (quarterly)
+        cpi       = tail(fred_series("CPALTT01CAM661N"), 12),   # Canada CPI
+        unemployment = tail(fred_series("LRUNTTTTCAM156S"), 12),# Canada unemployment
+        policy_rate = tail(fred_series("IRSTCB01CAM156N"), 12)  # BOC policy rate
+      )
+    }, error = function(e) message("Canada FRED fetch failed: ", e$message))
+  }
+
+  # --- Australia via FRED ---
+  if (requireNamespace("fred", quietly = TRUE) && !is.null(intl$us)) {
+    tryCatch({
+      intl$australia <- list(
+        gdp       = tail(fred_series("NAEXKP01AUQ189S"), 8),   # Australia real GDP (quarterly)
+        cpi       = tail(fred_series("CPALTT01AUM661N"), 12),   # Australia CPI
+        unemployment = tail(fred_series("LRUNTTTTAUM156S"), 12),# Australia unemployment
+        policy_rate = tail(fred_series("IRSTCB01AUM156N"), 12)  # RBA cash rate
+      )
+    }, error = function(e) message("Australia FRED fetch failed: ", e$message))
+  }
+
+  # --- Euro area via ECB (primary source for EA) ---
+  if (requireNamespace("readecb", quietly = TRUE)) {
+    tryCatch({
+      library(readecb)
+      intl$euro_area <- list(
+        gdp       = tail(ecb_get("MNA.Q.Y.I8.W2.S1.S1.B.B1GQ._Z._Z._Z.EUR.LR.GY"), 8),
+        hicp      = tail(ecb_get("ICP.M.U2.N.000000.4.ANR"), 12),
+        unemployment = tail(ecb_get("STS.M.I8.S.UNEH.RTT000.4.000"), 12),
+        ecb_rate  = tail(ecb_get("FM.D.U2.EUR.4F.KR.MRR_FR.LEV"), 30)
+      )
+    }, error = function(e) message("ECB fetch failed: ", e$message))
+  }
+
+  # --- OECD aggregates and backup (for G7, OECD totals, and any country FRED missed) ---
+  if (requireNamespace("readoecd", quietly = TRUE)) {
+    tryCatch({
+      library(readoecd)
+      # G7 and OECD aggregate GDP growth
+      intl$oecd <- list(
+        gdp_g7    = tail(get_oecd_gdp("G-7"), 8),
+        gdp_oecd  = tail(get_oecd_gdp("OECD"), 8),
+        cpi_g7    = tail(get_oecd_cpi("G-7"), 12),
+        cpi_oecd  = tail(get_oecd_cpi("OECD"), 12),
+        unemp_g7  = tail(get_oecd_unemployment("G-7"), 12),
+        unemp_oecd = tail(get_oecd_unemployment("OECD"), 12)
+      )
+
+      # Fill gaps: if any country was missed by FRED, try OECD
+      if (is.null(intl$japan)) {
+        intl$japan <- list(
+          gdp = tail(get_oecd_gdp("JPN"), 8),
+          cpi = tail(get_oecd_cpi("JPN"), 12),
+          unemployment = tail(get_oecd_unemployment("JPN"), 12)
+        )
+      }
+      if (is.null(intl$canada)) {
+        intl$canada <- list(
+          gdp = tail(get_oecd_gdp("CAN"), 8),
+          cpi = tail(get_oecd_cpi("CAN"), 12),
+          unemployment = tail(get_oecd_unemployment("CAN"), 12)
+        )
+      }
+      if (is.null(intl$australia)) {
+        intl$australia <- list(
+          gdp = tail(get_oecd_gdp("AUS"), 8),
+          cpi = tail(get_oecd_cpi("AUS"), 12),
+          unemployment = tail(get_oecd_unemployment("AUS"), 12)
+        )
+      }
+    }, error = function(e) message("OECD fetch failed: ", e$message))
+  }
+
+  cat(toJSON(intl, auto_unbox=TRUE, pretty=TRUE))
 '
 ```
 
-Euro area data (via readecb package, no API key required):
-```bash
-Rscript -e '
-  library(readecb); library(jsonlite)
-  ea <- list(
-    gdp = tail(ecb_get("MNA.Q.Y.I8.W2.S1.S1.B.B1GQ._Z._Z._Z.EUR.LR.GY"), 8),
-    hicp = tail(ecb_get("ICP.M.U2.N.000000.4.ANR"), 12),
-    unemployment = tail(ecb_get("STS.M.I8.S.UNEH.RTT000.4.000"), 12),
-    ecb_rate = tail(ecb_get("FM.D.U2.EUR.4F.KR.MRR_FR.LEV"), 30)
-  )
-  cat(toJSON(ea, auto_unbox=TRUE, pretty=TRUE))
-'
-```
+**Data source priority:**
+- FRED is preferred for individual country data (US, Japan, China, Canada, Australia) because it provides the most granular, timely series.
+- ECB is the authoritative source for Euro area aggregates.
+- OECD (via readoecd) provides G7/OECD aggregates and serves as a backup for any country where FRED data is unavailable (e.g., FRED API key not set).
 
-If fred is not installed or API key is missing: skip US data, note "US data requires the fred package with a FRED API key."
-If readecb is not installed: skip Euro area data, note "Euro area data requires the readecb package."
+**Graceful degradation:**
+- If `fred` package is not installed or API key is missing: skip all FRED-sourced countries (US, Japan, China, Canada, Australia). Note: "Country-level data requires the fred package with a FRED API key. Install with: install.packages('fred') then fred_set_key('YOUR_KEY')."
+- If `readecb` is not installed: skip Euro area data. Note: "Euro area data requires the readecb package."
+- If `readoecd` is not installed: skip OECD aggregates and backup country data. Note: "OECD aggregate data requires the readoecd package."
+- If ALL international packages are missing: "No international data packages available. Install fred, readecb, or readoecd for international comparisons."
+- Each country fetch is wrapped in tryCatch. If one country fails, the others still proceed.
 
 ### Step 3: Show the dashboard and ask what the user needs
 
@@ -250,7 +357,7 @@ Options:
 - Trade and external (trade balance, current account)
 - Housing market (house prices, mortgage approvals, affordability)
 - Productivity (output per hour, output per worker)
-- International comparison (UK vs US vs Euro area, requires --international data)
+- International comparison (UK vs major economies and G7/OECD aggregates, requires --international data)
 - Outlook and risks (growth trajectory, inflation path, key risks)
 
 ### Step 4: Generate the requested output
@@ -395,17 +502,34 @@ Public sector net debt stands at [val]% of GDP (£[val]bn). Debt interest paymen
 ```markdown
 ## International Comparison
 
-| Indicator | UK | US | Euro area |
-|-----------|----|----|-----------|
-| GDP growth (latest) | [val]% | [val]% | [val]% |
-| Inflation | CPI [val]% | PCE [val]% | HICP [val]% |
-| Unemployment | [val]% | [val]% | [val]% |
-| Policy rate | [val]% | [val]% | [val]% |
-| 10yr government bond | [val]% | [val]% | [val]% |
+### Major economies
 
-[Interpretation: How does the UK compare? Is the UK leading or lagging the cycle? Are policy rates diverging or converging? What are the implications for GBP and trade?]
+| Indicator | UK | US | Euro area | Japan | China | Canada | Australia | G7 avg |
+|-----------|----|----|-----------|-------|-------|--------|-----------|--------|
+| GDP growth | [val]% | [val]% | [val]% | [val]% | [val]% | [val]% | [val]% | [val]% |
+| Inflation | [val]% | [val]% | [val]% | [val]% | [val]% | [val]% | [val]% | [val]% |
+| Unemployment | [val]% | [val]% | [val]% | [val]% | [val]% | [val]% | [val]% | [val]% |
+| Policy rate | [val]% | [val]% | [val]% | [val]% | - | [val]% | [val]% | - |
 
-Note: Inflation measures differ across jurisdictions (CPI for UK, PCE for US, HICP for Euro area). Direct comparison requires caution. Unemployment definitions also vary (ILO measure used for all three where possible).
+[Only include columns for countries where data was successfully retrieved. If a country was skipped (package missing or fetch failed), omit the column rather than showing blanks.]
+
+### Interpretation
+
+[Address these questions:
+- Where is the UK in the global cycle? (leading, lagging, or in line with peers)
+- Are policy rates converging or diverging? (implications for GBP and capital flows)
+- Is the UK an outlier on any indicator? (e.g., higher inflation than peers, weaker growth)
+- What are the trade implications? (UK's major trading partners are the EU, US, and China)]
+
+### Data sources and comparability notes
+
+- GDP: quarterly real growth rates. US reports annualized; others report q/q. Comparisons use q/q where possible.
+- Inflation: CPI for UK/Japan/Canada/Australia, PCE for US (the Fed's preferred measure; CPI-U also available), HICP for Euro area, CPI for China. Direct comparison requires caution as basket weights differ.
+- Unemployment: ILO definition for UK/Euro area/Japan/Canada/Australia. US uses BLS definition (similar to ILO). China uses surveyed urban unemployment (narrower scope).
+- Policy rates: Bank Rate (UK), Fed Funds target midpoint (US), ECB main refinancing rate (Euro area), BOJ overnight call rate (Japan), BOC overnight rate (Canada), RBA cash rate (Australia).
+- G7/OECD averages from OECD Economic Outlook database via readoecd package.
+
+*Data sources: FRED (US, Japan, China, Canada, Australia), ECB Statistical Data Warehouse (Euro area), OECD (G7/OECD aggregates and backup). ONS and BoE for UK data.*
 ```
 
 **Outlook and risks:**
