@@ -20,7 +20,7 @@ Professional business economists spend 60-70% of their time on data wrangling, n
 
 The tools are either free and fragmented (individual R packages, CSV downloads, manual Excel) or expensive and institutional (Bloomberg at GBP 25k/yr, Haver Analytics at GBP 15k+, Macrobond at GBP 5k+). There is nothing in between.
 
-econstack fills that gap. It ships with pre-processed data for 391 UK local authority profiles (input-output multipliers, employment, earnings, housing, deprivation, and more) and wraps it in analytical workflows that produce real deliverables.
+econstack fills that gap. It takes the data from [econprofile](https://econprofile.com) (391 UK local authority profiles with input-output multipliers, employment, earnings, housing, deprivation, and more) and wraps it in analytical workflows that produce real deliverables.
 
 The skills encode how a professional economist thinks about these problems: which data to use, what methodology is appropriate, what caveats to include, which academic references to cite. You provide the question. econstack provides the analysis.
 
@@ -37,7 +37,7 @@ Open your terminal and run these two commands:
 git clone https://github.com/charlescoverdale/econstack.git ~/.claude/skills/econstack
 
 # Get the data (391 UK local authority datasets)
-git clone https://github.com/charlescoverdale/econstack-data.git ~/econstack-data
+git clone https://github.com/charlescoverdale/econprofile.git ~/econprofile
 ```
 
 That's it. No npm install, no API keys, no configuration. Claude Code automatically discovers skills in `~/.claude/skills/`.
@@ -137,7 +137,7 @@ Every output includes a **companion `.json` file** with all computed values. The
 
 The skills expect local authority data at this path:
 ```
-~/econstack-data/src/data/
+~/econprofile/src/data/
 ```
 
 If your data is elsewhere, update the data paths in:
@@ -152,16 +152,16 @@ Search for `DATA_DIR=` and replace the path with your data location.
 
 econstack skills are not software. They are instructions. Each SKILL.md file tells Claude Code exactly what to do: which data files to read, what computation to run, how to structure the output, what methodology to document, and what caveats to include.
 
-Claude is the runtime. The SKILL.md is the prompt. The data comes from local JSON files on your disk.
+Claude is the runtime. The SKILL.md is the prompt. The data comes from econprofile sitting on your disk.
 
 ```
 You type:    /impact-report £10m in Manufacturing in Manchester
                                     |
 Claude reads: ~/.claude/skills/econstack/skills/impact-report/SKILL.md
                                     |
-Claude loads: ~/econstack-data/src/data/manchester/multipliers.json
-              ~/econstack-data/src/data/manchester/summary.json
-              ~/econstack-data/src/data/national-benchmarks.json
+Claude loads: ~/econprofile/src/data/manchester/multipliers.json
+              ~/econprofile/src/data/manchester/summary.json
+              ~/econprofile/src/data/national-benchmarks.json
                                     |
 Claude runs:  IO computation (Leontief inverse, FLQ regionalization)
               Additionality adjustment (HM Treasury defaults)
@@ -331,7 +331,7 @@ Interactive options appraisal: define your options (do nothing, do minimum, pref
 
 ## Data coverage
 
-econstack currently covers **391 local authorities** across England, Wales, and Scotland. The underlying data comes from official government open sources, pre-fetched and processed into per-LA JSON files.
+econstack currently covers **391 local authorities** across England, Wales, and Scotland. The underlying data comes from official government open sources, pre-fetched and processed by the [econprofile](https://econprofile.com) data pipeline.
 
 ### Per local authority (16 data files each)
 
@@ -367,17 +367,17 @@ econstack currently covers **391 local authorities** across England, Wales, and 
 
 ## The ecosystem
 
-econstack is part of a broader suite of economic data tools. The R packages provide programmatic data access. macrowithr teaches the methods. econstack ties them together into workflows.
+econstack is part of a broader suite of economic data tools. The R packages provide programmatic data access. econprofile provides the pre-built data and web interface. macrowithr teaches the methods. econstack ties them together into workflows.
 
 ```
-R packages (data access)          econstack (skills)
-========================          ==================
-ons    -> ONS data                /impact-report
-boe    -> Bank of England         /la-profile
-hmrc   -> HMRC trade              /macro-briefing (soon)
-obr    -> OBR fiscal              /sector-analysis (soon)
-fred   -> US FRED data            /fiscal-monitor (soon)
-readecb -> ECB data               /nowcast (soon)
+R packages (data access)          econprofile (data + web)         econstack (skills)
+========================          =======================         ==================
+ons    -> ONS data                391 LA profiles                 /impact-report
+boe    -> Bank of England         IO impact calculator            /la-profile
+hmrc   -> HMRC trade              Compare regions tool            /macro-briefing (soon)
+obr    -> OBR fiscal              Embeddable charts               /sector-analysis (soon)
+fred   -> US FRED data            Country benchmarking            /fiscal-monitor (soon)
+readecb -> ECB data                                               /nowcast (soon)
 readoecd -> OECD data
 
 R packages (analytical)           macrowithr.com

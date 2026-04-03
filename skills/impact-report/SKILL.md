@@ -74,7 +74,7 @@ Extract from the user's input:
 Load the multiplier data:
 
 ```bash
-DATA_DIR="/Users/charlescoverdale/Documents/2026/Claude/Sandbox/econstack-data/src/data"
+DATA_DIR="/Users/charlescoverdale/Documents/2026/Claude/Sandbox/econprofile/src/data"
 cat "$DATA_DIR/${LA_SLUG}/multipliers.json"
 cat "$DATA_DIR/${LA_SLUG}/summary.json"
 cat "$DATA_DIR/${LA_SLUG}/employment.json"

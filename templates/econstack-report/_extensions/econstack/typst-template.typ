@@ -35,7 +35,7 @@
         grid(
           columns: (1fr, auto, 1fr),
           align(left)[Data from official UK government sources],
-          align(center)[econstack],
+          align(center)[econprofile.com],
           align(right)[#counter(page).display()],
         )
       }
@@ -184,7 +184,7 @@
     #v(4pt)
     Data sourced from ONS, BRES, ASHE, DLUHC, and other official UK government statistics.
     #linebreak()
-    Powered by econstack
+    Powered by econprofile.com
   ]
 
   // ===== TABLE OF CONTENTS =====

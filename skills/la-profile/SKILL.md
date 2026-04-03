@@ -64,7 +64,7 @@ Extract:
 ### Step 2: Load all available data
 
 ```bash
-DATA_DIR="/Users/charlescoverdale/Documents/2026/Claude/Sandbox/econstack-data/src/data"
+DATA_DIR="/Users/charlescoverdale/Documents/2026/Claude/Sandbox/econprofile/src/data"
 
 # Core (always available)
 cat "$DATA_DIR/${LA_SLUG}/summary.json"
@@ -220,7 +220,7 @@ Compare to the LA's own country average (England/Scotland/Wales). Do not just co
 - [One distinctive feature: "Highly specialised in [sector] (LQ [X])" or "IMD rank [X], one of the most deprived in England" or "GVA per job [X]% above national, ranking [Y]th"]
 - [One risk or challenge: "Claimant rate [X]%, nearly double the national average" or "Population declining, working-age share below average"]
 
-*Data: ONS, BRES, ASHE, DLUHC.*
+*Data: ONS, BRES, ASHE, DLUHC. Powered by econprofile.com.*
 ```
 
 **Demographics and population:**
@@ -340,7 +340,7 @@ Use percentage points (pp) for metrics that are already percentages. Use relativ
 
 **Methodology note (one paragraph):**
 ```markdown
-**Data sources:** Employment from BRES via Nomis (workplace-based). Earnings from ASHE via Nomis (workplace-based, full-time employees). Population from ONS Mid-Year Estimates. Housing from HM Land Registry via DLUHC, tenure from Census 2021. GVA estimated from national ratios applied to local employment (indicative only). Deprivation from English IMD 2019. Skills and commuting from Census 2021. National benchmarks computed from local authority-level data.
+**Data sources:** Employment from BRES via Nomis (workplace-based). Earnings from ASHE via Nomis (workplace-based, full-time employees). Population from ONS Mid-Year Estimates. Housing from HM Land Registry via DLUHC, tenure from Census 2021. GVA estimated from national ratios applied to local employment (indicative only). Deprivation from English IMD 2019. Skills and commuting from Census 2021. National benchmarks computed from local authority-level data. Powered by econprofile.com.
 ```
 
 ### Step 5: Comparison mode
