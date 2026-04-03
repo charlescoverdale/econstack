@@ -80,15 +80,58 @@ Requires [Quarto](https://quarto.org) for PDF rendering (`brew install quarto` o
 
 ### What you get
 
-**Both skills are interactive.** They compute the numbers, show you the headline stats, then ask what output format you need:
+**Both skills are interactive.** They compute first, then ask what you need. Here's what the conversation looks like:
 
-- **Full report** : every section, 5-10 pages
-- **Pick sections** : choose only what you need (exec summary, tables, methodology, risks, etc.)
-- **Slide summary** : 5 bullet points for PowerPoint
-- **Elevator pitch** (la-profile) : one paragraph characterizing the economy
-- **Data only** : just the `.json` file for your own analysis
+```
+You:     /impact-report £10m in Manufacturing in Manchester
 
-Every output includes a **companion JSON file** with all computed values, so you can feed the numbers into Excel, build your own charts, or cross-check against other sources. The skills produce building blocks, not finished deliverables. You take the 80% first draft and make it yours.
+Claude:  IMPACT COMPUTED
+         ===============
+         Net additional output:  £5.7m   (after additionality)
+         Net additional jobs:    23
+         Gross output:           £10.6m  (before additionality)
+         Gross jobs:             43
+         GVA contribution:       £3.2m
+         Estimated tax:          £420k
+         Output multiplier:      1.06x
+         Additionality factor:   54%
+
+         What output do you need?
+         A) Full report (8 sections, 5-10 pages)
+         B) Pick sections (choose only what you need)
+         C) Slide summary (5 bullet points for PowerPoint)
+         D) Data only (JSON file for your own analysis)
+
+You:     B
+
+Claude:  Which sections?
+         ☑ Executive summary
+         ☑ Impact tables
+         ☐ Additionality adjustment
+         ☐ Sensitivity analysis
+         ☐ Key risks
+         ☐ Local context
+         ☐ Full methodology
+         ☑ Methodology summary (one paragraph)
+         ☐ References
+
+         [Generates only the 3 selected sections]
+         [Saves companion JSON with all computed values]
+```
+
+**The idea:** you don't need a 10-page report. You need the exec summary for an email, the tables for your spreadsheet, and a one-paragraph methodology note for a footnote. Pick the pieces and build your own deliverable.
+
+**Output options:**
+
+| Option | What you get | Use it for |
+|--------|-------------|------------|
+| Full report | All sections, 5-10 pages | Formal business cases, funding bids |
+| Pick sections | Only what you select | Dropping into your own Word doc or deck |
+| Slide summary | 5 bullet points | Pasting straight into PowerPoint |
+| Elevator pitch | One paragraph (la-profile) | Meeting prep, email intros |
+| Data only | `.json` file | Your own Excel model, charts, analysis |
+
+Every output includes a **companion `.json` file** with all computed values. The skills produce building blocks, not finished deliverables. You take the 80% first draft and make it yours.
 
 ### Data path
 
