@@ -285,16 +285,63 @@ All data is benchmarked against the LA's own country (not just England). A Scott
 
 ---
 
+### `/macro-briefing`
+
+UK macroeconomic monitor. GDP, inflation, employment, wages, monetary conditions, fiscal position, trade, housing.
+
+```
+/macro-briefing
+/macro-briefing --full
+/macro-briefing --focus prices
+/macro-briefing --international
+```
+
+Follows the Bank of England Monetary Policy Report narrative structure: output, labour market, prices, monetary conditions, fiscal, trade, housing, outlook. Uses `ons` (16 functions) + `boe` (11 functions) + `obr` (15 functions).
+
+### `/inflation-monitor`
+
+CPI decomposition, core inflation measures, persistence, Phillips curve, and breadth analysis.
+
+```
+/inflation-monitor
+/inflation-monitor --full
+/inflation-monitor --focus persistence
+```
+
+Four analytical layers: (1) COICOP division decomposition, (2) core measures (trimmed mean, weighted median, sticky/flexible), (3) persistence (AR coefficients, half-life), (4) Phillips curve estimation. Uses `inflationkit` (11 functions) + `ons`.
+
+### `/fiscal-briefing`
+
+Public finances, debt sustainability, and fiscal rules analysis.
+
+```
+/fiscal-briefing
+/fiscal-briefing --full
+/fiscal-briefing --focus sustainability
+```
+
+Six layers: current position vs OBR forecast, receipts/expenditure breakdown, debt dynamics decomposition (r-g snowball effect), sustainability tests (Bohn test, fan charts, IMF stress tests, EC S1/S2 gaps), and fiscal rules headroom. Uses `debtkit` (12 functions) + `obr` (15 functions).
+
+### `/yield-briefing`
+
+Gilt yield curve analysis for fixed income desks.
+
+```
+/yield-briefing
+/yield-briefing --full
+/yield-briefing --focus carry
+```
+
+Six layers: curve snapshot with bull/bear regime classification, Nelson-Siegel parametric fit, PCA decomposition (level/slope/curvature), carry and rolldown by maturity, forward rate extraction, and break-even inflation. Uses `yieldcurves` (19 functions) + `boe`.
+
 ### Coming soon
 
 | Skill | What it does |
 |-------|-------------|
-| `/macro-briefing` | UK macro dashboard: GDP, inflation, employment, rates. Uses the [ons](https://cran.r-project.org/package=ons) and [boe](https://cran.r-project.org/package=boe) R packages. |
-| `/sector-analysis` | Industry deep dive: BRES employment, IO multipliers, shift-share, LQ analysis for a specific sector across regions. |
-| `/fiscal-monitor` | Public finances report: OBR data, debt sustainability (via [debtkit](https://cran.r-project.org/package=debtkit)), spending breakdown. |
-| `/yield-report` | Yield curve analysis: Nelson-Siegel fitting, carry/rolldown, PCA (via [yieldcurves](https://cran.r-project.org/package=yieldcurves)). |
-| `/inflation-briefing` | Inflation analysis: CPI decomposition, core measures, persistence, Phillips curve (via [inflationkit](https://cran.r-project.org/package=inflationkit)). |
-| `/nowcast` | GDP nowcast: bridge equations, mixed-frequency alignment, backtesting (via [nowcast](https://cran.r-project.org/package=nowcast)). |
+| `/sector-analysis` | Industry deep dive: BRES employment, IO multipliers, shift-share, LQ analysis. |
+| `/nowcast` | GDP nowcast: bridge equations, mixed-frequency alignment (via [nowcast](https://cran.r-project.org/package=nowcast)). |
+| `/cost-benefit` | Green Book CBA framework: options appraisal, NPV/BCR, sensitivity. |
+| `/benchmarking` | Cross-area or cross-country comparison across standardised indicators. |
 
 ---
 

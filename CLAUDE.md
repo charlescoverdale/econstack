@@ -8,6 +8,10 @@ Skills are in `skills/`. Each has a `SKILL.md` defining the workflow.
 
 - `skills/impact-report/SKILL.md` : Economic impact assessment (IO model)
 - `skills/la-profile/SKILL.md` : Local authority economic profile report
+- `skills/macro-briefing/SKILL.md` : UK macroeconomic monitor (GDP, CPI, employment, rates)
+- `skills/inflation-monitor/SKILL.md` : CPI decomposition, core measures, persistence, Phillips curve
+- `skills/fiscal-briefing/SKILL.md` : Public finances, debt sustainability, Bohn test, fan charts
+- `skills/yield-briefing/SKILL.md` : Gilt yield curve analysis, Nelson-Siegel, PCA, carry/rolldown
 
 ## Important Rules
 
