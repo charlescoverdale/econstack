@@ -1,28 +1,131 @@
 # econstack
 
-Claude Code skills for professional economic analysis. Generate client-ready reports, impact assessments, and briefings using UK and international economic data.
+Professional economic analysis, powered by AI.
 
-## What is this?
+econstack is a set of [Claude Code](https://claude.ai/code) skills that generate client-ready economic reports. Type a slash command, get a 10-page impact assessment with IO methodology, HM Treasury additionality adjustments, sensitivity analysis, and full academic references. The methodology, caveats, and data sources are baked in.
 
-econstack is a collection of Claude Code skills that turn raw economic data into professional deliverables. Each skill encodes a specific analytical workflow (impact assessment, macro briefing, sector analysis) with proper methodology, references, and caveats built in.
+```
+/impact-report £10m in Manufacturing in Manchester
+```
 
-Think of it as the difference between "pull some data and make a chart" and "generate a 10-page impact assessment with IO methodology, additionality adjustments per HM Treasury guidance, sensitivity analysis, and full academic references." The methodology is baked into the skills so you get consistent, credible output every time.
+That's it. You get a structured report you could hand to a client, submit with a funding bid, or attach to a business case. No spreadsheets, no manual chart formatting, no copy-pasting from ONS.
+
+---
+
+## Why this exists
+
+Professional business economists spend 60-70% of their time on data wrangling, not analysis. They pull data from ONS, BoE, OECD, and a dozen other sources. They clean it, align frequencies, merge datasets, make charts, write reports, and do it all again next week.
+
+The tools are either free and fragmented (individual R packages, CSV downloads, manual Excel) or expensive and institutional (Bloomberg at GBP 25k/yr, Haver Analytics at GBP 15k+, Macrobond at GBP 5k+). There is nothing in between.
+
+econstack fills that gap. It takes the data from [econprofile](https://econprofile.com) (391 UK local authority profiles with input-output multipliers, employment, earnings, housing, deprivation, and more) and wraps it in analytical workflows that produce real deliverables.
+
+The skills encode how a professional economist thinks about these problems: which data to use, what methodology is appropriate, what caveats to include, which academic references to cite. You provide the question. econstack provides the analysis.
+
+---
+
+## Quick start
+
+### 1. Install
+
+```bash
+git clone https://github.com/charlescoverdale/econstack.git ~/.claude/skills/econstack
+```
+
+Claude Code automatically discovers skills in `~/.claude/skills/`. No configuration needed.
+
+### 2. Get the data
+
+econstack reads pre-built data from the [econprofile](https://github.com/charlescoverdale/econprofile) repository. Clone it locally:
+
+```bash
+git clone https://github.com/charlescoverdale/econprofile.git ~/econprofile
+```
+
+The skills expect the econprofile data at `/Users/charlescoverdale/Documents/2026/Claude/Sandbox/econprofile/src/data/`. If your path is different, update the paths in the SKILL.md files.
+
+### 3. Use
+
+Open Claude Code and type a slash command:
+
+```
+/impact-report £10m in Manufacturing in Manchester
+```
+
+Claude reads the multiplier data, runs the IO computation, applies additionality adjustments, and writes a structured markdown report to your working directory.
+
+---
+
+## How it works
+
+econstack skills are not software. They are instructions. Each SKILL.md file tells Claude Code exactly what to do: which data files to read, what computation to run, how to structure the output, what methodology to document, and what caveats to include.
+
+Claude is the runtime. The SKILL.md is the prompt. The data comes from econprofile sitting on your disk.
+
+```
+You type:    /impact-report £10m in Manufacturing in Manchester
+                                    |
+Claude reads: ~/.claude/skills/econstack/skills/impact-report/SKILL.md
+                                    |
+Claude loads: ~/econprofile/src/data/manchester/multipliers.json
+              ~/econprofile/src/data/manchester/summary.json
+              ~/econprofile/src/data/national-benchmarks.json
+                                    |
+Claude runs:  IO computation (Leontief inverse, FLQ regionalization)
+              Additionality adjustment (HM Treasury defaults)
+              Sensitivity analysis (+/- 15% multiplier variation)
+                                    |
+Claude writes: impact-report-manchester-2026-04-02.md
+```
+
+No API keys. No build step. No dependencies beyond Claude Code and the data files.
+
+---
 
 ## Skills
 
 ### `/impact-report`
-Generate an economic impact assessment for an investment or job creation in any UK local authority. Uses regional input-output multipliers with FLQ regionalization of ONS 2023 data.
+
+Generate an economic impact assessment for an investment or job creation in any UK local authority.
 
 ```
 /impact-report £10m in Manufacturing in Manchester
-/impact-report 500 jobs in Construction in Glasgow --type2
-/impact-report £25m in Financial & Insurance in City of London --conservative
+/impact-report 500 jobs in Construction in Glasgow
+/impact-report £25m in Financial & Insurance in City of London --type2
+/impact-report £5m in Accommodation & Food in Brighton and Hove --conservative
 ```
 
-**Output:** A structured report with executive summary, gross/net impact tables, sensitivity analysis, additionality adjustments (HM Treasury/MHCLG guidance), methodology documentation, caveats, and academic references.
+**What you get:** A 9-section report covering:
+
+| Section | Contents |
+|---------|----------|
+| Executive summary | 2-3 paragraphs for a non-technical reader |
+| Investment parameters | Input table: amount, sector, LA, multiplier type |
+| Gross impact | Direct / indirect / induced output and jobs, GVA, tax estimates |
+| Additionality adjustment | Deadweight, displacement, leakage per HM Treasury guidance |
+| Sensitivity analysis | +/- 15% multiplier variation table |
+| Multiplier explanation | Why this area has this specific multiplier (lambda, FLQ) |
+| Local context | Key stats for the LA (employment, earnings, claimant rate) |
+| Methodology | Full IO model documentation (2 pages) |
+| References | 10 academic and government citations |
+
+**Options:**
+
+| Flag | Effect |
+|------|--------|
+| `--type2` | Include household spending (induced) effects |
+| `--conservative` | 35% deadweight, 40% displacement, 20% leakage |
+| `--optimistic` | 10% deadweight, 10% displacement, 5% leakage |
+| `--no-additionality` | Gross figures only |
+| `--brief` | Executive summary only (1 page) |
+
+**Methodology:** Regional input-output model using FLQ regionalization (Flegg et al. 1995) of ONS Input-Output Analytical Tables 2023 (Blue Book 2025). 104 industries aggregated to 19 SIC sections. Type I multipliers by default (conservative). Additionality from HM Treasury Additionality Guide (4th edition, 2014) and MHCLG Appraisal Guide (3rd edition, 2025).
+
+---
 
 ### `/la-profile`
-Generate a full local authority economic profile covering demographics, labour market, earnings, industry structure, housing, business activity, deprivation, skills, and commuting. Includes country-level benchmarking (England/Scotland/Wales).
+
+Generate a full local authority economic profile.
 
 ```
 /la-profile Manchester
@@ -31,60 +134,170 @@ Generate a full local authority economic profile covering demographics, labour m
 /la-profile Bristol --focus housing
 ```
 
-**Output:** A structured report with "at a glance" summary table, 10 sections covering every dimension of the local economy, narrative interpretation, and national benchmarking. Optional comparison mode for side-by-side analysis.
+**What you get:** A 10-section report covering:
 
-### More skills coming
-- `/macro-briefing` : UK macro dashboard report (GDP, inflation, employment, rates)
-- `/sector-analysis` : Industry deep dive with BRES data and IO multipliers
-- `/fiscal-monitor` : Public finances report using OBR data
+| Section | Contents |
+|---------|----------|
+| At a glance | Summary table: population, jobs, earnings, claimant rate, GVA, house price |
+| Summary | 3-4 paragraph narrative (what kind of economy is this?) |
+| Demographics | Population, working-age %, growth trend |
+| Labour market | Employment by sector, specialisation (LQ), shift-share analysis |
+| Earnings | Percentile distribution (p10-p90), gender pay gap |
+| Housing | Prices, affordability, tenure breakdown |
+| Business activity | Enterprise counts, size bands, birth/death rates |
+| Productivity | GVA per job, rank, sector breakdown |
+| Deprivation | IMD rank, domain-level scores |
+| Benchmarking | Comparison to England/Scotland/Wales and GB averages |
 
-## Prerequisites
+All data is benchmarked against the LA's own country (not just England). A Scottish LA gets Scottish averages. A Welsh LA gets Welsh averages.
 
-These skills depend on data from the [econprofile](https://econprofile.com) data pipeline. The econprofile repository must be cloned locally at a known path for the skills to access multiplier and LA data.
+**Options:**
 
-Required:
-- Claude Code (claude.ai/code)
-- econprofile repo cloned locally (for IO multiplier and LA data)
+| Flag | Effect |
+|------|--------|
+| `--brief` | Executive summary only (1-2 pages) |
+| `--compare <LA>` | Side-by-side comparison with another LA |
+| `--focus labour` | Emphasise labour market and skills |
+| `--focus housing` | Emphasise housing and affordability |
+| `--focus business` | Emphasise business activity and industry structure |
 
-Optional:
-- R with [ons](https://cran.r-project.org/package=ons), [boe](https://cran.r-project.org/package=boe), [fred](https://cran.r-project.org/package=fred) packages (for live data in future skills)
-- Quarto (for PDF report rendering)
+---
 
-## Installation
+### Coming soon
 
-```bash
-# Clone into your Claude Code skills directory
-git clone https://github.com/charlescoverdale/econstack.git ~/.claude/skills/econstack
+| Skill | What it does |
+|-------|-------------|
+| `/macro-briefing` | UK macro dashboard: GDP, inflation, employment, rates. Uses the [ons](https://cran.r-project.org/package=ons) and [boe](https://cran.r-project.org/package=boe) R packages. |
+| `/sector-analysis` | Industry deep dive: BRES employment, IO multipliers, shift-share, LQ analysis for a specific sector across regions. |
+| `/fiscal-monitor` | Public finances report: OBR data, debt sustainability (via [debtkit](https://cran.r-project.org/package=debtkit)), spending breakdown. |
+| `/yield-report` | Yield curve analysis: Nelson-Siegel fitting, carry/rolldown, PCA (via [yieldcurves](https://cran.r-project.org/package=yieldcurves)). |
+| `/inflation-briefing` | Inflation analysis: CPI decomposition, core measures, persistence, Phillips curve (via [inflationkit](https://cran.r-project.org/package=inflationkit)). |
+| `/nowcast` | GDP nowcast: bridge equations, mixed-frequency alignment, backtesting (via [nowcast](https://cran.r-project.org/package=nowcast)). |
+
+---
+
+## Data coverage
+
+econstack currently covers **391 local authorities** across England, Wales, and Scotland. The underlying data comes from official government open sources, pre-fetched and processed by the [econprofile](https://econprofile.com) data pipeline.
+
+### Per local authority (16 data files each)
+
+| Dataset | Source | Refresh |
+|---------|--------|---------|
+| Employment by sector (19 SIC sections) | BRES via Nomis | Annual |
+| Earnings (percentiles p10-p90, gender gap) | ASHE via Nomis | Annual |
+| IO multipliers (output + employment, Type I + II) | ONS IOAT 2023 + FLQ | On SUT update |
+| Population (mid-year estimates, age profile, trend) | ONS | Annual |
+| Housing (prices, affordability, tenure) | DLUHC / HM Land Registry | Annual |
+| GVA by industry | ONS (estimated from BRES + national ratios) | Annual |
+| Business counts (size bands) | ONS UK Business Counts | Annual |
+| Business demography (births, deaths, survival) | ONS | Annual |
+| Deprivation (IMD, 7 domains) | MHCLG (England only) | Periodic |
+| Skills (occupations, qualifications) | Census 2021 via Nomis | Decennial |
+| Commuting (modes, WFH %) | Census 2021 via Nomis | Decennial |
+| Industry shift-share analysis | Derived from BRES | Annual |
+| Location quotients | Derived from BRES | Annual |
+| National benchmarks (England, Scotland, Wales, GB) | Aggregated from above | On data update |
+
+### National IO model
+
+| Parameter | Value |
+|-----------|-------|
+| Source | ONS Input-Output Analytical Tables, 2023 (Blue Book 2025) |
+| Industries | 104 (aggregated to 19 SIC sections A-S) |
+| Aggregation method | Output-weighted averaging |
+| Regionalization | Flegg Location Quotient (FLQ), delta = 0.3 |
+| Multiplier types | Type I (default) + Type II (optional) |
+| Additionality | HM Treasury (2014) + MHCLG (2025) guidance |
+
+---
+
+## The ecosystem
+
+econstack is part of a broader suite of economic data tools. The R packages provide programmatic data access. econprofile provides the pre-built data and web interface. macrowithr teaches the methods. econstack ties them together into workflows.
+
+```
+R packages (data access)          econprofile (data + web)         econstack (skills)
+========================          =======================         ==================
+ons    -> ONS data                391 LA profiles                 /impact-report
+boe    -> Bank of England         IO impact calculator            /la-profile
+hmrc   -> HMRC trade              Compare regions tool            /macro-briefing (soon)
+obr    -> OBR fiscal              Embeddable charts               /sector-analysis (soon)
+fred   -> US FRED data            Country benchmarking            /fiscal-monitor (soon)
+readecb -> ECB data                                               /nowcast (soon)
+readoecd -> OECD data
+
+R packages (analytical)           macrowithr.com
+========================          ==============
+nowcast    -> Nowcasting           14-chapter textbook
+debtkit    -> Debt sustainability  Applied macro with R
+yieldcurves -> Yield curves        Uses all the packages above
+inflationkit -> Inflation analysis
+predictset  -> Conformal prediction
+climatekit  -> Climate indices
 ```
 
-Then use any skill by typing its command in Claude Code (e.g. `/impact-report £5m in Manufacturing in Leeds`).
+### R packages on CRAN
 
-## Data Sources
+| Package | Exports | What it does |
+|---------|---------|-------------|
+| [ons](https://cran.r-project.org/package=ons) | 16 | GDP, CPI, unemployment, wages, trade from ONS |
+| [boe](https://cran.r-project.org/package=boe) | 11 | Base rate, yield curves, money supply from Bank of England |
+| [hmrc](https://cran.r-project.org/package=hmrc) | 12 | UK trade data from HMRC |
+| [obr](https://cran.r-project.org/package=obr) | 15 | Fiscal forecasts from the OBR |
+| [fred](https://cran.r-project.org/package=fred) | 19 | 800,000+ US economic series from FRED |
+| [readoecd](https://cran.r-project.org/package=readoecd) | 13 | Cross-country data from the OECD |
+| [readecb](https://cran.r-project.org/package=readecb) | 16 | Euro area data from the ECB |
+| [inflateR](https://cran.r-project.org/package=inflateR) | 2 | Historical inflation adjustment |
+| [nowcast](https://cran.r-project.org/package=nowcast) | 10 | Economic nowcasting (bridge equations, backtesting) |
+| [debtkit](https://cran.r-project.org/package=debtkit) | 12 | Debt sustainability analysis |
+| [yieldcurves](https://cran.r-project.org/package=yieldcurves) | 16 | Yield curve fitting (Nelson-Siegel, Svensson, PCA) |
+| [inflationkit](https://cran.r-project.org/package=inflationkit) | 11 | Inflation decomposition, persistence, Phillips curve |
+| [predictset](https://cran.r-project.org/package=predictset) | 20 | Conformal prediction and uncertainty quantification |
+| [climatekit](https://cran.r-project.org/package=climatekit) | 35 | Climate indices (temperature, precipitation, drought) |
+| [readnoaa](https://cran.r-project.org/package=readnoaa) | 6 | US weather data from NOAA |
+| [readaec](https://cran.r-project.org/package=readaec) | 3 | Australian election data |
 
-All data comes from official open sources:
+---
 
-- **ONS Input-Output Analytical Tables 2023** (Blue Book 2025): technical coefficients matrix, 104 industries aggregated to 19 SIC sections
-- **BRES via Nomis**: employment by sector per local authority, location quotients
-- **ASHE via Nomis**: earnings data per local authority
-- **DLUHC**: housing data, local authority revenue
-- **HM Treasury**: additionality guidance, Green Book framework
-- **MHCLG**: Appraisal Guide (3rd edition, 2025)
+## Project structure
 
-## Methodology
+```
+econstack/
+├── README.md
+├── CLAUDE.md                              # Claude Code project context
+└── skills/
+    ├── impact-report/
+    │   └── SKILL.md                       # Economic impact assessment skill
+    └── la-profile/
+        └── SKILL.md                       # Local authority profile skill
+```
 
-The IO impact model uses Flegg Location Quotient (FLQ) regionalization of the national input-output table (Flegg et al. 1995). Delta = 0.3, a conventional value supported by Bonfiglio & Chelli (2008). Type I multipliers capture direct and indirect (supply chain) effects. Type II optionally adds induced (household spending) effects.
+Each skill is a single SKILL.md file. No code, no dependencies, no build step. The SKILL.md contains:
 
-Additionality adjustments follow HM Treasury guidance (2014) and MHCLG (2025): deadweight, displacement, leakage, and substitution. Three presets (standard, conservative, optimistic) based on ranges from the Additionality Guide.
+1. **YAML frontmatter**: name, description, allowed tools
+2. **Instructions**: step-by-step workflow Claude follows
+3. **Report template**: the exact structure of the output document
+4. **Methodology**: the economic model, parameters, and references
+5. **Rules**: formatting, caveats, and quality standards
 
-Full methodology and references are included in every generated report.
+---
 
-## Related Projects
+## Contributing
 
-- [econprofile](https://econprofile.com): 391 LA economic profiles (data source for these skills)
-- [macrowithr](https://macrowithr.com): Applied macroeconomics textbook with R
-- [ons](https://cran.r-project.org/package=ons): R package for ONS data
-- [boe](https://cran.r-project.org/package=boe): R package for Bank of England data
-- [nowcast](https://cran.r-project.org/package=nowcast): R package for economic nowcasting
-- [debtkit](https://cran.r-project.org/package=debtkit): R package for debt sustainability analysis
-- [yieldcurves](https://cran.r-project.org/package=yieldcurves): R package for yield curve fitting
-- [inflationkit](https://cran.r-project.org/package=inflationkit): R package for inflation analysis
+The most useful contributions are new skills. If you have a workflow you repeat regularly (sector analysis, trade briefing, fiscal projection), it can probably be encoded as a skill.
+
+A good skill has:
+- A clear trigger ("when someone asks for X")
+- Specific data requirements (which JSON files, which R packages)
+- A structured output template (sections, tables, charts)
+- Methodology documentation (what model, what assumptions)
+- Honest caveats (what can go wrong, what the limitations are)
+
+To add a skill: create `skills/<skill-name>/SKILL.md`, follow the format of existing skills, and open a PR.
+
+---
+
+## License
+
+MIT
