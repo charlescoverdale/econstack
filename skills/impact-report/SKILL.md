@@ -62,10 +62,10 @@ Extract from the user's input:
 
 ### Step 2: Load data and compute
 
-Load the multiplier data from econprofile:
+Load the multiplier data:
 
 ```bash
-DATA_DIR="/Users/charlescoverdale/Documents/2026/Claude/Sandbox/econprofile/src/data"
+DATA_DIR="/Users/charlescoverdale/Documents/2026/Claude/Sandbox/econstack-data/src/data"
 cat "$DATA_DIR/${LA_SLUG}/multipliers.json"
 cat "$DATA_DIR/${LA_SLUG}/summary.json"
 cat "$DATA_DIR/${LA_SLUG}/employment.json"
@@ -423,7 +423,7 @@ Files saved:
 ## Important Rules
 
 - Never use em dashes. Use colons, periods, commas, or parentheses.
-- Never attribute econprofile or econstack to any individual. Present as brands/products.
+- Never attribute econstack to any individual. Present as a brand/product.
 - Every section must stand alone. Do not reference "Section 3" or "as discussed above." A consultant may use any section independently.
 - Cross-check every number in the executive summary against the tables. They must match.
 - Always save the companion JSON file regardless of which sections are selected.
