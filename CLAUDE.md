@@ -4,13 +4,13 @@ Claude Code skills for professional economic analysis.
 
 ## Skills
 
-Skills are in `skills/`. Each has a `SKILL.md` defining the workflow.
+Each skill has its own directory with a `SKILL.md` defining the workflow.
 
-- `skills/impact-report/SKILL.md` : Economic impact assessment (IO model)
-- `skills/la-profile/SKILL.md` : Local authority economic profile report
-- `skills/macro-briefing/SKILL.md` : UK macroeconomic monitor (GDP, CPI, employment, rates)
-- `skills/fiscal-briefing/SKILL.md` : Public finances briefing (borrowing, debt, receipts, spending)
-- `skills/cost-benefit/SKILL.md` : Green Book cost-benefit analysis (NPV, BCR, optimism bias, sensitivity)
+- `impact-report/SKILL.md` : Economic impact assessment (IO model)
+- `la-profile/SKILL.md` : Local authority economic profile report
+- `macro-briefing/SKILL.md` : UK macroeconomic monitor (GDP, CPI, employment, rates)
+- `fiscal-briefing/SKILL.md` : Public finances briefing (borrowing, debt, receipts, spending)
+- `cost-benefit/SKILL.md` : Green Book cost-benefit analysis (NPV, BCR, optimism bias, sensitivity)
 
 ## Important Rules
 
