@@ -26,33 +26,86 @@ The skills encode how a professional economist thinks about these problems: whic
 
 ## Quick start
 
-### 1. Install
+**Step 1: Install (30 seconds)**
+
+Open your terminal and run these two commands:
 
 ```bash
+# Install the skills
 git clone https://github.com/charlescoverdale/econstack.git ~/.claude/skills/econstack
-```
 
-Claude Code automatically discovers skills in `~/.claude/skills/`. No configuration needed.
-
-### 2. Get the data
-
-econstack reads pre-built data from the [econprofile](https://github.com/charlescoverdale/econprofile) repository. Clone it locally:
-
-```bash
+# Get the data (391 UK local authority datasets)
 git clone https://github.com/charlescoverdale/econprofile.git ~/econprofile
 ```
 
-The skills expect the econprofile data at `/Users/charlescoverdale/Documents/2026/Claude/Sandbox/econprofile/src/data/`. If your path is different, update the paths in the SKILL.md files.
+That's it. No npm install, no API keys, no configuration. Claude Code automatically discovers skills in `~/.claude/skills/`.
 
-### 3. Use
+**Step 2: Use**
 
-Open Claude Code and type a slash command:
+Open [Claude Code](https://claude.ai/code) and type:
 
 ```
 /impact-report £10m in Manufacturing in Manchester
 ```
 
-Claude reads the multiplier data, runs the IO computation, applies additionality adjustments, and writes a structured markdown report to your working directory.
+Claude reads the local authority data, runs the IO computation, applies HM Treasury additionality adjustments, and writes a full report to your working directory. Takes about 30 seconds.
+
+**Step 3: Get a PDF (optional)**
+
+Add `--format pdf` for a branded, consulting-quality PDF:
+
+```
+/impact-report £10m in Manufacturing in Manchester --format pdf --client "Manchester City Council"
+```
+
+Requires [Quarto](https://quarto.org) for PDF rendering (`brew install quarto` on macOS).
+
+### More examples
+
+```
+# Economic impact assessment
+/impact-report £10m in Manufacturing in Manchester
+/impact-report 500 jobs in Construction in Glasgow --type2
+/impact-report £25m in Financial & Insurance in City of London --conservative
+/impact-report £5m in Accommodation & Food in Brighton and Hove --format pdf
+
+# Local authority economic profile
+/la-profile Manchester
+/la-profile Glasgow City --brief
+/la-profile Leeds --compare Birmingham
+/la-profile Bristol --focus housing --format pdf
+```
+
+### What you get
+
+An `/impact-report` generates a **9-section report** (typically 5-8 pages):
+
+1. **Executive summary** leading with the net impact number (the one you put in the business case)
+2. **Gross impact** with direct/indirect/induced breakdown
+3. **Additionality adjustment** per HM Treasury/MHCLG guidance
+4. **Sensitivity analysis** across both multiplier variation and additionality assumptions
+5. **Key risks** specific to this area and sector (not generic caveats)
+6. **Local economic context** with benchmarks
+7. **Full methodology** (IO model, FLQ regionalization, Leontief inverse)
+8. **Caveats** (honest about limitations)
+9. **Academic references** (10 citations)
+
+An `/la-profile` generates a **10-section economic profile** covering demographics, labour market, earnings, industry structure, housing, business activity, productivity, deprivation, skills, and national benchmarking.
+
+Both can output markdown (default) or branded PDF.
+
+### Data path
+
+The skills expect econprofile data at this path:
+```
+~/econprofile/src/data/
+```
+
+If you cloned econprofile elsewhere, update the data paths in:
+- `~/.claude/skills/econstack/skills/impact-report/SKILL.md`
+- `~/.claude/skills/econstack/skills/la-profile/SKILL.md`
+
+Search for `/Users/charlescoverdale/` and replace with your path.
 
 ---
 
