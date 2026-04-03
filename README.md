@@ -309,13 +309,23 @@ UK public finances briefing: borrowing, debt, receipts, spending, fiscal rules.
 
 Covers: current PSNB/PSND vs OBR forecast, tax receipts breakdown, expenditure and debt interest, fiscal rules headroom (PSNFL target), and outlook. Uses `obr` (15 functions) + `ons`, or falls back to direct ONS web fetch if R is not available.
 
+### `/cost-benefit`
+
+Green Book cost-benefit analysis. Discounting, NPV, BCR, optimism bias, sensitivity, switching values.
+
+```
+/cost-benefit
+/cost-benefit --framework eu
+```
+
+Interactive options appraisal: define your options (do nothing, do minimum, preferred), enter costs and benefits (summary figures, year-by-year, or plain English descriptions), and the skill handles the computation. Correct declining discount rate schedule (3.5% years 0-30, 3.0% years 31-75, 2.5% years 76+), optimism bias by project type, additionality adjustments, sensitivity analysis (+/-20%), and switching values. Output matches the Five Case Model economic case structure. No R required.
+
 ### Coming soon
 
 | Skill | What it does |
 |-------|-------------|
 | `/sector-analysis` | Industry deep dive: BRES employment, IO multipliers, shift-share, LQ analysis. |
 | `/benchmarking` | Cross-area or cross-country comparison across standardised indicators. |
-| `/cost-benefit` | Green Book CBA framework: options appraisal, NPV/BCR, sensitivity. |
 
 ---
 

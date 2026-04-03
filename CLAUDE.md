@@ -10,6 +10,7 @@ Skills are in `skills/`. Each has a `SKILL.md` defining the workflow.
 - `skills/la-profile/SKILL.md` : Local authority economic profile report
 - `skills/macro-briefing/SKILL.md` : UK macroeconomic monitor (GDP, CPI, employment, rates)
 - `skills/fiscal-briefing/SKILL.md` : Public finances briefing (borrowing, debt, receipts, spending)
+- `skills/cost-benefit/SKILL.md` : Green Book cost-benefit analysis (NPV, BCR, optimism bias, sensitivity)
 
 ## Important Rules
 
