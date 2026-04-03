@@ -37,7 +37,7 @@ Open your terminal and run these two commands:
 git clone https://github.com/charlescoverdale/econstack.git ~/.claude/skills/econstack
 
 # Get the data (391 UK local authority datasets)
-git clone https://github.com/charlescoverdale/econprofile.git ~/econprofile
+git clone https://github.com/charlescoverdale/econstack-data.git ~/econstack-data
 ```
 
 That's it. No npm install, no API keys, no configuration. Claude Code automatically discovers skills in `~/.claude/skills/`.
@@ -137,7 +137,7 @@ Every output includes a **companion `.json` file** with all computed values. The
 
 The skills expect local authority data at this path:
 ```
-~/econprofile/src/data/
+~/econstack-data/src/data/
 ```
 
 If your data is elsewhere, update the data paths in:
@@ -152,16 +152,16 @@ Search for `DATA_DIR=` and replace the path with your data location.
 
 econstack skills are not software. They are instructions. Each SKILL.md file tells Claude Code exactly what to do: which data files to read, what computation to run, how to structure the output, what methodology to document, and what caveats to include.
 
-Claude is the runtime. The SKILL.md is the prompt. The data comes from econprofile sitting on your disk.
+Claude is the runtime. The SKILL.md is the prompt. The data comes from econstack-data sitting on your disk.
 
 ```
 You type:    /impact-report £10m in Manufacturing in Manchester
                                     |
 Claude reads: ~/.claude/skills/econstack/skills/impact-report/SKILL.md
                                     |
-Claude loads: ~/econprofile/src/data/manchester/multipliers.json
-              ~/econprofile/src/data/manchester/summary.json
-              ~/econprofile/src/data/national-benchmarks.json
+Claude loads: ~/econstack-data/src/data/manchester/multipliers.json
+              ~/econstack-data/src/data/manchester/summary.json
+              ~/econstack-data/src/data/national-benchmarks.json
                                     |
 Claude runs:  IO computation (Leontief inverse, FLQ regionalization)
               Additionality adjustment (HM Treasury defaults)

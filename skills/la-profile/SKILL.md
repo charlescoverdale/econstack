@@ -64,7 +64,7 @@ Extract:
 ### Step 2: Load all available data
 
 ```bash
-DATA_DIR="/Users/charlescoverdale/Documents/2026/Claude/Sandbox/econprofile/src/data"
+DATA_DIR="$HOME/econstack-data/src/data"
 
 # Core (always available)
 cat "$DATA_DIR/${LA_SLUG}/summary.json"
