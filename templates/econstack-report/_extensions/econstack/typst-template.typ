@@ -14,7 +14,7 @@
   // ----- Page setup -----
   set page(
     paper: "a4",
-    margin: (top: 30mm, bottom: 25mm, left: 25mm, right: 20mm),
+    margin: (top: 25mm, bottom: 20mm, left: 20mm, right: 20mm),
     header: context {
       if counter(page).get().first() > 1 {
         set text(size: 8pt, fill: rgb("#999999"))
