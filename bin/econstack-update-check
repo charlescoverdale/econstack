@@ -12,7 +12,7 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 ECONSTACK_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 VERSION_FILE="$ECONSTACK_DIR/VERSION"
-REMOTE_URL="${ECONSTACK_REMOTE_URL:-https://raw.githubusercontent.com/charlescoverdale/econstack/master/VERSION}"
+REMOTE_URL="${ECONSTACK_REMOTE_URL:-https://raw.githubusercontent.com/charlescoverdale/econstack/refs/heads/master/VERSION}"
 STATE_DIR="${ECONSTACK_STATE_DIR:-$HOME/.econstack}"
 CACHE_FILE="$STATE_DIR/last-update-check"
 
