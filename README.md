@@ -20,24 +20,11 @@ git clone https://github.com/charlescoverdale/econstack-data.git ~/econstack-dat
 
 No npm, no API keys, no configuration. Claude Code discovers skills in `~/.claude/skills/` automatically.
 
-All skills generate Markdown + JSON by default. Add `--format` for Word, PowerPoint, HTML, Excel, or PDF.
+All skills are interactive: pick the sections you need, then choose your output formats (Markdown, HTML, Word, PowerPoint, PDF, or Excel).
 
 ---
 
 ## Skills
-
-### `/io-report` (UK)
-
-Input-output economic impact assessment for 391 UK local authorities.
-
-```
-/io-report £10m in Manufacturing in Manchester
-/io-report 500 jobs in Construction in Glasgow --type2
-```
-
-Regional IO model (FLQ regionalization, ONS 2023). Tax revenue estimates, additionality, sensitivity analysis, multiplier benchmarking. **Options:** `--type2`, `--conservative`/`--optimistic`, `--audit`, `--format`
-
----
 
 ### `/cost-benefit`
 
@@ -49,20 +36,7 @@ Cost-benefit analysis with parameter database support for UK, US, EU, and Austra
 /cost-benefit --from assumptions.json --full --format xlsx,pdf
 ```
 
-8 frameworks (UK Green Book, US OMB A-4, EU Cohesion, Australia, World Bank, NZ CBAx, EIB, ADB). Declining discount rates, optimism bias, S-curve phasing, carbon valuation, Monte Carlo, switching values, distributional weights. 33 audited parameter files with source citations and staleness detection.
-
----
-
-### `/econ-audit`
-
-Audit any economic analysis against methodology standards and academic literature.
-
-```
-/econ-audit io-report-manchester-2026-04-03.md --strict
-/econ-audit . --fix
-```
-
-60+ checks across 10 categories. RED/AMBER/GREEN grading, letter grade A-F, auto-fix option.
+8 frameworks (UK Green Book, US OMB A-4, EU Cohesion, Australia, World Bank, NZ CBAx, EIB, ADB). Declining discount rates, optimism bias, S-curve phasing, carbon valuation, Monte Carlo, switching values, distributional weights. 34 audited parameter files with source citations and staleness detection. **Options:** `--framework`, `--from`, `--full`, `--audit`, `--format`
 
 ---
 
@@ -78,20 +52,7 @@ Macroeconomic monitor for UK, US, Euro area, and Australia.
 /macro-briefing --international     # Add 30-country comparison tables
 ```
 
-Each country follows its central bank's reporting structure. Traffic-light macro assessment (GREEN/AMBER/RED) with quantitative thresholds. **Options:** `--country`, `--full`, `--focus`, `--international`, `--format pdf`
-
----
-
-### `/la-profile` (UK)
-
-Local authority economic profile for 391 UK areas.
-
-```
-/la-profile Manchester
-/la-profile Leeds --compare Birmingham
-```
-
-10-section report: demographics, labour market, earnings, housing, business activity, productivity, deprivation, benchmarking.
+Each country follows its central bank's reporting structure. Traffic-light macro assessment (GREEN/AMBER/RED) with quantitative thresholds. **Options:** `--country`, `--full`, `--focus`, `--international`, `--format`
 
 ---
 
@@ -105,6 +66,47 @@ Public finances briefing for UK, US, or Australia.
 /fiscal-briefing --country au       # Australia: UCB, net debt, revenue/expenses
 /fiscal-briefing --dsa              # Add debt sustainability analysis via debtkit
 ```
+
+**Options:** `--country`, `--full`, `--dsa`, `--format`
+
+---
+
+### `/io-report` (UK)
+
+Input-output economic impact assessment for 391 UK local authorities.
+
+```
+/io-report £10m in Manufacturing in Manchester
+/io-report 500 jobs in Construction in Glasgow --type2
+```
+
+Regional IO model (FLQ regionalization, ONS 2023). Tax revenue estimates, additionality, sensitivity analysis, multiplier benchmarking. **Options:** `--type2`, `--conservative`/`--optimistic`, `--audit`, `--format`
+
+---
+
+### `/la-profile` (UK)
+
+Local authority economic profile for 391 UK areas.
+
+```
+/la-profile Manchester
+/la-profile Leeds --compare Birmingham
+```
+
+10-section report: demographics, labour market, earnings, housing, business activity, productivity, deprivation, benchmarking. **Options:** `--compare`, `--focus`, `--full`, `--format`
+
+---
+
+### `/econ-audit`
+
+Audit any economic analysis against methodology standards and academic literature.
+
+```
+/econ-audit io-report-manchester-2026-04-03.md --strict
+/econ-audit . --fix
+```
+
+60+ checks across 10 categories. RED/AMBER/GREEN grading, letter grade A-F, auto-fix option. **Options:** `--strict`, `--fix`, `--format`
 
 ---
 
@@ -121,12 +123,12 @@ Public finances briefing for UK, US, or Australia.
 ```
 R packages (data access)          econprofile (data + web)         econstack (skills)
 ========================          =======================         ==================
-ons    -> ONS data                391 LA profiles                 /io-report (UK)
-boe    -> Bank of England         IO impact calculator            /la-profile (UK)
-hmrc   -> HMRC trade              Compare regions tool            /cost-benefit (4 jurisdictions)
-obr    -> OBR fiscal              Embeddable charts               /econ-audit
-fred   -> US FRED data            Country benchmarking            /macro-briefing (4 countries)
-readecb -> ECB data                                               /fiscal-briefing (UK, US, AU)
+ons    -> ONS data                391 LA profiles                 /cost-benefit (UK, US, EU, AU)
+boe    -> Bank of England         IO impact calculator            /macro-briefing (UK, US, EU, AU)
+hmrc   -> HMRC trade              Compare regions tool            /fiscal-briefing (UK, US, AU)
+obr    -> OBR fiscal              Embeddable charts               /io-report (UK)
+fred   -> US FRED data            Country benchmarking            /la-profile (UK)
+readecb -> ECB data                                               /econ-audit
 readoecd -> OECD data
 
 R packages (analytical)           macrowithr.com
