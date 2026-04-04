@@ -78,6 +78,8 @@ Load all JSON files from `$PARAMS_DIR/{jurisdiction}/` where jurisdiction matche
 - `us` framework -> load `$PARAMS_DIR/us/*.json`
 - Other frameworks (wb, nz, eib, adb) -> parameter files not yet available, use built-in defaults below
 
+All frameworks also load `$PARAMS_DIR/common/*.json` for shared parameters (S-curve capital phasing profiles, benefit ramp-up profiles). These are mathematical shapes that apply universally.
+
 Read each JSON file and use the values throughout the computation. When referencing a parameter, use the loaded value. For example, instead of hardcoding "3.5%", use the value from `uk/discount-rates.json`.
 
 **Fallback:** If `$PARAMS_DIR` does not exist or the jurisdiction directory is missing, use the built-in defaults hardcoded in this skill. Tell the user: "Parameter database not found. Using built-in defaults. For the latest values, run: cd ~/econstack-data && git pull"
