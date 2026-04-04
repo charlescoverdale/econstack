@@ -73,7 +73,7 @@ Traffic-light macro assessment (GREEN/AMBER/RED) with quantitative thresholds. O
 
 ### `/fiscal-briefing`
 
-Public finances briefing for UK, US, or Australia.
+Up-to-date public finances reports for the UK, US, and Australia. Pulls live data from official sources (ONS, OBR, FRED, ABS), covers borrowing, debt, receipts by tax, spending by category, and fiscal rules or sustainability context. Every number is traceable: full methodology, data sources, and vintage dates included. Optionally add a debt sustainability analysis powered by the `debtkit` R package.
 
 ```
 /fiscal-briefing                    # UK: PSNB, PSND, OBR forecasts, fiscal rules
@@ -82,7 +82,7 @@ Public finances briefing for UK, US, or Australia.
 /fiscal-briefing --dsa              # Add debt sustainability analysis via debtkit
 ```
 
-**Options:** `--country`, `--full`, `--dsa`, `--format`
+Outputs to Markdown, HTML, Word, PowerPoint, or PDF. **Options:** `--country`, `--full`, `--dsa`, `--format`
 
 ---
 
