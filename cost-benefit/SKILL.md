@@ -75,7 +75,8 @@ Load all JSON files from `$PARAMS_DIR/{jurisdiction}/` where jurisdiction matche
 - `uk` framework -> load `$PARAMS_DIR/uk/*.json`
 - `eu` framework -> load `$PARAMS_DIR/eu/*.json`
 - `au` framework -> load `$PARAMS_DIR/au/*.json`
-- Other frameworks (us, wb, nz, eib, adb) -> parameter files not yet available, use built-in defaults below
+- `us` framework -> load `$PARAMS_DIR/us/*.json`
+- Other frameworks (wb, nz, eib, adb) -> parameter files not yet available, use built-in defaults below
 
 Read each JSON file and use the values throughout the computation. When referencing a parameter, use the loaded value. For example, instead of hardcoding "3.5%", use the value from `uk/discount-rates.json`.
 
@@ -312,7 +313,8 @@ If carbon impacts exist, ask for estimated annual tonnes of CO2e (positive = emi
 - UK framework: use the `non_traded.schedule` from `uk/carbon-values.json`. Interpolate linearly between data points. For years beyond the schedule, extrapolate at 1.5% real annual growth.
 - EU/EIB framework: use the `eib_shadow_price.schedule` from `eu/carbon-values.json`. Interpolate linearly.
 - AU framework: use `au/carbon-values.json` if available, otherwise ask the user for a carbon price.
-- US/other frameworks: parameter files not yet available. Use built-in defaults: US $51/tCO2 (EPA, 2% rate, 2020$), others $50/tCO2, or ask the user.
+- US framework: use the `sc_co2.at_2_percent.schedule` from `us/carbon-values.json`. These are EPA 2023 social cost of carbon estimates (damage-based, NOT target-consistent like UK). Interpolate linearly. Present sensitivity at 1.5% and 2.5% discount rates.
+- Other frameworks (WB, NZ, EIB, ADB): parameter files not yet available. Use built-in defaults: $50/tCO2, or ask the user.
 
 *Carbon values are sourced from the econstack-data parameter database. Check `last_verified` dates in each file. Sources update periodically (DESNZ annually, EIB ~5 years).*
 
@@ -408,17 +410,11 @@ Note: TAG values are updated annually. These are indicative. For a formal WebTAG
 
 If health outcomes are described in physical units, offer to monetise using framework-specific QALY/DALY/VPF values from the loaded parameter database.
 
-**For UK, EU, and AU frameworks:** Load values from `{jurisdiction}/health-values.json` and `{jurisdiction}/vsl.json`. Use the `source` metadata for citations.
+**For UK, EU, AU, and US frameworks:** Load values from `{jurisdiction}/health-values.json` and `{jurisdiction}/vsl.json`. Use the `source` metadata for citations.
 
-**For other frameworks (US, NZ, WB, EIB, ADB):** Parameter files not yet available. Use these built-in defaults:
+For US: note that three agencies publish different VSL values (DOT $13.7M, EPA $12.5M, HHS $13.6M). Use DOT for transport CBA, EPA for environmental, HHS for health. The `us/vsl.json` file documents all three with methodology notes. Also load `us/vsl.json` for the MAIS injury severity fractions (DOT's method for valuing non-fatal injuries as fractions of VSL).
 
-**US (OMB / EPA / HHS):**
-| Health metric | Value | Source |
-|--------------|-------|--------|
-| Value of a statistical life (VSL) | $13.2m (2024 USD) | EPA; updated annually |
-| QALY | $190,000-$250,000 | Derived from VSL; varies by agency |
-| DALY averted | ~$190,000-$250,000 | Symmetric with QALY by convention |
-| FDA cost-effectiveness threshold | $150,000/QALY | FDA regulatory analysis |
+**For other frameworks (NZ, WB, EIB, ADB):** Parameter files not yet available. Use these built-in defaults:
 
 **New Zealand:**
 | Health metric | Value | Source |
@@ -486,7 +482,7 @@ Example weights (using default values):
 Ask the user to estimate the income distribution of beneficiaries and cost-bearers. Compute a weighted NPV alongside the unweighted NPV. Present both.
 
 **US OMB A-4 (2023) approach:**
-The revised A-4 formally endorses income-based distributional weights using a similar framework with e = 1.4. Apply the same formula with US median household income (~$75,000).
+Load the elasticity and median income from `us/distributional-weights.json`. If parameter files are not loaded, use built-in defaults: e = 1.4, median household income = $75,000. The revised A-4 formally endorses income-based distributional weights and makes them a requirement for significant regulatory actions (>$100M annual impact).
 
 For other frameworks, present distributional analysis qualitatively unless the user provides custom weights.
 
@@ -533,12 +529,15 @@ For t = 1 to appraisal_period:
 ```
 
 For US OMB A-4 (declining long-term):
+
+Use the schedule from `us/discount-rates.json` (field `revised_a4.schedule`). If parameter files are not loaded, use built-in defaults: 2.0% (years 0-56), 1.7% (57-115), 1.1% (116+).
+
+Also present sensitivity at legacy A-4 rates (3% and 7%) from `us/discount-rates.json` (field `legacy_a4`). The A-4 revision is subject to executive order changes, so presenting both sets provides defensibility.
+
 ```
 df(0) = 1.0
 For t = 1 to appraisal_period:
-  if t <= 56: r = 0.020
-  elif t <= 115: r = 0.017
-  else: r = 0.011
+  r = rate from discount schedule for year t
 
   df(t) = df(t-1) / (1 + r)
 ```

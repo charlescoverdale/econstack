@@ -204,20 +204,21 @@ UK public finances: borrowing, debt, receipts, spending, fiscal rules.
 
 ### CBA parameters
 
-The `/cost-benefit`, `/io-report`, and `/econ-audit` skills use a structured parameter database at `~/econstack-data/parameters/`. 14 JSON files covering UK, EU, and Australia:
+The `/cost-benefit`, `/io-report`, and `/econ-audit` skills use a structured parameter database at `~/econstack-data/parameters/`. 33 JSON files covering UK, US, EU, Australia, and OECD:
 
-| Category | UK | EU | AU |
-|----------|----|----|-----|
-| Discount rates | Green Book declining schedule | 3%/5% | 7% (4%/10%) |
-| Carbon values | DESNZ traded + non-traded | EIB shadow price | Planned |
-| VSL / VPF | TAG Data Book | Planned | OIA AUD 5.87M |
-| Health (QALY) | GBP 70,000 | Planned | Planned |
-| VTTS | TAG Data Book | Planned | Planned |
-| Optimism bias | 6 types x 3 stages | N/A | N/A |
-| Additionality | HMT standard/conservative/optimistic | N/A | N/A |
-| Tax parameters | Income tax, NICs, VAT (2024/25) | N/A | N/A |
+| Category | UK | US | EU | AU |
+|----------|:--:|:--:|:--:|:--:|
+| Discount rates | Green Book declining | OMB A-4 revised (2%) + legacy 3%/7% | 3%/5% | 7% (4%/10%) |
+| Carbon values | DESNZ traded + non-traded | EPA SC-GHG (3 discount rates) | EIB shadow price | ACCU + Safeguard |
+| VSL / VPF | TAG GBP 2.35M | DOT/EPA/HHS ($12.5-13.7M) | EUR 3.6M + transfer | OIA AUD 5.87M |
+| Health (QALY) | GBP 70,000 | $190-250K + FDA threshold | EUR 40-100K | AUD 50-70K |
+| VTTS | TAG Data Book | DOT wage-% method | | ATAP formula |
+| Distributional weights | e=1.3 | e=1.4 (A-4 revised) | e=1.0-1.5 | |
+| Optimism bias | 6 types x 3 stages | N/A | N/A | N/A |
+| Additionality | HMT 3 scenarios | N/A | N/A | N/A |
+| Tax parameters | Income tax, NICs, VAT | N/A | Conversion factors | N/A |
 
-Skills fall back to built-in defaults if parameter files are not found.
+Plus OECD cross-country VSL transfer method (benefit transfer for 25+ countries). Skills fall back to built-in defaults if parameter files are not found.
 
 ---
 
