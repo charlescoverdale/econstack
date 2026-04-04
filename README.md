@@ -116,7 +116,7 @@ Economic snapshot for any of the 391 UK local authorities. Covers demographics, 
 
 Full methodology audit of any output from the skills above, or any economic analysis you point it at. Runs 60+ checks across 10 categories and produces a RAG (red, amber, green) rating on how your methods and assumptions compare to best practice. Agnostic to region or asset class: it draws on government guidance (Green Book, OMB A-4, EC CBA Guide) and published academic literature (Flyvbjerg, Moretti, Flegg) to assess numerical consistency, discount rates, additionality, multiplier plausibility, double counting, and framing.
 
-Designed to get better over time as the rest of the repo evolves. As the parameter database and skill coverage expand, so does the audit's ability to cross-check your work.
+When it finds issues, it gives you a structured step-by-step plan to fix them and updates the methodology accordingly. So your analysis gets better as your project collects more information or you tailor it to your own needs or your clients' needs. Designed to improve over time as the rest of the repo evolves: as the parameter database and skill coverage expand, so does the audit's ability to cross-check your work.
 
 ```
 /econ-audit io-report-manchester-2026-04-03.md --strict
