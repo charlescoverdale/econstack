@@ -2,9 +2,19 @@
 
 Professional economic analysis, powered by AI.
 
-econstack is a set of [Claude Code](https://claude.ai/code) skills that handle the first 80% of economic analysis, so you can focus on the interpretation and key decisions. Type a slash command, get the key numbers in seconds, then select the outputs and formats you need to support the publication, analysis, or client deliverable you're working on.
+econstack is a set of [Claude Code](https://claude.ai/code) skills that handle the first 80% of economic analysis, so you can focus on the interpretation and key decisions. It knows the standard frameworks (Green Book, OMB A-4, EU Cohesion), the right parameters for each jurisdiction, and the business case logic that underpins professional appraisal. You provide the project context; econstack does the computation, structuring, and formatting.
 
-Skills are currently built around the UK, US, EU, and Australia, with further regional support coming soon.
+Built on 16 R packages on CRAN and a 34-file parameter database covering the UK, US, EU, and Australia. Further regional support coming soon.
+
+### Who this is for
+
+- A transport economist running a Green Book CBA for a rail scheme
+- A consultant preparing an IO impact assessment for an inward investment pitch
+- An analyst pulling a macro briefing before a ministerial meeting or board paper
+- A local authority officer building an economic profile to support a funding bid
+- A policy team at Treasury needing a fiscal snapshot with traceable methodology
+
+If you spend time wrangling discount rates, formatting CBA spreadsheets, or copying ONS data into briefing templates, econstack automates the mechanical parts so you can focus on the judgment calls.
 
 ---
 
@@ -108,7 +118,9 @@ Economic snapshot for any of the 391 UK local authorities. Covers demographics, 
 ```
 /la-profile Manchester
 /la-profile Leeds --compare Birmingham
-``` **Options:** `--compare`, `--focus`, `--full`, `--format`
+```
+
+**Options:** `--compare`, `--focus`, `--full`, `--format`
 
 ---
 
