@@ -185,13 +185,19 @@ Local authority economic profile.
 
 ---
 
-### `/fiscal-briefing` (UK)
+### `/fiscal-briefing`
 
-UK public finances: borrowing, debt, receipts, spending, fiscal rules.
+Public finances briefing for the UK or US.
 
 ```
+/fiscal-briefing                    # UK (default): PSNB, PSND, OBR forecasts, fiscal rules
+/fiscal-briefing --country us       # US: federal deficit, debt, receipts/outlays, CBO context
 /fiscal-briefing --full
 ```
+
+**UK:** PSNB, PSND, receipts by tax (income tax, NICs, VAT, corporation tax), expenditure, debt interest, fiscal rules headroom, OBR forecast comparison. Via `obr` and `ons` packages.
+
+**US:** Federal deficit (monthly MTS + FYTD), receipts breakdown (income tax, corporate, payroll, excise), outlays (Social Security, Medicare, Medicaid, defense, interest), gross debt vs debt held by public, interest-to-GDP trend, CBO projection context. Via `fred` package.
 
 ---
 
@@ -255,7 +261,7 @@ boe    -> Bank of England         IO impact calculator            /la-profile (U
 hmrc   -> HMRC trade              Compare regions tool            /cost-benefit (4 jurisdictions)
 obr    -> OBR fiscal              Embeddable charts               /econ-audit
 fred   -> US FRED data            Country benchmarking            /macro-briefing
-readecb -> ECB data                                               /fiscal-briefing (UK)
+readecb -> ECB data                                               /fiscal-briefing (UK, US)
 readoecd -> OECD data
 
 R packages (analytical)           macrowithr.com

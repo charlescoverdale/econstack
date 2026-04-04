@@ -1,6 +1,6 @@
 ---
 name: fiscal-briefing
-description: Public finances briefing (UK). Borrowing, debt, receipts, spending, and fiscal context. Interactive section selection.
+description: Public finances briefing. Supports UK and US. Borrowing/deficit, debt, receipts, spending, fiscal rules/outlook. Interactive section selection.
 allowed-tools:
   - Bash
   - Read
@@ -19,9 +19,9 @@ Then continue with the skill normally.
 ~/.claude/skills/econstack/bin/econstack-update-check 2>/dev/null || true
 ```
 
-# /fiscal-briefing: Public Finances Briefing (UK)
+# /fiscal-briefing: Public Finances Briefing
 
-Generate a narrative briefing on UK public finances: current borrowing vs OBR forecast, debt position, receipts and spending breakdown, fiscal rules headroom, and outlook. Designed for economic consultants and advisors who need the headline numbers and context, not a full debt sustainability model.
+Generate a narrative briefing on public finances for the UK or US. Covers the current deficit/surplus, debt position, receipts and spending breakdown, fiscal rules or sustainability context, and outlook.
 
 **This skill is interactive.** It fetches the data, shows the key numbers, then asks what output you need.
 
@@ -33,18 +33,38 @@ Generate a narrative briefing on UK public finances: current borrowing vs OBR fo
 
 **Examples:**
 ```
-/fiscal-briefing
+/fiscal-briefing                    # UK (default)
+/fiscal-briefing --country us       # US federal finances
 /fiscal-briefing --full
 ```
 
 **Options:**
+- `--country <code>` : Country. `uk` (default), `us`
 - `--full` : Skip menu, generate all sections
 - `--client "Name"` : Add "Prepared for"
 - `--format pdf` : Branded PDF
 
+## Country Routing
+
+| Country | Data (A) | Dashboard (B) | Narrative (C) | Focus |
+|---------|----------|---------------|---------------|-------|
+| `uk` | A1: obr + ons packages | B1 | C1: 5 sections | PSNB, PSND, OBR forecasts, fiscal rules |
+| `us` | A2: fred package | B2 | C2: 6 sections | Federal deficit, debt, receipts/outlays, CBO context |
+
 ## Instructions
 
-### Step 1: Fetch the data
+### Step 1: Identify arguments and route
+
+Parse flags. Determine country from `--country` (default: `uk`).
+
+- `uk`: A1 -> B1 -> C1
+- `us`: A2 -> B2 -> C2
+
+---
+
+## SECTION A: DATA FETCHING
+
+### A1: UK Data Fetching
 
 **Approach A: R packages (if available)**
 
@@ -75,7 +95,72 @@ Use the same ONS CSV endpoint pattern as `/macro-briefing`.
 
 For OBR forecasts, use WebFetch on the OBR website tables or note "OBR forecast comparison requires the obr R package."
 
+---
+
+### A2: US Data Fetching
+
+**Only run if `--country us` is specified.** Requires the `fred` R package with a FRED API key.
+
+```bash
+Rscript -e '
+  library(fred); library(jsonlite)
+
+  tryCatch({
+    data <- list(
+      # Monthly (Treasury Monthly Statement)
+      deficit_monthly = tail(fred_series("MTSDS133FMS"), 12),
+      receipts_monthly = tail(fred_series("MTSR133FMS"), 12),
+      outlays_monthly = tail(fred_series("MTSO133FMS"), 12),
+
+      # Quarterly receipts breakdown (BEA NIPA, SAAR)
+      income_tax = tail(fred_series("A074RC1Q027SBEA"), 8),
+      corporate_tax = tail(fred_series("B075RC1Q027SBEA"), 8),
+      social_insurance = tail(fred_series("W780RC1Q027SBEA"), 8),
+      excise_tax = tail(fred_series("B234RC1Q027SBEA"), 8),
+
+      # Quarterly spending breakdown (BEA NIPA, SAAR)
+      interest_payments = tail(fred_series("A091RC1Q027SBEA"), 8),
+      defense = tail(fred_series("FDEFX"), 8),
+      social_security = tail(fred_series("W823RC1"), 8),
+      medicare = tail(fred_series("W824RC1"), 8),
+      medicaid = tail(fred_series("W729RC1"), 8),
+
+      # Debt
+      gross_debt = tail(fred_series("GFDEBTN"), 8),
+      debt_to_gdp = tail(fred_series("GFDEGDQ188S"), 8),
+      debt_public_to_gdp = tail(fred_series("FYGFGDQ188S"), 8),
+
+      # Annual interest trend (OMB)
+      interest_annual = tail(fred_series("FYOINT"), 10),
+      interest_pct_gdp = tail(fred_series("FYOIGDA188S"), 10)
+    )
+    cat(toJSON(data, auto_unbox=TRUE, pretty=TRUE))
+  }, error = function(e) {
+    cat(paste0("ERROR: ", e$message))
+  })
+'
+```
+
+If fred is not installed or the API key is missing, tell the user:
+"The US fiscal briefing requires the fred R package with a FRED API key.
+Install with: install.packages('fred')
+Set key with: fred_set_key('YOUR_KEY')
+Get a free key from: https://fredaccount.stlouisfed.org/apikeys"
+Stop.
+
+**Data notes:**
+- Monthly deficit/receipts/outlays are from the Treasury Monthly Statement (MTS). Not seasonally adjusted.
+- Quarterly receipts and spending breakdowns are from BEA National Income and Product Accounts (NIPA Table 3.2), reported as Seasonally Adjusted Annual Rates (SAAR) in billions of dollars.
+- Spending by program (Social Security, Medicare, Medicaid) uses BEA "benefits to persons" series, which differ slightly from OMB budget authority figures.
+- CBO baseline projections are NOT available on FRED. Reference Claude's knowledge of recent CBO reports and note: "CBO projections sourced from cbo.gov, not FRED."
+
+---
+
+## SECTION B: DASHBOARDS
+
 ### Step 2: Show the dashboard and ask what the user needs
+
+### B1: UK Dashboard
 
 ```
 PUBLIC FINANCES
@@ -86,6 +171,24 @@ PSND:                    [val]% GDP   (£[val]bn)
 Debt interest (month):   £[val]bn
 Headroom vs fiscal rule: £[val]bn (OBR estimate)
 ```
+
+### B2: US Dashboard
+
+```
+US FEDERAL FINANCES
+====================
+Deficit (latest month):    $[val]bn
+Deficit (FYTD):            $[val]bn
+Receipts (latest month):   $[val]bn
+Outlays (latest month):    $[val]bn
+Gross federal debt:        $[val]tn    ([val]% of GDP)
+Debt held by public:       [val]% of GDP
+Interest payments (SAAR):  $[val]bn/yr ([val]% of GDP)
+
+Data as of: [latest date]. US fiscal year runs Oct-Sep.
+```
+
+### Interactive Menu
 
 **If `--full` was NOT specified**, ask using AskUserQuestion:
 
@@ -99,7 +202,7 @@ Options:
 
 **If user picks B** (multiSelect: true):
 
-Options:
+**UK sections:**
 - Current fiscal position (PSNB, PSND, comparison to OBR forecast)
 - Receipts breakdown (tax receipts by source)
 - Expenditure breakdown (spending by category, debt interest)
@@ -107,9 +210,23 @@ Options:
 - Outlook (OBR forecasts, key risks)
 - Methodology note (one paragraph)
 
+**US sections:**
+- Current fiscal position (deficit monthly and FYTD, debt level)
+- Federal receipts (income tax, corporate, payroll, excise)
+- Federal outlays (Social Security, Medicare, Medicaid, defense, interest)
+- Interest on the debt (trend, % of GDP, comparison to defense)
+- Debt dynamics (gross vs held by public, debt-to-GDP trajectory)
+- Outlook and risks (CBO context, entitlements, debt ceiling)
+
+---
+
+## SECTION C: NARRATIVE TEMPLATES
+
 ### Step 3: Generate the requested output
 
 **Always include key numbers block and companion JSON.**
+
+### C1: UK Narrative Templates
 
 #### Section templates
 
@@ -198,9 +315,9 @@ The OBR's latest forecast (EFO [month year]) projects:
 **Data sources:** Public sector finances from ONS (monthly). OBR forecasts from the Economic and Fiscal Outlook. Receipts and expenditure breakdowns from OBR. PSNB ex and PSND ex exclude public sector banks. Fiscal rules target PSNFL (broader than PSND). Data via obr and ons R packages.
 ```
 
-**Slide summary:**
+**UK slide summary:**
 ```markdown
-**UK Public Finances — [Month Year]**
+**UK Public Finances, [Month Year]**
 
 - PSNB **£[val]bn YTD**, [above/below] OBR's £[val]bn full-year forecast
 - PSND at **[val]% of GDP** (£[val]bn)
@@ -211,18 +328,198 @@ The OBR's latest forecast (EFO [month year]) projects:
 *Data from ONS and OBR. Powered by econstack.*
 ```
 
+---
+
+### C2: US Narrative Templates
+
+**US key numbers block:**
+```markdown
+<!-- KEY NUMBERS
+type: fiscal
+date: [YYYY-MM-DD]
+framework: us
+deficit_monthly_bn: [val]
+deficit_fytd_bn: [val]
+receipts_monthly_bn: [val]
+outlays_monthly_bn: [val]
+gross_debt_tn: [val]
+debt_to_gdp_pct: [val]
+debt_public_to_gdp_pct: [val]
+interest_saar_bn: [val]
+interest_pct_gdp: [val]
+-->
+```
+
+**Current fiscal position:**
+```markdown
+## Current Fiscal Position
+
+**The federal government ran a deficit of $[val]bn in [month], bringing the fiscal year-to-date deficit to $[val]bn.** This compares to a FYTD deficit of $[val]bn at the same point last year, a [increase/decrease] of $[val]bn ([val]%).
+
+Total receipts in [month] were $[val]bn. Total outlays were $[val]bn. [Note any distortions from payment timing shifts, which are common in the MTS data.]
+
+| Metric | [Month] | FYTD | Prior year FYTD |
+|--------|---------|------|-----------------|
+| Receipts | $[val]bn | $[val]bn | $[val]bn |
+| Outlays | $[val]bn | $[val]bn | $[val]bn |
+| Deficit (-) | -$[val]bn | -$[val]bn | -$[val]bn |
+
+*Note: The US federal fiscal year runs October to September, not calendar year. FYTD figures accumulate from October 1.*
+```
+
+**Federal receipts:**
+```markdown
+## Federal Receipts
+
+**Federal receipts totalled $[val]bn (SAAR) in [quarter], [up/down] [val]% from a year earlier.**
+
+| Revenue source | SAAR ($bn) | YoY change | Share |
+|---------------|-----------|-----------|-------|
+| Individual income tax | $[val] | [val]% | [val]% |
+| Social insurance (payroll) | $[val] | [val]% | [val]% |
+| Corporate income tax | $[val] | [val]% | [val]% |
+| Excise taxes | $[val] | [val]% | [val]% |
+
+Individual income tax and social insurance contributions together account for roughly 80% of federal revenue. Corporate tax receipts are volatile and sensitive to the business cycle. [1-2 sentences on what is driving the revenue trend.]
+
+*Note: Quarterly figures are from BEA NIPA (seasonally adjusted annual rate). Monthly MTS figures are not seasonally adjusted and show significant month-to-month variation due to payment timing.*
+```
+
+**Federal outlays:**
+```markdown
+## Federal Outlays
+
+**Federal spending totalled $[val]bn (SAAR) in [quarter].**
+
+| Category | SAAR ($bn) | Share of total |
+|----------|-----------|---------------|
+| Social Security | $[val] | [val]% |
+| Medicare | $[val] | [val]% |
+| Medicaid | $[val] | [val]% |
+| **Entitlements subtotal** | **$[val]** | **[val]%** |
+| National defense | $[val] | [val]% |
+| Interest on the debt | $[val] | [val]% |
+
+The three major entitlement programs (Social Security, Medicare, Medicaid) account for approximately [val]% of federal spending and are growing as the population ages. [1-2 sentences on spending dynamics.]
+
+*Note: Spending figures use BEA "benefits to persons" series, which measure cash and in-kind transfers. These differ slightly from OMB budget authority/outlay figures but capture the same underlying trends.*
+```
+
+**Interest on the debt:**
+```markdown
+## Interest on the Debt
+
+**Federal interest payments are running at $[val]bn annually (SAAR), or [val]% of GDP.** This is [up/down] from [val]% of GDP a year ago and [val]% a decade ago.
+
+Net interest now [exceeds / is approaching] national defense spending ($[val]bn), a threshold last crossed in the late 1990s. [If interest > defense: "Interest on the debt is now the [Nth] largest category of federal spending."]
+
+| Year | Interest ($bn) | % of GDP |
+|------|---------------|----------|
+| [Year-5] | $[val] | [val]% |
+| [Year-3] | $[val] | [val]% |
+| [Year-1] | $[val] | [val]% |
+| [Latest] | $[val] | [val]% |
+
+**Rate sensitivity:** Every 100bp increase in average borrowing costs adds approximately $[estimated]bn to annual interest expense, given the current debt stock. The weighted average maturity of outstanding Treasury securities is approximately 6 years, meaning rate increases feed through gradually, not immediately.
+```
+
+**Debt dynamics:**
+```markdown
+## Debt Dynamics
+
+**Gross federal debt stands at $[val]tn, or [val]% of GDP.** Debt held by the public (the measure most economists focus on) is [val]% of GDP.
+
+| Measure | Level | % of GDP | Year ago |
+|---------|-------|----------|----------|
+| Gross federal debt | $[val]tn | [val]% | [val]% |
+| Debt held by public | $[val]tn | [val]% | [val]% |
+
+The difference between gross debt and debt held by the public ([val]% of GDP) represents intragovernmental holdings, primarily the Social Security and Medicare trust funds. As these trust funds draw down (Social Security OASI trust fund projected to be depleted by [year per latest Trustees report]), intragovernmental holdings shrink and are replaced by publicly held debt.
+
+[1-2 sentences on the debt trajectory: is debt-to-GDP rising, stable, or falling? What is driving the trajectory?]
+
+*Note: Gross debt includes the statutory debt limit. Debt held by the public excludes intragovernmental holdings and is the standard measure for fiscal sustainability analysis.*
+```
+
+**Outlook and risks:**
+```markdown
+## Outlook and Risks
+
+CBO baseline projections are published separately at cbo.gov/data/budget-economic-data. As of the latest CBO report, CBO projects [use Claude's knowledge of the most recent CBO baseline: deficit trajectory, debt-to-GDP path, key assumptions].
+
+**Key structural pressures:**
+- Entitlement spending (Social Security + Medicare) is projected to grow from ~[val]% to ~[val]% of GDP over the next decade as the population ages
+- Net interest costs are projected to remain elevated, [val]% of GDP by [year]
+- Revenue as a share of GDP is projected to [rise/remain stable] at ~[val]%
+
+**Key risks:**
+- Higher-than-expected interest rates would accelerate debt accumulation
+- Economic downturn would reduce tax revenues and trigger automatic stabilizers
+- Entitlement reform remains politically difficult. Social Security OASI trust fund depletion would trigger automatic [~20%] benefit cuts under current law
+- Debt ceiling dynamics create periodic fiscal cliff risks
+
+[1-2 sentences on overall fiscal sustainability assessment.]
+
+*Note: CBO projections assume current law. Actual outcomes depend on future legislation. CBO does not factor in likely policy changes (e.g., extension of expiring tax provisions).*
+```
+
+**US methodology note:**
+```markdown
+**Data sources:** Monthly Treasury Statement via FRED (deficit, receipts, outlays). BEA NIPA Table 3.2 via FRED (quarterly receipts and spending breakdown, SAAR). OMB historical tables via FRED (annual interest, debt). Debt from Treasury Fiscal Service via FRED. CBO baseline projections from cbo.gov. All FRED data fetched via the fred R package.
+```
+
+**US slide summary:**
+```markdown
+**US Federal Finances, [Month Year]**
+
+- Federal deficit **$[val]bn FYTD** (fiscal year runs Oct-Sep)
+- Gross debt **$[val]tn** (**[val]% of GDP**), debt held by public **[val]%**
+- Interest payments **$[val]bn/yr** (**[val]% of GDP**), [exceeding / approaching] defense
+- Receipts driven by [income tax / payroll], outlays by [entitlements]
+- Entitlements (SS + Medicare + Medicaid) = **[val]%** of spending
+
+*Data from FRED (Treasury Monthly Statement, BEA NIPA, OMB). Powered by econstack.*
+```
+
+---
+
+## SECTION D: OUTPUT
+
 ### Step 4: Save and present
 
-Save as `fiscal-briefing-{date}.md`. Always save `fiscal-data-{date}.json`.
+Save as `fiscal-briefing-{country}-{date}.md`. Always save `fiscal-data-{country}-{date}.json`.
+
+Country-specific data source footer:
+- UK: *Data from ONS and OBR. Powered by econstack.*
+- US: *Data from FRED (Treasury Monthly Statement, BEA NIPA, OMB). Powered by econstack.*
+
+If `--format pdf`, render through the template:
+```bash
+ECONSTACK_DIR="${CLAUDE_SKILL_DIR}/../.."
+"$ECONSTACK_DIR/scripts/render-report.sh" fiscal-briefing-{country}-{date}.md \
+  --title "[Country] Public Finances Briefing" \
+  --subtitle "[Month Year]"
+```
 
 ## Important Rules
 
 - Never use em dashes.
 - Never attribute econstack to any individual.
 - Every section stands alone.
+- Be specific about dates. "[Month Year]" not "last month".
+- The companion JSON must include all fiscal data points.
+
+**UK-specific:**
 - PSNB ex (excluding public sector banks) is the standard headline measure.
 - PSNFL is the current fiscal rule target, not PSND. Note the difference.
 - Debt interest: always note if elevated due to RPI-linked gilt inflation accruals.
 - Headroom is a point estimate subject to large forecast revision. Always caveat.
 - Be specific about which OBR EFO is being referenced (month and year).
-- The companion JSON must include all fiscal data points.
+
+**US-specific:**
+- The US fiscal year runs October to September. Always state this.
+- Distinguish gross federal debt from debt held by the public. Economists use the latter; politicians cite the former. Both matter.
+- Monthly MTS figures are not seasonally adjusted. Quarterly BEA NIPA figures are SAAR. Note the difference when mixing frequencies.
+- CBO projections assume current law, which means expiring tax provisions expire. This is often unrealistic. Always caveat.
+- Interest payments are the fastest-growing spending category. Always contextualize vs defense spending.
+- Entitlement spending (Social Security, Medicare, Medicaid) is mandatory and grows on autopilot. Distinguish from discretionary spending when relevant.
