@@ -1,6 +1,6 @@
 ---
 name: io-report
-description: Input-output economic impact assessment. Regional IO multipliers with FLQ regionalization, additionality, tax revenue, temporal profiles. Interactive.
+description: Input-output economic impact assessment (UK). Regional IO multipliers with FLQ regionalization, additionality, tax revenue, temporal profiles. 391 UK local authorities. Interactive.
 allowed-tools:
   - Bash
   - Read
@@ -21,7 +21,7 @@ Then continue with the skill normally.
 ~/.claude/skills/econstack/bin/econstack-update-check 2>/dev/null || true
 ```
 
-# /io-report: Input-Output Economic Impact Assessment
+# /io-report: Input-Output Economic Impact Assessment (UK)
 
 Generate professional economic impact assessment content for an investment or job creation in any UK local authority. Uses regional input-output multipliers with FLQ regionalization, additionality adjustments per HM Treasury Green Book guidance, and full methodology documentation.
 

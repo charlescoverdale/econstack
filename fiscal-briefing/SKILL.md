@@ -1,6 +1,6 @@
 ---
 name: fiscal-briefing
-description: UK public finances briefing. Borrowing, debt, receipts, spending, and fiscal context. Interactive section selection.
+description: Public finances briefing (UK). Borrowing, debt, receipts, spending, and fiscal context. Interactive section selection.
 allowed-tools:
   - Bash
   - Read
@@ -19,7 +19,7 @@ Then continue with the skill normally.
 ~/.claude/skills/econstack/bin/econstack-update-check 2>/dev/null || true
 ```
 
-# /fiscal-briefing: UK Public Finances Briefing
+# /fiscal-briefing: Public Finances Briefing (UK)
 
 Generate a narrative briefing on UK public finances: current borrowing vs OBR forecast, debt position, receipts and spending breakdown, fiscal rules headroom, and outlook. Designed for economic consultants and advisors who need the headline numbers and context, not a full debt sustainability model.
 

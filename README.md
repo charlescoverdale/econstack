@@ -91,7 +91,7 @@ You don't need a 10-page report. You need the exec summary for an email, the tab
 
 ## Skills
 
-### `/io-report`
+### `/io-report` (UK)
 
 Input-output economic impact assessment for an investment or job creation in any UK local authority.
 
@@ -161,7 +161,7 @@ Bank of England Monetary Policy Report structure: output, labour market, prices,
 
 ---
 
-### `/la-profile`
+### `/la-profile` (UK)
 
 Local authority economic profile.
 
@@ -175,7 +175,7 @@ Local authority economic profile.
 
 ---
 
-### `/fiscal-briefing`
+### `/fiscal-briefing` (UK)
 
 UK public finances: borrowing, debt, receipts, spending, fiscal rules.
 

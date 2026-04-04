@@ -1,6 +1,6 @@
 ---
 name: la-profile
-description: Generate local authority economic profile sections. Interactive, lets you pick which sections you need.
+description: Local authority economic profile (UK). 391 UK local authorities. Interactive, lets you pick which sections you need.
 allowed-tools:
   - Bash
   - Read
@@ -20,7 +20,7 @@ Then continue with the skill normally.
 ~/.claude/skills/econstack/bin/econstack-update-check 2>/dev/null || true
 ```
 
-# /la-profile: Local Authority Economic Profile
+# /la-profile: Local Authority Economic Profile (UK)
 
 Generate professional economic profile content for any UK local authority. Covers demographics, labour market, earnings, industry structure, housing, business activity, productivity, deprivation, skills, and national benchmarking.
 
