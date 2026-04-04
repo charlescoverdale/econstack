@@ -20,7 +20,7 @@ git clone https://github.com/charlescoverdale/econstack-data.git ~/econstack-dat
 
 No npm, no API keys, no configuration. Claude Code discovers skills in `~/.claude/skills/` automatically. econstack runs entirely on your machine through Claude Code. Your data, inputs, and outputs stay local and are never uploaded or shared.
 
-Install econstack in Claude Code and start talking to it about your analysis. All skills are interactive: describe your project, pick the sections you need, then choose your output formats (Markdown, HTML, Word, PowerPoint, PDF, or Excel).
+Install econstack in Claude Code and start talking to it about your analysis. Describe your project and the skill integrates with whatever you're building, whether that's a report, a model, a slide deck, or a policy brief. Generate a full analysis or just the sections you need, then export to Markdown, HTML, Word, PowerPoint, PDF, or Excel.
 
 ---
 
