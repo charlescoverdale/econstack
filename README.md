@@ -103,14 +103,12 @@ Allows you to choose between Type I and Type II multipliers, adjust for addition
 
 ### `/la-profile` (UK)
 
-Local authority economic profile for 391 UK areas.
+Economic snapshot for any of the 391 UK local authorities. Covers demographics, labour market, earnings, industry structure, housing, business activity, productivity, skills, and deprivation. All indicators are benchmarked against the LA's own country average (England, Scotland, or Wales) and can be compared side-by-side with other local authorities. Pick the sections you need and export to Markdown, HTML, Word, PowerPoint, or PDF.
 
 ```
 /la-profile Manchester
 /la-profile Leeds --compare Birmingham
-```
-
-10-section report: demographics, labour market, earnings, housing, business activity, productivity, deprivation, benchmarking. **Options:** `--compare`, `--focus`, `--full`, `--format`
+``` **Options:** `--compare`, `--focus`, `--full`, `--format`
 
 ---
 
