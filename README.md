@@ -274,26 +274,7 @@ predictset  -> Conformal prediction
 climatekit  -> Climate indices
 ```
 
-### R packages on CRAN
-
-| Package | Exports | What it does |
-|---------|---------|-------------|
-| [ons](https://cran.r-project.org/package=ons) | 16 | GDP, CPI, unemployment, wages, trade from ONS |
-| [boe](https://cran.r-project.org/package=boe) | 11 | Base rate, yield curves, money supply from Bank of England |
-| [hmrc](https://cran.r-project.org/package=hmrc) | 12 | UK trade data from HMRC |
-| [obr](https://cran.r-project.org/package=obr) | 15 | Fiscal forecasts from the OBR |
-| [fred](https://cran.r-project.org/package=fred) | 19 | 800,000+ US economic series from FRED |
-| [readoecd](https://cran.r-project.org/package=readoecd) | 13 | Cross-country data from the OECD |
-| [readecb](https://cran.r-project.org/package=readecb) | 16 | Euro area data from the ECB |
-| [inflateR](https://cran.r-project.org/package=inflateR) | 2 | Historical inflation adjustment |
-| [nowcast](https://cran.r-project.org/package=nowcast) | 10 | Economic nowcasting (bridge equations, backtesting) |
-| [debtkit](https://cran.r-project.org/package=debtkit) | 12 | Debt sustainability analysis |
-| [yieldcurves](https://cran.r-project.org/package=yieldcurves) | 16 | Yield curve fitting (Nelson-Siegel, Svensson, PCA) |
-| [inflationkit](https://cran.r-project.org/package=inflationkit) | 11 | Inflation decomposition, persistence, Phillips curve |
-| [predictset](https://cran.r-project.org/package=predictset) | 20 | Conformal prediction and uncertainty quantification |
-| [climatekit](https://cran.r-project.org/package=climatekit) | 35 | Climate indices (temperature, precipitation, drought) |
-| [readnoaa](https://cran.r-project.org/package=readnoaa) | 6 | US weather data from NOAA |
-| [readaec](https://cran.r-project.org/package=readaec) | 3 | Australian election data |
+All 16 R packages are on [CRAN](https://cran.r-project.org/). See the ecosystem diagram above for what each one does.
 
 ---
 
