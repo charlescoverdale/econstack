@@ -63,6 +63,28 @@ The skill handles the computation and structure. You provide the substance (what
 
 ## Instructions
 
+### Step 0: Load parameters
+
+Before starting computation, load the parameter database for the detected framework.
+
+```bash
+PARAMS_DIR="$HOME/econstack-data/parameters"
+```
+
+Load all JSON files from `$PARAMS_DIR/{jurisdiction}/` where jurisdiction matches the framework:
+- `uk` framework -> load `$PARAMS_DIR/uk/*.json`
+- `eu` framework -> load `$PARAMS_DIR/eu/*.json`
+- `au` framework -> load `$PARAMS_DIR/au/*.json`
+- Other frameworks (us, wb, nz, eib, adb) -> parameter files not yet available, use built-in defaults below
+
+Read each JSON file and use the values throughout the computation. When referencing a parameter, use the loaded value. For example, instead of hardcoding "3.5%", use the value from `uk/discount-rates.json`.
+
+**Fallback:** If `$PARAMS_DIR` does not exist or the jurisdiction directory is missing, use the built-in defaults hardcoded in this skill. Tell the user: "Parameter database not found. Using built-in defaults. For the latest values, run: cd ~/econstack-data && git pull"
+
+**Staleness check:** If any loaded parameter file has `last_verified` more than 18 months ago, warn: "Note: [parameter] values were last verified [date]. Check for updated source data."
+
+**Citation:** When writing the methodology section, use the `source` metadata from each loaded parameter to auto-generate citations. For example: "Discount rate: 3.5% STPR (HM Treasury, The Green Book 2026)."
+
 ### Step 1: Project setup
 
 **JSON import mode:**
@@ -174,6 +196,10 @@ Options:
 
 This determines the optimism bias rate. The Green Book specifies different rates by stage because uncertainty reduces as the project matures:
 
+Use the optimism bias rates from the loaded `uk/optimism-bias.json` parameter file. The matrix contains 6 project types x 3 stages (SOC/OBC/FBC), with separate rates for capex and duration overruns.
+
+If parameter files are not loaded, use these built-in defaults:
+
 | Project type | SOC | OBC | FBC |
 |-------------|-----|-----|-----|
 | Standard buildings | 24% | 4% | 2% |
@@ -280,13 +306,13 @@ Ask: "Does this project have significant carbon impacts (positive or negative)?"
 - C) **Both** (construction emissions but operational carbon savings)
 - D) **Not material** (skip carbon valuation)
 
-If carbon impacts exist, ask for estimated annual tonnes of CO2e (positive = emissions, negative = savings). Apply DESNZ carbon values:
-- UK framework: use BEIS/DESNZ traded and non-traded carbon values (2026: ~£254/tCO2e traded, ~£280/tCO2e non-traded, rising annually)
-- EU/EIB framework: use EIB shadow carbon price (EUR 250/tCO2 in 2030, rising to EUR 800/tCO2 by 2050)
-- US framework: use EPA social cost of carbon (~$51/tCO2 at 2% discount rate, 2020 dollars)
-- Other frameworks: ask the user for a carbon price or use a default of $50/tCO2
+If carbon impacts exist, ask for estimated annual tonnes of CO2e (positive = emissions, negative = savings). Apply carbon values from the loaded parameter database:
+- UK framework: use the `non_traded.schedule` from `uk/carbon-values.json`. Interpolate linearly between data points. For years beyond the schedule, extrapolate at 1.5% real annual growth.
+- EU/EIB framework: use the `eib_shadow_price.schedule` from `eu/carbon-values.json`. Interpolate linearly.
+- AU framework: use `au/carbon-values.json` if available, otherwise ask the user for a carbon price.
+- US/other frameworks: parameter files not yet available. Use built-in defaults: US $51/tCO2 (EPA, 2% rate, 2020$), others $50/tCO2, or ask the user.
 
-*Data vintage: DESNZ 2024 carbon values; EIB 2023 shadow carbon price; EPA 2023 social cost of carbon. Carbon prices are updated periodically. Verify against latest published schedules.*
+*Carbon values are sourced from the econstack-data parameter database. Check `last_verified` dates in each file. Sources update periodically (DESNZ annually, EIB ~5 years).*
 
 Carbon benefits/costs are included as a separate line item in the benefit/cost tables, not subject to additionality adjustments (they are global externalities, not local economic activity).
 
@@ -356,7 +382,7 @@ If the user describes benefits in physical units rather than monetary values, of
 
 "Would you like me to apply TAG standard values to monetise transport benefits?"
 
-If yes, use these DfT TAG Data Book values (2026 prices, per unit):
+If yes, load values from `uk/vtts.json` and `uk/vsl.json` in the parameter database. If parameter files are not loaded, use these built-in defaults (2022 prices):
 
 | Benefit type | TAG value | Unit | Source |
 |-------------|-----------|------|--------|
@@ -378,17 +404,11 @@ Note: TAG values are updated annually. These are indicative. For a formal WebTAG
 
 **Health benefit monetisation (if sector is Health or benefits include safety/health):**
 
-If health outcomes are described in physical units, offer to monetise using framework-specific QALY/DALY/VPF values:
+If health outcomes are described in physical units, offer to monetise using framework-specific QALY/DALY/VPF values from the loaded parameter database.
 
-**UK (Green Book / DHSC / NICE):**
-| Health metric | Value | Source |
-|--------------|-------|--------|
-| QALY (quality-adjusted life year) | £70,000 | Green Book supplementary guidance; DHSC |
-| NICE cost-effectiveness threshold | £20,000-£30,000/QALY | NICE (willingness to pay for health interventions) |
-| Value of a prevented fatality (VPF) | £2.35m | DfT TAG A4.1 |
-| DALY (disability-adjusted life year) averted | £70,000 | Equivalent to QALY by convention |
+**For UK, EU, and AU frameworks:** Load values from `{jurisdiction}/health-values.json` and `{jurisdiction}/vsl.json`. Use the `source` metadata for citations.
 
-*Data vintage: 2024-2026 published values. Verify against latest published guidance if preparing analysis more than 12 months after these dates.*
+**For other frameworks (US, NZ, WB, EIB, ADB):** Parameter files not yet available. Use these built-in defaults:
 
 **US (OMB / EPA / HHS):**
 | Health metric | Value | Source |
@@ -398,27 +418,6 @@ If health outcomes are described in physical units, offer to monetise using fram
 | DALY averted | ~$190,000-$250,000 | Symmetric with QALY by convention |
 | FDA cost-effectiveness threshold | $150,000/QALY | FDA regulatory analysis |
 
-*Data vintage: 2024-2026 published values. Verify against latest published guidance if preparing analysis more than 12 months after these dates.*
-
-**Australia (PBAC / MSAC / OBPR):**
-| Health metric | Value | Source |
-|--------------|-------|--------|
-| QALY | AUD 50,000-$70,000 | PBAC implicit threshold; no official value |
-| DALY averted | AUD 50,000-$70,000 | Symmetric with QALY |
-| Value of a statistical life (VSL) | AUD 5.7m (2024 AUD) | OBPR Best Practice Regulation Guidance |
-| Value of a statistical life year (VSLY) | AUD 227,000 (2024 AUD) | OBPR; derived from VSL |
-
-*Data vintage: 2024-2026 published values. Verify against latest published guidance if preparing analysis more than 12 months after these dates.*
-
-**EU (EIB / EC):**
-| Health metric | Value | Source |
-|--------------|-------|--------|
-| QALY | EUR 40,000-€100,000 | Varies by member state; no single EU value |
-| VSL | EUR 3.6m (EU average) | OECD / EC Impact Assessment guidelines |
-| DALY averted | EUR 40,000-€100,000 | Symmetric with QALY |
-
-*Data vintage: 2024-2026 published values. Verify against latest published guidance if preparing analysis more than 12 months after these dates.*
-
 **New Zealand:**
 | Health metric | Value | Source |
 |--------------|-------|--------|
@@ -426,7 +425,7 @@ If health outcomes are described in physical units, offer to monetise using fram
 | VSL | NZD 4.99m (2024 NZD) | NZ Treasury CBAx; Ministry of Transport |
 | VSLY | NZD 198,000 | Derived from VSL |
 
-*Data vintage: 2024-2026 published values. Verify against latest published guidance if preparing analysis more than 12 months after these dates.*
+*Built-in defaults last updated 2026-04. For UK, EU, AU: check `last_verified` in parameter files.*
 
 Use the values matching the selected framework. If the user provides health outcomes in DALYs rather than QALYs, note that for CBA purposes these are typically treated symmetrically (1 DALY averted = 1 QALY gained), though they are conceptually different measures (DALYs measure burden of disease; QALYs measure health utility).
 
@@ -470,13 +469,13 @@ Options:
 If distributional weights are applied:
 
 **UK Green Book approach:**
-The Green Book uses the elasticity of marginal utility of income (e = 1.3) to weight costs and benefits by the income of those affected:
+Load the elasticity and median income from `uk/distributional-weights.json`. If parameter files are not loaded, use built-in defaults: e = 1.3, median household income = GBP 35,000.
 
 ```
-weight(income) = (median_income / income)^1.3
+weight(income) = (median_income / income) ^ elasticity
 ```
 
-For example, if median UK household income is ~£35,000:
+Example weights (using default values):
 - Household on £20,000: weight = (35000/20000)^1.3 = 2.01 (benefits count double)
 - Household on £35,000: weight = 1.00 (median, no adjustment)
 - Household on £60,000: weight = (35000/60000)^1.3 = 0.49 (benefits count half)
@@ -516,15 +515,13 @@ Run the following computations for each option vs Do Nothing:
 **Discount factors (framework-specific):**
 
 For UK Green Book (declining schedule, computed cumulatively):
+
+Use the schedule from the loaded `uk/discount-rates.json` parameter file. Each entry specifies a year band and its rate. If parameter files are not loaded, use the built-in defaults: 3.5% (years 0-30), 3.0% (31-75), 2.5% (76-125), 2.0% (126-200), 1.5% (201-300), 1.0% (301+).
+
 ```
 df(0) = 1.0
 For t = 1 to appraisal_period:
-  if t <= 30: r = 0.035
-  elif t <= 75: r = 0.030
-  elif t <= 125: r = 0.025
-  elif t <= 200: r = 0.020
-  elif t <= 300: r = 0.015
-  else: r = 0.010
+  r = rate from discount schedule for year t
 
   df(t) = df(t-1) / (1 + r)
 
@@ -556,9 +553,10 @@ If even spread:
   capex_per_year = total_capex / construction_years
 
 If S-curve (bell-curve distribution):
-  Use a normal-like distribution centred on the middle construction year.
-  For a 5-year build: weights approx [0.10, 0.20, 0.30, 0.25, 0.15]
-  For a 3-year build: weights approx [0.20, 0.50, 0.30]
+  Use the S-curve profiles from `uk/construction-benchmarks.json` (field `s_curve_profiles`).
+  Built-in defaults if parameters not loaded:
+  For a 5-year build: weights [0.10, 0.20, 0.30, 0.25, 0.15]
+  For a 3-year build: weights [0.20, 0.50, 0.30]
   Weights must sum to 1.0. Multiply total_capex by each weight.
 
 If front-loaded:

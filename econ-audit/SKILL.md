@@ -67,6 +67,24 @@ Also look for the hidden `<!-- KEY NUMBERS -->` block or companion JSON file. If
 
 Tell the user: "Auditing [filename] as a [type]. Framework detected: [framework]."
 
+### Step 1b: Load parameter database
+
+Load the parameter database to validate against:
+
+```bash
+PARAMS_DIR="$HOME/econstack-data/parameters"
+```
+
+For the detected framework, load the relevant parameter files (e.g. `$PARAMS_DIR/uk/discount-rates.json` for UK CBAs). Use these to verify:
+- Discount rates match the correct schedule (check B1, B2)
+- Optimism bias rates are appropriate for the project type (check C2)
+- Additionality rates are plausible (check D3)
+- Multiplier ranges are within expected bounds (check F3, using `uk/construction-benchmarks.json`)
+- Carbon values use the correct schedule (check H2)
+- Health values use the correct QALY/VSL (check I4)
+
+If parameter files are not found, use the built-in benchmark values in the checklist below.
+
 ### Step 2: Run the audit checklist
 
 Run every applicable check from the master checklist below. Each check produces one of:

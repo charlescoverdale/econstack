@@ -44,4 +44,6 @@ Key routing rules:
 
 ## Data Dependencies
 
-The io-report and la-profile skills read multiplier and LA data from a local data directory. The path is configured in each SKILL.md file. Update it if your data is in a different location.
+**LA data:** The io-report and la-profile skills read multiplier and LA data from `~/econstack-data/src/data/`.
+
+**CBA parameters:** The cost-benefit, io-report, and econ-audit skills read structured parameter files from `~/econstack-data/parameters/`. 14 JSON files covering UK, EU, and AU: discount rates, carbon values, VSL, QALY, VTTS, optimism bias, additionality, tax parameters, distributional weights, and construction benchmarks. Skills fall back to built-in defaults if parameter files are not found.

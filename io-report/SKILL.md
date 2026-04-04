@@ -93,15 +93,20 @@ Extract from the user's input:
 
 ### Step 2: Load data and compute
 
-Load the multiplier data:
+Load the multiplier data and parameters:
 
 ```bash
 DATA_DIR="$HOME/econstack-data/src/data"
+PARAMS_DIR="$HOME/econstack-data/parameters"
 cat "$DATA_DIR/${LA_SLUG}/multipliers.json"
 cat "$DATA_DIR/${LA_SLUG}/summary.json"
 cat "$DATA_DIR/${LA_SLUG}/employment.json"
 cat "$DATA_DIR/national-benchmarks.json"
+cat "$PARAMS_DIR/uk/tax-parameters.json"
+cat "$PARAMS_DIR/uk/additionality.json"
 ```
+
+Use the tax thresholds and rates from `uk/tax-parameters.json` for the tax revenue estimate. Use the additionality scenarios from `uk/additionality.json`. If the parameter files are not found, use the built-in defaults below.
 
 **LA fuzzy matching:**
 
@@ -169,42 +174,54 @@ earningsImpact = round(totalJobs * averageEarningsPerJob)
 
 **Tax revenue estimate:**
 
-Compute estimated Exchequer contributions from the generated employment:
+Compute estimated Exchequer contributions from the generated employment. Use tax thresholds and rates from the loaded `uk/tax-parameters.json`. If not loaded, use the built-in defaults shown below.
 
 ```
+# Load from parameters (or use defaults)
+personal_allowance = tax_params.income_tax.personal_allowance  # default: 12570
+basic_rate = tax_params.income_tax.basic_rate.rate              # default: 0.20
+basic_threshold = tax_params.income_tax.basic_rate.threshold    # default: 50270
+higher_rate = tax_params.income_tax.higher_rate.rate            # default: 0.40
+employee_nic_rate = tax_params.national_insurance.employee.rate      # default: 0.08
+employee_nic_threshold = tax_params.national_insurance.employee.threshold  # default: 12570
+employer_nic_rate = tax_params.national_insurance.employer.rate      # default: 0.138
+employer_nic_threshold = tax_params.national_insurance.employer.threshold  # default: 9100
+vat_rate = tax_params.vat.standard_rate                         # default: 0.20
+local_spending = tax_params.modelling_assumptions.local_spending_from_wages  # default: 0.60
+vatable_proportion = tax_params.modelling_assumptions.vatable_spending_proportion  # default: 0.50
+
 # Effective income tax rate (simplified, based on sector average earnings)
-if averageEarningsPerJob <= 12570:
+if averageEarningsPerJob <= personal_allowance:
     effective_income_tax_rate = 0.0
-elif averageEarningsPerJob <= 50270:
-    effective_income_tax_rate = (averageEarningsPerJob - 12570) * 0.20 / averageEarningsPerJob
+elif averageEarningsPerJob <= basic_threshold:
+    effective_income_tax_rate = (averageEarningsPerJob - personal_allowance) * basic_rate / averageEarningsPerJob
 else:
-    effective_income_tax_rate = ((50270 - 12570) * 0.20 + (averageEarningsPerJob - 50270) * 0.40) / averageEarningsPerJob
+    effective_income_tax_rate = ((basic_threshold - personal_allowance) * basic_rate + (averageEarningsPerJob - basic_threshold) * higher_rate) / averageEarningsPerJob
 
 income_tax = round(totalJobs * averageEarningsPerJob * effective_income_tax_rate)
 
-# Employee NICs (8% on earnings above £12,570)
-nics_employee = round(totalJobs * max(0, averageEarningsPerJob - 12570) * 0.08)
+# Employee NICs
+nics_employee = round(totalJobs * max(0, averageEarningsPerJob - employee_nic_threshold) * employee_nic_rate)
 
-# Employer NICs (13.8% on earnings above £9,100)
-nics_employer = round(totalJobs * max(0, averageEarningsPerJob - 9100) * 0.138)
+# Employer NICs
+nics_employer = round(totalJobs * max(0, averageEarningsPerJob - employer_nic_threshold) * employer_nic_rate)
 
 # VAT on consumer spending from wages
-# Assumption: 60% of net earnings spent locally, 50% of spending is VATable, 20% VAT rate
-net_earnings = averageEarningsPerJob * (1 - effective_income_tax_rate - 0.08)
-vat_estimate = round(totalJobs * net_earnings * 0.60 * 0.50 * 0.20)
+net_earnings = averageEarningsPerJob * (1 - effective_income_tax_rate - employee_nic_rate)
+vat_estimate = round(totalJobs * net_earnings * local_spending * vatable_proportion * vat_rate)
 
 total_tax_revenue = income_tax + nics_employee + nics_employer + vat_estimate
 ```
 
-These are indicative estimates using simplified effective rates. Actual tax revenue depends on individual circumstances, allowances, and reliefs. The estimates assume all jobs are filled by UK taxpayers.
+These are indicative estimates using simplified effective rates. Actual tax revenue depends on individual circumstances, allowances, and reliefs. The estimates assume all jobs are filled by UK taxpayers. Tax year: loaded from `uk/tax-parameters.json` (default: 2024/25).
 
-Additionality:
+Additionality (load scenarios from `uk/additionality.json`, or use built-in defaults):
 ```
-Standard:      deadweight=20%, displacement=25%, leakage=10%, substitution=0%
-Conservative:  deadweight=35%, displacement=40%, leakage=20%, substitution=5%
-Optimistic:    deadweight=10%, displacement=10%, leakage=5%,  substitution=0%
+Standard:      deadweight=20%, displacement=25%, leakage=10%, substitution=0%  (net factor: 0.54)
+Conservative:  deadweight=35%, displacement=40%, leakage=20%, substitution=5%  (net factor: 0.285)
+Optimistic:    deadweight=10%, displacement=10%, leakage=5%,  substitution=0%  (net factor: 0.769)
 
-factor = (1 - deadweight/100) * (1 - displacement/100) * (1 - leakage/100) * (1 - substitution/100)
+factor = (1 - deadweight) * (1 - displacement) * (1 - leakage) * (1 - substitution)
 netOutput = round(totalOutput * factor)
 netJobs = round(totalJobs * factor)
 ```

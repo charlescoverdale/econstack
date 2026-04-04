@@ -202,6 +202,23 @@ UK public finances: borrowing, debt, receipts, spending, fiscal rules.
 
 **Data path:** Skills expect LA data at `~/econstack-data/src/data/`. Update `DATA_DIR=` in the SKILL.md files if your data is elsewhere.
 
+### CBA parameters
+
+The `/cost-benefit`, `/io-report`, and `/econ-audit` skills use a structured parameter database at `~/econstack-data/parameters/`. 14 JSON files covering UK, EU, and Australia:
+
+| Category | UK | EU | AU |
+|----------|----|----|-----|
+| Discount rates | Green Book declining schedule | 3%/5% | 7% (4%/10%) |
+| Carbon values | DESNZ traded + non-traded | EIB shadow price | Planned |
+| VSL / VPF | TAG Data Book | Planned | OIA AUD 5.87M |
+| Health (QALY) | GBP 70,000 | Planned | Planned |
+| VTTS | TAG Data Book | Planned | Planned |
+| Optimism bias | 6 types x 3 stages | N/A | N/A |
+| Additionality | HMT standard/conservative/optimistic | N/A | N/A |
+| Tax parameters | Income tax, NICs, VAT (2024/25) | N/A | N/A |
+
+Skills fall back to built-in defaults if parameter files are not found.
+
 ---
 
 ## The ecosystem
