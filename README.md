@@ -158,9 +158,11 @@ Economic snapshot for any of the 391 UK local authorities. Covers demographics, 
 
 ### `/econ-audit`
 
-Think of it as a senior partner and an economics professor going through your work and poking holes in it. Full methodology audit of any output from the skills above, or any economic analysis you point it at. Runs 60+ checks across 10 categories and produces a RAG (red, amber, green) rating on how your methods and assumptions compare to best practice. Agnostic to region or asset class: it draws on government guidance (Green Book, OMB A-4, EC CBA Guide) and published academic literature (Flyvbjerg, Moretti, Flegg) to assess numerical consistency, discount rates, additionality, multiplier plausibility, double counting, and framing.
+Think of it as a senior partner and an economics professor going through your work and poking holes in it. Full methodology audit of any output from the skills above, or any economic analysis you point it at. Runs 120+ checks across 16 categories and produces a RAG (red, amber, green) rating on how your methods and assumptions compare to best practice. Agnostic to region or asset class: it draws on government guidance (Green Book 2026, Aqua Book, OMB A-4, EC CBA Guide) and published academic literature (Flyvbjerg, Moretti, Flegg) to assess numerical consistency, discount rates, additionality, multiplier plausibility, double counting, framing, Five Case Model completeness, distributional analysis, Aqua Book RIGOUR compliance, and strategic misrepresentation patterns.
 
-When it finds issues, it gives you a structured step-by-step plan to fix them and updates the methodology accordingly. So your analysis gets better as your project collects more information or you tailor it to your own needs or your clients' needs. Designed to improve over time as the rest of the repo evolves: as the parameter database and skill coverage expand, so does the audit's ability to cross-check your work.
+New in 2026: checks against the Green Book 2026 updates (BCR misuse, health discount rate, carbon pre-discounting, wellbeing), the 2025 Green Book Review distributional requirements, and the Aqua Book RIGOUR framework (Repeatable, Independent, Grounded, Objective, Uncertainty-managed, Robust). Detects Flyvbjerg-style strategic misrepresentation indicators (cost/benefit asymmetry, scope near thresholds, low contingencies, demand optimism).
+
+When it finds issues, it gives you a structured step-by-step plan to fix them and updates the methodology accordingly. Designed to improve over time as the rest of the repo evolves: as the parameter database and skill coverage expand, so does the audit's ability to cross-check your work.
 
 ```
 /econ-audit io-report-manchester-2026-04-03.md --strict

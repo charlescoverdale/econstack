@@ -1,6 +1,6 @@
 ---
 name: econ-audit
-description: Audit economic analysis outputs (CBA, impact assessments, fiscal briefings) against methodology standards, academic literature, and common errors. Returns a scorecard with issues ranked by severity.
+description: Audit economic analysis outputs (CBA, impact assessments, fiscal briefings) against methodology standards, academic literature, and common errors. 120+ checks across 16 categories including Five Case Model, distributional analysis, Aqua Book RIGOUR, and strategic misrepresentation detection. Returns a scorecard with issues ranked by severity.
 allowed-tools:
   - Bash
   - Read
@@ -129,7 +129,7 @@ Run every applicable check from the master checklist below. Each check produces 
 | C3 | Is optimism bias applied to capex but not opex (unless justified)? | AMBER |
 | C4 | Is Monte Carlo / probabilistic analysis included for projects > £100m PV? | AMBER |
 | C5 | Are switching values computed and interpreted correctly? (direction must match NPV sign) | RED |
-| C6 | Does the sensitivity analysis cover a meaningful range (not just +/-5%)? | AMBER |
+| C6 | Does the sensitivity analysis cover a meaningful range (not just +/-5%)? See also Category P for deeper sensitivity checks. | AMBER |
 | C7 | Are residual values unreasonably high? (flag if residual > 15% of capex for assets with 60+ year appraisal periods; > 20% for shorter periods) | AMBER |
 
 #### D. Additionality
@@ -152,7 +152,7 @@ Run every applicable check from the master checklist below. Each check produces 
 | E4 | Are wider economic impacts (agglomeration, labour supply) presented separately from core benefits? | AMBER |
 | E5 | Is there clear separation between gross and net figures throughout? | AMBER |
 | E6 | Are sunk costs included? (costs already incurred that cannot be recovered should be excluded from the appraisal) | RED |
-| E7 | Is the counterfactual (Do Nothing) static? (it should evolve over time to reflect deterioration, demand growth, committed policies, not be fixed at the current state) | AMBER |
+| E7 | Is the counterfactual (Do Nothing) static? (it should evolve over time to reflect deterioration, demand growth, committed policies, not be fixed at the current state. A static counterfactual invalidates the entire incremental analysis.) | RED |
 
 #### F. Multiplier and IO model checks (impact assessments)
 
@@ -173,7 +173,7 @@ Run every applicable check from the master checklist below. Each check produces 
 |---|-------|--------------------|
 | G1 | Is NPV presented as the primary metric (not BCR)? (Green Book is explicit about this) | AMBER |
 | G2 | Are non-monetised benefits described with direction and magnitude? | AMBER |
-| G3 | Is the counterfactual (Do Nothing) properly specified? (not static baseline) | AMBER |
+| G3 | Is the counterfactual clearly described in the narrative? (What specifically happens without the intervention? Just saying "do nothing" is insufficient.) | AMBER |
 | G4 | Are caveats and limitations clearly stated? | AMBER |
 | G5 | Is the analysis described as "indicative" or "estimates" (not "will create X jobs")? | AMBER |
 | G6 | Are switching value interpretations correct for the NPV sign? | RED |
@@ -233,6 +233,73 @@ Run every applicable check from the master checklist below. Each check produces 
 | J9 | Are pre-pandemic comparisons dated? (specify which quarter/year, not just "pre-pandemic levels") | AMBER |
 | J10 | Are forward-looking statements clearly attributed? (BoE, OBR, market expectations; not presented as fact) | AMBER |
 
+#### K. Strategic Case and Five Case Model (CBA only)
+
+| # | Check | Severity if failed |
+|---|-------|--------------------|
+| K1 | Is a Strategic Case present with SMART objectives (Specific, Measurable, Achievable, Relevant, Time-bound)? | AMBER |
+| K2 | Is a theory of change or logic model articulated, linking inputs to activities to outputs to outcomes to impact? | AMBER |
+| K3 | Is the case for intervention stated (market failure, equity rationale, or government objective)? | AMBER |
+| K4 | Does the options appraisal include at least 5 shortlisted options (BAU, do minimum, preferred, and variants)? | AMBER |
+| K5 | Is there a "do minimum" option distinct from "do nothing"? (Do minimum = committed policies only; do nothing = no action. These are different counterfactuals.) | RED |
+| K6 | Is the analysis proportionate to the scale and stage? (SOC can use ranges; OBC needs point estimates with OB; FBC needs firm costs.) | AMBER |
+| K7 | Are Critical Success Factors documented and used to filter the options longlist? | AMBER |
+
+#### L. Distributional analysis
+
+| # | Check | Severity if failed |
+|---|-------|--------------------|
+| L1 | Are distributional impacts by income group assessed? (For projects > GBP 50m PV: RED if absent. Otherwise: AMBER.) | RED/AMBER |
+| L2 | If distributional weights are applied, is the methodology documented and sourced to Green Book Annex 3? | AMBER |
+| L3 | If distributional weights are NOT applied, is their absence justified? (The 2025 Green Book Review strengthened this requirement.) | AMBER |
+| L4 | Are geographic distributional effects documented (which areas benefit, which bear costs)? | AMBER |
+| L5 | Are impacts on protected characteristics (Equality Act 2010 / Public Sector Equality Duty) considered? | AMBER |
+| L6 | Is a place-based context provided where the intervention is spatially targeted? | AMBER |
+
+#### M. Analytical Quality Assurance (Aqua Book RIGOUR)
+
+| # | Check | Severity if failed |
+|---|-------|--------------------|
+| M1 | **Repeatable:** Is the analysis documented sufficiently for another analyst to reproduce the results? (Data sources, transformations, assumptions, and model steps must be traceable.) | AMBER |
+| M2 | **Independent:** Is there evidence of independent review or QA sign-off? (Or at minimum, is it clear that the analyst and commissioner are separate?) | AMBER |
+| M3 | **Grounded in reality:** Are key assumptions validated against observed or empirical data (not just theoretical)? | AMBER |
+| M4 | **Objective:** Is the analysis free from advocacy framing? (Findings should be presented neutrally, not to support a predetermined conclusion.) | AMBER |
+| M5 | **Uncertainty-managed:** Is uncertainty quantified, not just acknowledged? (Sensitivity analysis must cover ranges, not just "results are sensitive to assumptions.") | AMBER |
+| M6 | **Robust:** Are model limitations explicitly stated and communicated to decision-makers? | AMBER |
+
+#### N. Strategic misrepresentation indicators (CBA only)
+
+| # | Check | Severity if failed |
+|---|-------|--------------------|
+| N1 | Are cost estimates at the bottom of the plausible range AND benefit estimates at the top? (Pattern consistent with Flyvbjerg's strategic misrepresentation finding.) | AMBER |
+| N2 | Is the project scope suspiciously close to an approval threshold? (e.g., total cost just below GBP 100m, GBP 500m, or department-specific thresholds.) | AMBER |
+| N3 | Are contingencies below 10% of capex at OBC stage or below 5% at FBC stage? (Unusually low for most project types.) | AMBER |
+| N4 | Is the demand/usage forecast significantly above the historical trend without explanation? (Flyvbjerg 2005: travel demand overestimated by 50% on average.) | AMBER |
+| N5 | Are multiple optimistic assumptions compounded? (Optimistic on costs AND benefits AND timing AND demand.) If yes, compute the combined probability. | RED |
+
+#### O. Green Book 2026 updates
+
+| # | Check | Severity if failed |
+|---|-------|--------------------|
+| O1 | Is an arbitrary BCR threshold applied as a decision rule? (e.g., "BCR must exceed 2.0." The Green Book 2026 explicitly states BCR thresholds are not endorsed as sole decision criteria.) | AMBER |
+| O2 | Is BCR used as the sole criterion for ranking options without considering non-monetised benefits? | AMBER |
+| O3 | For health-related benefits: is the health discount rate of 1.5% applied (rather than the standard 3.5%)? | RED |
+| O4 | For carbon valuation: are DESNZ carbon values recognised as pre-discounted (they use a different discount rate and should not be discounted again with the main STPR)? | RED |
+| O5 | Is wellbeing analysis considered where relevant (health, social care, community programmes)? Green Book 2026 broadens social value to include subjective wellbeing. | AMBER |
+| O6 | Does the document acknowledge that the Green Book discount rate is under independent review (commissioned December 2025, reporting June 2026)? For long-duration projects (30+ years), this could materially affect the NPV. | AMBER |
+
+#### P. Sensitivity analysis depth
+
+These replace and expand check C6 for a more thorough assessment:
+
+| # | Check | Severity if failed |
+|---|-------|--------------------|
+| P1 | Does the sensitivity analysis test more than one variable at a time? (One-at-a-time testing misses correlations between variables.) | AMBER |
+| P2 | Is there a combined downside scenario where multiple adverse assumptions occur simultaneously? (e.g., costs +20% AND benefits -20% AND 2-year delay.) | AMBER |
+| P3 | Are switching values computed for each key variable individually (not just the overall BCR)? | AMBER |
+| P4 | For projects > GBP 100m PV: is Monte Carlo or equivalent probabilistic analysis included with explicit distributional assumptions on inputs? | AMBER |
+| P5 | Does the worst-case scenario test an outcome that would change the investment decision (not just reduce NPV while remaining positive)? | AMBER |
+
 ### Step 3: Present the scorecard
 
 ```
@@ -254,9 +321,15 @@ F. Multiplier/IO model       -      -       -     n/a
 G. Framing & interpretation  0      3       9     9/12
 H. Sector-specific           0      1       3     3/4
 I. Academic/empirical        0      2       4     4/6
-J. Data quality (macro)      0      0      10    10/10
+J. Data quality (macro)      -      -       -     n/a
+K. Strategic Case / 5CM      0      2       5     5/7
+L. Distributional analysis   0      1       5     5/6
+M. Aqua Book RIGOUR          0      2       4     4/6
+N. Strategic misrep.         0      0       5     5/5
+O. Green Book 2026           0      1       5     5/6
+P. Sensitivity depth         0      1       4     4/5
 -------------------------------------------------
-OVERALL                      1     10      57    57/68
+OVERALL                      1     17      78    78/96
 
 GRADE: [A / B / C / D / F]
   A (90%+):  Publication-ready. Minor improvements possible.
@@ -276,7 +349,9 @@ other checks. These caps ensure the grade reflects the severity of issues,
 not just their quantity.
 
 Note: Category F applies only to impact assessments. Category J applies only
-to macro briefings. Categories not applicable to the document type are marked
+to macro briefings. Categories K, N apply only to CBAs/business cases.
+Category L applies to CBAs and impact assessments. Categories M, O, P
+apply to all analytical documents. Categories not applicable are marked
 n/a and excluded from the score calculation.
 ```
 
@@ -411,12 +486,17 @@ The audit draws on these sources. Cite them when flagging issues:
 
 **Frameworks:**
 - HM Treasury (2022, updated 2026). "The Green Book."
+- HM Treasury (2025). "Green Book Review 2025: Findings and Actions."
+- HM Treasury (2015). "The Aqua Book: Guidance on Producing Quality Analysis for Government."
 - HM Treasury (2014). "Additionality Guide", 4th edition.
 - DLUHC (2025). "The Appraisal Guide", 3rd edition.
+- DfT (2025). "Value for Money Framework." and "VfM Supplementary Guidance on Categories."
 - DfT. "Transport Analysis Guidance (TAG) Data Book."
 - DESNZ (2024). "Valuation of greenhouse gas emissions."
 - European Commission (2014). "Guide to Cost-Benefit Analysis."
 - OMB (2023). "Circular A-4: Regulatory Analysis."
+- NAO. "Quality Assurance of Models."
+- IPA. "Assurance Review Toolkit."
 
 **Academic (cost overruns and benefit optimism):**
 - Flyvbjerg, B., Bruzelius, N., Rothengatter, W. (2003). "Megaprojects and Risk: An Anatomy of Ambition." Cambridge University Press.
