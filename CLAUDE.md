@@ -11,7 +11,8 @@ Each skill has its own directory with a `SKILL.md` defining the workflow.
 - `fiscal-briefing/SKILL.md` : Public finances briefing (UK, US, Australia)
 - `macro-briefing/SKILL.md` : Macroeconomic monitor (UK, US, Euro area, Australia; --international for 30-country comparison)
 - `cost-benefit/SKILL.md` : Cost-benefit analysis (8 international frameworks)
-- `econ-audit/SKILL.md` : Methodology audit (60+ checks, RED/AMBER/GREEN grading)
+- `vfm-eval/SKILL.md` : Value for Money evaluation (3Es/4Es, unit cost benchmarks, fiscal return, evidence grading)
+- `econ-audit/SKILL.md` : Methodology audit (80+ checks, RED/AMBER/GREEN grading)
 
 ## Important Rules
 
@@ -41,6 +42,7 @@ Key routing rules:
 - Architecture review → invoke plan-eng-review
 - Save progress, checkpoint, resume → invoke checkpoint
 - Code quality, health check → invoke health
+- VfM evaluation, "did it work", programme assessment, Magenta Book → invoke vfm-eval
 
 ## Data Dependencies
 

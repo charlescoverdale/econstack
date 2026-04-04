@@ -2,8 +2,8 @@
 
 ![Version](https://img.shields.io/badge/version-0.3.0-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
-![Skills](https://img.shields.io/badge/skills-6-orange)
-![Parameters](https://img.shields.io/badge/parameters-39_files-purple)
+![Skills](https://img.shields.io/badge/skills-7-orange)
+![Parameters](https://img.shields.io/badge/parameters-42_files-purple)
 ![Frameworks](https://img.shields.io/badge/frameworks-8_countries-red)
 
 Professional economic analysis, powered by AI.
@@ -73,6 +73,25 @@ It then works through costs using the latest government guidelines and market be
 | Optimism bias | 6 types x 3 stages | | | | | |
 
 **Options:** `--framework`, `--from`, `--full`, `--audit`, `--format`
+
+---
+
+### `/vfm-eval`
+
+The companion to `/cost-benefit`. Where `/cost-benefit` asks "should we do this?" (ex-ante), `/vfm-eval` asks "did it work? was it worth it?" (ex-post). Walks you through the Magenta Book 3Es framework (economy, efficiency, effectiveness), benchmarks your programme costs against the GMCA Unit Cost Database, applies additionality adjustments, discounts multi-year benefits using the Green Book STPR schedule, computes a BCR, and grades the evidence quality using the Maryland Scientific Methods Scale.
+
+Computes fiscal return by mapping outcomes to published unit cost savings (crime, employment, health, education, housing). Supports 8 evaluation frameworks: UK 3Es, FCDO 4Es (adding equity), Australia 4Es (adding ethics), EC Better Regulation (5 criteria), US GAO/OMB, World Bank IEG (6-point outcome rating), OECD DAC (6 criteria), and NZ Living Standards Framework. Also has a lighter "Spending Review narrative" mode for quick VfM evidence sections.
+
+Outputs to Markdown, HTML, Excel (IB-style workbook with cover page, RAG dashboard, and assumption sheets), Word, PowerPoint, or PDF.
+
+```
+/vfm-eval
+/vfm-eval --framework 4e
+/vfm-eval --mode narrative
+/vfm-eval --full --format xlsx,pdf
+```
+
+**Options:** `--mode`, `--framework`, `--full`, `--client`, `--audit`, `--format`
 
 ---
 
@@ -154,7 +173,7 @@ Letter grade A-F, with auto-fix option. **Options:** `--strict`, `--fix`, `--for
 
 **Local authority data:** 391 UK LAs with 16 data files each (employment, earnings, IO multipliers, population, housing, GVA, deprivation, skills, commuting). At `~/econstack-data/src/data/`.
 
-**CBA parameters:** 39 JSON files across UK (14), US (6), EU (6), AU (6), World Bank (2), ADB (2), OECD (2), and common (1). Discount rates, carbon values, VSL, QALY, VTTS, optimism bias, additionality, tax parameters, and more. Source citations, staleness detection, and validation script included. At `~/econstack-data/parameters/`. See the [parameters README](https://github.com/charlescoverdale/econstack-data/blob/main/parameters/README.md) for full documentation.
+**CBA and evaluation parameters:** 42 JSON files across UK (17), US (6), EU (6), AU (6), World Bank (2), ADB (2), OECD (2), and common (1). Includes unit costs (GMCA database), evidence standards (Maryland SMS), and VfM benchmarks alongside the CBA parameters. Discount rates, carbon values, VSL, QALY, VTTS, optimism bias, additionality, tax parameters, and more. Source citations, staleness detection, and validation script included. At `~/econstack-data/parameters/`. See the [parameters README](https://github.com/charlescoverdale/econstack-data/blob/main/parameters/README.md) for full documentation.
 
 ---
 
@@ -164,6 +183,7 @@ Letter grade A-F, with auto-fix option. **Options:** `--strict`, `--fix`, `--for
 R packages (data access)          econprofile (data + web)         econstack (skills)
 ========================          =======================         ==================
 ons    -> ONS data                391 LA profiles                 /cost-benefit (UK, US, EU, AU, WB, ADB)
+                                                                  /vfm-eval (Magenta Book 3Es/4Es)
 boe    -> Bank of England         IO impact calculator            /macro-briefing (UK, US, EU, AU)
 hmrc   -> HMRC trade              Compare regions tool            /fiscal-briefing (UK, US, AU)
 obr    -> OBR fiscal              Embeddable charts               /io-report (UK)
