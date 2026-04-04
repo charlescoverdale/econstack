@@ -12,8 +12,7 @@ Built on 16 R packages on CRAN and a 34-file parameter database covering the UK,
 - A consultant preparing an IO impact assessment for a new infrastructure project
 - An analyst pulling a macro briefing before a ministerial meeting or board paper
 - A local authority officer building an economic profile to support a funding bid
-- A policy team at Treasury needing a fiscal snapshot with traceable methodology
-- A finance team stress-testing debt sustainability ahead of a bond issuance or fiscal review
+- A banker preparing an industry and regional snapshot for an investment pitch deck
 
 If you spend time wrangling discount rates, formatting CBA spreadsheets, or copying ONS data into briefing templates, econstack automates the mechanical parts so you can focus on the judgment calls.
 
