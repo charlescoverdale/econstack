@@ -2,7 +2,9 @@
 
 Professional economic analysis, powered by AI.
 
-econstack is a set of [Claude Code](https://claude.ai/code) skills that generate professional economic analysis. Type a slash command, get the key numbers in seconds, then pick the output you need.
+econstack is a set of [Claude Code](https://claude.ai/code) skills that get you to 80% faster on economic analysis, so you can focus on the details and key decisions. Type a slash command, get the key numbers in seconds, then select the outputs and formats you need to support whatever publication, analysis, or client deliverable you're working on.
+
+Skills are currently built around the UK, US, EU, and Australia, with further regional support coming soon.
 
 ```
 /io-report £10m in Manufacturing in Manchester
