@@ -1,6 +1,6 @@
 ---
 name: fiscal-briefing
-description: Public finances briefing. Supports UK and US. Borrowing/deficit, debt, receipts, spending, fiscal rules/outlook. Interactive section selection.
+description: Public finances briefing. Supports UK, US, and Australia. Borrowing/deficit, debt, receipts, spending, fiscal rules/outlook. Interactive section selection.
 allowed-tools:
   - Bash
   - Read
@@ -21,7 +21,7 @@ Then continue with the skill normally.
 
 # /fiscal-briefing: Public Finances Briefing
 
-Generate a narrative briefing on public finances for the UK or US. Covers the current deficit/surplus, debt position, receipts and spending breakdown, fiscal rules or sustainability context, and outlook.
+Generate a narrative briefing on public finances for the UK, US, or Australia. Covers the current deficit/surplus, debt position, receipts and spending breakdown, fiscal rules or sustainability context, and outlook.
 
 **This skill is interactive.** It fetches the data, shows the key numbers, then asks what output you need.
 
@@ -35,11 +35,12 @@ Generate a narrative briefing on public finances for the UK or US. Covers the cu
 ```
 /fiscal-briefing                    # UK (default)
 /fiscal-briefing --country us       # US federal finances
+/fiscal-briefing --country au       # Australian Commonwealth finances
 /fiscal-briefing --full
 ```
 
 **Options:**
-- `--country <code>` : Country. `uk` (default), `us`
+- `--country <code>` : Country. `uk` (default), `us`, `au`
 - `--full` : Skip menu, generate all sections
 - `--client "Name"` : Add "Prepared for"
 - `--format pdf` : Branded PDF
@@ -50,6 +51,7 @@ Generate a narrative briefing on public finances for the UK or US. Covers the cu
 |---------|----------|---------------|---------------|-------|
 | `uk` | A1: obr + ons packages | B1 | C1: 5 sections | PSNB, PSND, OBR forecasts, fiscal rules |
 | `us` | A2: fred package | B2 | C2: 6 sections | Federal deficit, debt, receipts/outlays, CBO context |
+| `au` | A3: readabs + fred/readoecd | B3 | C3: 5 sections | Underlying cash balance, revenue/expenses by function, net debt, Budget/MYEFO context |
 
 ## Instructions
 
@@ -59,6 +61,7 @@ Parse flags. Determine country from `--country` (default: `uk`).
 
 - `uk`: A1 -> B1 -> C1
 - `us`: A2 -> B2 -> C2
+- `au`: A3 -> B3 -> C3
 
 ---
 
@@ -156,6 +159,87 @@ Stop.
 
 ---
 
+### A3: Australia Data Fetching
+
+**Only run if `--country au` is specified.** Uses `readabs` (primary) for quarterly ABS Government Finance Statistics, with `fred` and `readoecd` as backup for headline numbers.
+
+**Primary approach: readabs + ABS SDMX API**
+
+```bash
+Rscript -e '
+  library(jsonlite)
+  data <- list()
+
+  if (requireNamespace("readabs", quietly = TRUE)) {
+    library(readabs)
+
+    # ABS Government Finance Statistics (Cat. 5519.0)
+    # The ABS SDMX API provides quarterly GFS data for all levels of government.
+    # Key series: Commonwealth general government sector
+    tryCatch({
+      # Total revenue, expenses, net operating balance, net lending/borrowing
+      gfs <- read_abs(cat_no = "5519.0")
+
+      # Filter for Commonwealth general government
+      # Key series IDs (check with browse_abs for current codes):
+      # Revenue: total taxation, income tax, GST, excise, company tax
+      # Expenses: total, social security & welfare, health, education, defence, interest
+      # Balance: underlying cash balance, fiscal balance, net operating balance
+      # Debt: net debt
+
+      data$gfs_raw <- gfs
+      data$source <- "ABS GFS Cat. 5519.0"
+    }, error = function(e) {
+      message("ABS GFS fetch failed: ", e$message)
+    })
+  }
+
+  # Backup: FRED + readoecd for headline numbers
+  if (length(data) == 0 || is.null(data$gfs_raw)) {
+    if (requireNamespace("fred", quietly = TRUE)) {
+      library(fred)
+      tryCatch({
+        data$debt_total = tail(fred_series("GGGDTAAUA188N"), 10)
+        data$deficit = tail(fred_series("GGNLBAAUA188N"), 10)
+        data$cash_balance = tail(fred_series("CASHBLAUA188A"), 10)
+        data$source <- "FRED (IMF WEO)"
+      }, error = function(e) message("FRED AU fiscal failed: ", e$message))
+    }
+    if (requireNamespace("readoecd", quietly = TRUE)) {
+      library(readoecd)
+      tryCatch({
+        data$deficit_pct_gdp = get_oecd_deficit("AUS")
+        data$tax_pct_gdp = get_oecd_tax("AUS")
+        if (is.null(data$source)) data$source <- "OECD"
+        else data$source <- paste0(data$source, " + OECD")
+      }, error = function(e) NULL)
+    }
+  }
+
+  if (length(data) == 0) {
+    cat("ERROR: No AU fiscal data available. Install readabs (recommended), or fred/readoecd for headline numbers.")
+  } else {
+    cat(toJSON(data, auto_unbox=TRUE, pretty=TRUE))
+  }
+'
+```
+
+**If readabs is available:** Parse the GFS data to extract Commonwealth general government sector aggregates. The ABS GFS covers:
+- **Revenue:** Total taxation revenue, income tax (individuals + companies separately), goods and services tax (GST), excise, superannuation taxes, other
+- **Expenses:** Total expenses, social security and welfare, health, education, defence, public order and safety, interest, other
+- **Balances:** Net operating balance, fiscal balance, underlying cash balance
+- **Debt:** Net debt, gross debt
+
+**If readabs is NOT available:** Fall back to FRED (annual IMF WEO data: gross debt, net lending/borrowing, cash balance) and readoecd (annual deficit % GDP, tax % GDP). Note: "Detailed quarterly fiscal data requires the readabs package. Install with: install.packages('readabs'). Currently showing annual headline numbers only."
+
+**Data notes:**
+- ABS GFS is quarterly, with approximately 3-month lag.
+- The underlying cash balance (UCB) is the headline measure in Australian budget reporting, analogous to the UK PSNB.
+- Australian fiscal year runs July to June, not calendar year.
+- GST revenue is collected by the Commonwealth but distributed to states. The fiscal briefing should note this.
+
+---
+
 ## SECTION B: DASHBOARDS
 
 ### Step 2: Show the dashboard and ask what the user needs
@@ -188,6 +272,33 @@ Interest payments (SAAR):  $[val]bn/yr ([val]% of GDP)
 Data as of: [latest date]. US fiscal year runs Oct-Sep.
 ```
 
+### B3: Australia Dashboard
+
+**If readabs data available (quarterly GFS):**
+```
+AUSTRALIAN COMMONWEALTH FINANCES
+=================================
+Underlying cash balance (quarter):  A$[val]bn
+UCB (FYTD):                         A$[val]bn     (Budget forecast: A$[val]bn full year)
+Net debt:                            [val]% GDP   (A$[val]bn)
+Total revenue (quarter):            A$[val]bn
+Total expenses (quarter):           A$[val]bn
+Interest payments (quarter):        A$[val]bn
+
+Data as of: [quarter]. Australian fiscal year runs Jul-Jun.
+```
+
+**If backup data only (annual FRED/OECD):**
+```
+AUSTRALIAN GOVERNMENT FINANCES (ANNUAL)
+========================================
+Net lending/borrowing:    [val]% of GDP
+Gross debt:               A$[val]bn
+Tax revenue:              [val]% of GDP
+
+Data as of: [year]. Annual data only. Install readabs for quarterly detail.
+```
+
 ### Interactive Menu
 
 **If `--full` was NOT specified**, ask using AskUserQuestion:
@@ -217,6 +328,13 @@ Options:
 - Interest on the debt (trend, % of GDP, comparison to defense)
 - Debt dynamics (gross vs held by public, debt-to-GDP trajectory)
 - Outlook and risks (CBO context, entitlements, debt ceiling)
+
+**Australia sections:**
+- Current fiscal position (underlying cash balance, net debt)
+- Revenue (income tax, company tax, GST, excise, superannuation tax)
+- Expenses by function (social security, health, education, defence, interest)
+- Net debt dynamics (net debt trajectory, gross vs net)
+- Outlook and risks (Budget/MYEFO context, terms of trade, commodity exposure)
 
 ---
 
@@ -483,6 +601,143 @@ CBO baseline projections are published separately at cbo.gov/data/budget-economi
 
 ---
 
+### C3: Australia Narrative Templates
+
+**Australia key numbers block:**
+```markdown
+<!-- KEY NUMBERS
+type: fiscal
+date: [YYYY-MM-DD]
+framework: au
+ucb_quarter_bn: [val]
+ucb_fytd_bn: [val]
+net_debt_bn: [val]
+net_debt_pct_gdp: [val]
+revenue_quarter_bn: [val]
+expenses_quarter_bn: [val]
+interest_quarter_bn: [val]
+-->
+```
+
+**Current fiscal position:**
+```markdown
+## Current Fiscal Position
+
+**The Commonwealth underlying cash balance was [surplus/deficit] A$[val]bn in the [month] quarter [year], bringing the fiscal year-to-date balance to [surplus/deficit] A$[val]bn.** This compares to the Budget estimate of A$[val]bn for the full year [year]-[year+1].
+
+Net debt stands at A$[val]bn, or [val]% of GDP. [Up/down] from [val]% a year ago.
+
+| Metric | Latest quarter | FYTD | Budget forecast (full year) |
+|--------|---------------|------|---------------------------|
+| Underlying cash balance | A$[val]bn | A$[val]bn | A$[val]bn |
+| Net debt (% GDP) | [val]% | - | [val]% |
+| Total revenue | A$[val]bn | A$[val]bn | - |
+| Total expenses | A$[val]bn | A$[val]bn | - |
+
+*Note: The Australian fiscal year runs July to June. The underlying cash balance (UCB) is the headline fiscal measure, analogous to the UK PSNB.*
+```
+
+**Revenue:**
+```markdown
+## Commonwealth Revenue
+
+**Total Commonwealth revenue was A$[val]bn in [quarter], [up/down] [val]% year-on-year.**
+
+| Revenue source | A$bn | Share | YoY change |
+|---------------|------|-------|-----------|
+| Individuals income tax | [val] | [val]% | [val]% |
+| Company tax | [val] | [val]% | [val]% |
+| GST | [val] | [val]% | [val]% |
+| Excise and customs | [val] | [val]% | [val]% |
+| Superannuation taxes | [val] | [val]% | [val]% |
+| Other | [val] | [val]% | [val]% |
+
+Individual income tax and company tax together account for roughly 70% of Commonwealth revenue. [1-2 sentences on what is driving the revenue trend.]
+
+*Note: GST is collected by the Commonwealth but distributed to state and territory governments. It is included in Commonwealth revenue but offset by payments to states. The net Commonwealth revenue position is lower than the headline figure.*
+```
+
+**Expenses by function:**
+```markdown
+## Commonwealth Expenses
+
+**Total Commonwealth expenses were A$[val]bn in [quarter].**
+
+| Function | A$bn | Share of total |
+|----------|------|---------------|
+| Social security and welfare | [val] | [val]% |
+| Health | [val] | [val]% |
+| Education | [val] | [val]% |
+| Defence | [val] | [val]% |
+| Interest (public debt) | [val] | [val]% |
+| Other (general public services, transport, housing, etc.) | [val] | [val]% |
+
+Social security and welfare is the largest spending category (predominantly Age Pension, JobSeeker, NDIS, and Family Tax Benefit). Health spending includes Medicare, the Pharmaceutical Benefits Scheme, and hospital funding. [1-2 sentences on spending dynamics.]
+
+*Note: Expenses are classified by Government Purpose Classification (GPC), the Australian equivalent of the UK's functional spending classification. The NDIS (National Disability Insurance Scheme) is the fastest-growing spending category.*
+```
+
+**Net debt dynamics:**
+```markdown
+## Net Debt
+
+**Commonwealth net debt stands at A$[val]bn, or [val]% of GDP.** This is [up/down] from [val]% a year ago.
+
+| Measure | Level (A$bn) | % of GDP | Year ago |
+|---------|-------------|----------|----------|
+| Net debt | [val] | [val]% | [val]% |
+| Gross debt | [val] | [val]% | [val]% |
+
+Net debt is the headline measure in Australian fiscal reporting (analogous to UK PSND). It equals the sum of interest-bearing liabilities minus financial assets (deposits, investments, loans). Gross debt is higher because it does not net off financial assets.
+
+[1-2 sentences on the debt trajectory: is net debt rising, stable, or falling as a share of GDP?]
+
+*By international standards, Australian net debt is low relative to GDP compared to the UK (~100%), US (~100%), and Japan (~160%). However, it has risen significantly since the GFC and COVID-19.*
+```
+
+**Outlook and risks:**
+```markdown
+## Outlook and Risks
+
+The latest Budget ([month year]) / MYEFO ([month year]) projects:
+
+| Metric | [Year] | [Year+1] | [Year+2] | [Year+3] |
+|--------|--------|----------|----------|----------|
+| UCB (A$bn) | [val] | [val] | [val] | [val] |
+| Net debt (% GDP) | [val] | [val] | [val] | [val] |
+| GDP growth | [val]% | [val]% | [val]% | [val]% |
+
+[If readabs not available: "Budget/MYEFO projections are published as Excel tables on budget.gov.au and data.gov.au. The figures above are from Claude's knowledge of the most recent Budget. Verify against the latest release."]
+
+**Key risks:**
+- Terms of trade: Australia's fiscal position is sensitive to iron ore and coal prices. A sustained fall in commodity prices would reduce company tax receipts materially.
+- NDIS growth: the National Disability Insurance Scheme is growing at [~8-10%] per year, faster than GDP. Cost containment is a key fiscal challenge.
+- Interest rates: higher-than-expected rates increase debt servicing costs, though Australian net interest payments are relatively low by international standards.
+- Population aging: Age Pension and health spending will grow as the dependency ratio rises, though less sharply than in the UK or continental Europe due to compulsory superannuation.
+
+[1-2 sentences on overall fiscal sustainability assessment.]
+```
+
+**Australia methodology note:**
+```markdown
+**Data sources:** ABS Government Finance Statistics (Cat. 5519.0, quarterly) via readabs R package. Budget and MYEFO estimates from budget.gov.au. Headline numbers from FRED (IMF WEO) and OECD where quarterly ABS data not available. Underlying cash balance is the headline fiscal measure. Net debt excludes Future Fund assets from the denominator. Fiscal year runs July to June.
+```
+
+**Australia slide summary:**
+```markdown
+**Australian Commonwealth Finances, [Month Year]**
+
+- Underlying cash balance **A$[val]bn FYTD** (fiscal year Jul-Jun)
+- Net debt at **[val]% of GDP** (A$[val]bn), [low by international standards]
+- Revenue driven by [income tax / company tax / commodity prices]
+- Social security + health + NDIS = **[val]%** of spending
+- Budget projects [surplus/deficit] of A$[val]bn in [year]-[year+1]
+
+*Data from ABS GFS (via readabs) and Budget papers. Powered by econstack.*
+```
+
+---
+
 ## SECTION D: OUTPUT
 
 ### Step 4: Save and present
@@ -492,6 +747,7 @@ Save as `fiscal-briefing-{country}-{date}.md`. Always save `fiscal-data-{country
 Country-specific data source footer:
 - UK: *Data from ONS and OBR. Powered by econstack.*
 - US: *Data from FRED (Treasury Monthly Statement, BEA NIPA, OMB). Powered by econstack.*
+- AU: *Data from ABS GFS (via readabs) and Budget papers. Powered by econstack.*
 
 If `--format pdf`, render through the template:
 ```bash
@@ -523,3 +779,13 @@ ECONSTACK_DIR="${CLAUDE_SKILL_DIR}/../.."
 - CBO projections assume current law, which means expiring tax provisions expire. This is often unrealistic. Always caveat.
 - Interest payments are the fastest-growing spending category. Always contextualize vs defense spending.
 - Entitlement spending (Social Security, Medicare, Medicaid) is mandatory and grows on autopilot. Distinguish from discretionary spending when relevant.
+
+**Australia-specific:**
+- The Australian fiscal year runs July to June. Always state this.
+- The underlying cash balance (UCB) is the headline fiscal measure. It is analogous to the UK PSNB.
+- Net debt is the standard debt measure (financial liabilities minus financial assets). Gross debt is higher. Always specify which.
+- GST is collected by the Commonwealth but distributed to states and territories. Note this when discussing revenue.
+- The NDIS (National Disability Insurance Scheme) is the fastest-growing spending program. Always mention when discussing spending pressures.
+- Australian net debt is low by international standards (vs UK ~100%, US ~100%, Japan ~160%). Provide this context.
+- Commodity prices (iron ore, coal, LNG) drive company tax receipts. Terms of trade sensitivity is a key fiscal risk. Always mention.
+- Be specific about which Budget or MYEFO is being referenced (month and year).

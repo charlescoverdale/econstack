@@ -8,7 +8,7 @@ Each skill has its own directory with a `SKILL.md` defining the workflow.
 
 - `io-report/SKILL.md` : Input-output economic impact assessment (UK)
 - `la-profile/SKILL.md` : Local authority economic profile (UK)
-- `fiscal-briefing/SKILL.md` : Public finances briefing (UK, US)
+- `fiscal-briefing/SKILL.md` : Public finances briefing (UK, US, Australia)
 - `macro-briefing/SKILL.md` : Macroeconomic monitor (UK, US, Euro area, Australia; --international for 30-country comparison)
 - `cost-benefit/SKILL.md` : Cost-benefit analysis (8 international frameworks)
 - `econ-audit/SKILL.md` : Methodology audit (60+ checks, RED/AMBER/GREEN grading)
