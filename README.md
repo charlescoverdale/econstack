@@ -67,7 +67,7 @@ It then works through costs using the latest government guidelines and market be
 
 ### `/macro-briefing`
 
-Up-to-date macroeconomic reports for the UK, US, Euro area, and Australia. Pulls live data from official government databases (ONS, FRED, ECB, ABS), structures it into a professional briefing following each central bank's reporting conventions, and lets you pick the sections you need. Every number is traceable: full methodology, data sources, and vintage dates included.
+Up-to-date macroeconomic reports for the UK, US, Euro area, and Australia. Tell it what you care about most (CPI, GDP growth, labour market, yield curves) or let it pick for you. Pulls live data from official government databases (ONS, FRED, ECB, ABS), structures it into a professional briefing following each central bank's reporting conventions, and lets you tailor the output to the indicators that matter for your work. Every number is traceable: full methodology, data sources, and vintage dates included.
 
 ```
 /macro-briefing                     # UK (BoE MPR structure, 27 indicators)
