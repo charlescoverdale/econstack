@@ -1,0 +1,44 @@
+# Generated reports and outputs
+io-report-*.md
+io-report-*.json
+io-report-*.html
+io-report-*.docx
+io-report-*.pptx
+io-report-*.pdf
+impact-data-*.json
+cba-*.md
+cba-*.json
+cba-*.html
+cba-*.docx
+cba-*.pptx
+cba-*.pdf
+cba-*.xlsx
+audit-*.md
+audit-*.json
+audit-*.html
+audit-*.docx
+audit-*.pptx
+audit-*.pdf
+la-profile-*.md
+la-profile-*.json
+macro-briefing-*.md
+macro-briefing-*.json
+fiscal-briefing-*.md
+fiscal-briefing-*.json
+impact-preview.html
+
+# Quarto intermediates
+*.qmd
+# Quarto copies extensions into working dir during render; ignore those copies
+# but NOT the source templates/econstack-report/_extensions/
+/_extensions/
+
+# gstack reports
+.gstack/
+
+# Environment
+.env
+.env.*
+
+# OS
+.DS_Store
