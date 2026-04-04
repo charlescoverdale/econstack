@@ -252,15 +252,17 @@ Options:
 - A) **Randomised control trial (RCT)** : Participants were randomly assigned to treatment and control groups
 - B) **Quasi-experimental** : Used DiD, regression discontinuity, instrumental variables, or synthetic control
 - C) **Before-and-after with comparison group** : Compared outcomes for participants vs a similar untreated group over time
-- D) **Before-and-after without comparison** : Compared participant outcomes before and after the programme, no control group
-- E) **No formal evaluation design** : Monitoring data only, descriptive statistics
+- D) **Before-and-after with statistical controls but no comparison group** : Compared participant outcomes before and after, with regression adjustment or propensity score matching, but no separate untreated comparison group
+- E) **Simple before-and-after, no controls** : Compared participant outcomes before and after, no comparison group, no statistical controls
+- F) **No formal evaluation design** : Monitoring data only, descriptive statistics
 
 Assign the Maryland SMS evidence level using the decision tree from `uk/evidence-standards.json`:
 - A -> Level 5
 - B -> Level 4
 - C -> Level 3
-- D -> Level 1 (before-after without control is Level 1, not Level 2)
-- E -> Level 1
+- D -> Level 2 (before-after with adequate statistical controls per SMS scoring guide Q4b)
+- E -> Level 1 (simple pre-post without counterfactual or controls)
+- F -> Level 1
 
 **Additionality:**
 
@@ -269,28 +271,50 @@ Ask using AskUserQuestion:
 Question: "Do you want to apply additionality adjustments to the outcomes?"
 
 Options:
-- A) **Standard** (HMT defaults: 20% deadweight, 25% displacement, 10% leakage, net factor 0.54)
-- B) **Custom rates** (I'll specify my own)
+- A) **Standard** (central estimates: 20% deadweight, 25% displacement, 10% leakage, no multiplier, net factor 0.54)
+- B) **Custom rates** (I'll specify my own deadweight, displacement, leakage, substitution, and multiplier)
 - C) **None** (report gross outcomes only)
 
 If A, load from `uk/additionality.json`:
 ```
 net_outcomes = gross_outcomes * 0.54
 ```
+Note: The standard scenario uses a multiplier of 1.0 (no multiplier effect), which is conservative. This is appropriate for most programme-level evaluations. For area-based impact assessments where supply chain effects are material, consider using custom rates with a multiplier > 1.0.
 
-If B, ask for deadweight %, displacement %, leakage %, substitution % and compute:
+If B, ask for deadweight %, displacement %, leakage %, substitution %, and multiplier. Load multiplier guidance from `uk/additionality.json`:
+- Type I multiplier (supply chain only): typically 1.3-1.5
+- Type II multiplier (supply chain + income): typically 1.5-2.0
+- Default 1.0 if no multiplier evidence
+
+Compute:
 ```
 net_factor = (1 - deadweight) * (1 - displacement) * (1 - leakage) * (1 - substitution)
-net_outcomes = gross_outcomes * net_factor
+net_outcomes = gross_outcomes * net_factor * multiplier
 ```
+Per HM Treasury Additionality Guide (4th Edition, 2014), the multiplier is applied after all other additionality adjustments.
+
+**Price base year check:**
+
+Ask: "What year are your programme costs expressed in? (e.g., 2023 prices, nominal/outturn)"
+
+If the user's cost price year differs from the parameter file's price_base_year (2023), apply a GDP deflator adjustment to bring all values to the same price year. If the user is unsure, assume nominal/outturn prices and note the assumption.
+
+```
+If programme costs are in a different price year from unit costs:
+  adjusted_unit_cost = unit_cost * (GDP_deflator_programme_year / GDP_deflator_unit_cost_year)
+  Note: Approximate GDP deflator growth of 2-3% per year can be used if precise deflators are unavailable.
+```
+
+Always state the price base year in the output: "All values in [year] prices."
 
 **Monetise outcomes:**
 
 For each outcome type, identify the appropriate monetary value:
-- Employment outcomes -> use cost_of_unemployment_individual from uk/unit-costs.json (GBP 13,000/yr wider economic cost) for the main BCR. Use fiscal_benefit_employment (GBP 7,800/yr) for the fiscal BCR in Step 6.
+- Employment outcomes -> use cost_of_unemployment_individual from uk/unit-costs.json (GBP 13,000/yr wider economic cost, 2023 prices) for the main BCR. Use fiscal_benefit_employment (GBP 7,800/yr) for the fiscal BCR in Step 6.
 - Qualification outcomes -> use level_2/3_qualification_lifetime from uk/unit-costs.json (these are already lifetime present values, do not discount further)
 - Crime reduction -> use reoffending_event from uk/unit-costs.json (GBP 18,000 per event, one-off)
-- Health outcomes -> use relevant costs from uk/unit-costs.json
+- Health outcomes -> use relevant costs from uk/unit-costs.json. For health/wellbeing programmes, consider QALY (GBP 70,000, 2019 prices) or WELLBY (GBP 13,000, 2019 prices) valuation per Green Book supplementary guidance on wellbeing (2021).
+- Wellbeing outcomes -> use WELLBY from uk/unit-costs.json (GBP 13,000/WELLBY in 2019 prices, GBP 15,300 in 2023 prices). One WELLBY = one point on a 0-10 life satisfaction scale sustained for one year. Use when subjective wellbeing is the primary outcome and clinical health measures (QALYs) are not appropriate.
 - If no direct unit cost match, ask the user for a monetary value per outcome
 
 **Benefit duration:**
@@ -309,6 +333,25 @@ Options:
 If E, skip discounting. Otherwise, use the benefit duration to compute discounted present value.
 
 **Note:** For outcomes already expressed as lifetime values (e.g., Level 2 qualification lifetime value of GBP 48,000), these are pre-discounted. Do not apply further discounting. For annual flow values (e.g., GBP 13,000/year cost of unemployment avoided), discount each year's benefit.
+
+**Persistence/decay rates:**
+
+Ask using AskUserQuestion:
+
+Question: "Do you expect benefit levels to remain constant over the benefit period, or decay over time?"
+
+Options:
+- A) **Constant** : Same annual benefit each year (default assumption)
+- B) **Declining (10% per year)** : Benefits decay at 10% p.a. (e.g., some participants lose employment)
+- C) **Declining (20% per year)** : Benefits decay at 20% p.a. (e.g., short-term health interventions)
+- D) **Custom decay rate** : I'll specify
+
+If B, C, or D, model declining benefit streams:
+```
+annual_benefit_t = annual_benefit_year1 * (1 - decay_rate)^(t-1)
+```
+
+The decay-adjusted annual benefit for each year is then discounted using the Green Book STPR. This is more realistic than flat benefits: Barnett (2010) and Boardman et al. (2018) recommend modelling declining benefit streams for employment, health, and skills outcomes.
 
 **Discount benefits (Green Book compliant):**
 
@@ -360,12 +403,28 @@ bcr = total_monetised_benefits / total_cost
 
 All costs are assumed to occur in year 0 (programme period). If programme costs span multiple years, discount them too using the same schedule.
 
-Classify VfM using DfT categories from `uk/vfm-benchmarks.json`:
-- BCR < 1.0: Poor
-- 1.0-1.5: Low
-- 1.5-2.0: Medium
-- 2.0-4.0: High
-- > 4.0: Very High
+Classify VfM using DfT categories from `uk/vfm-benchmarks.json` (6 categories, May 2025):
+- BCR < 0: Very Poor (negative net benefits)
+- 0 <= BCR < 1.0: Poor
+- 1.0 <= BCR < 1.5: Low
+- 1.5 <= BCR < 2.0: Medium
+- 2.0 <= BCR < 4.0: High
+- BCR >= 4.0: Very High
+
+Boundary rule: boundary values go into the upper category (per DfT VfM Supplementary Guidance on Categories, November 2024). So BCR of exactly 1.0 is Low, 1.5 is Medium, 2.0 is High, 4.0 is Very High.
+
+**Compute RPSC (Return on Public Sector Cost):**
+
+Per the Green Book, RPSC measures net benefits to society per pound of net public sector cost:
+
+```
+net_public_sector_cost = total_cost - PV(fiscal_savings_that_flow_back_to_public_sector)
+rpsc = total_monetised_benefits / net_public_sector_cost
+```
+
+If fiscal return was computed in Step 6, use those discounted fiscal savings. Otherwise, set net_public_sector_cost = total_cost (RPSC equals BCR).
+
+RPSC will always be >= BCR because the denominator is smaller. Present RPSC alongside BCR in the effectiveness assessment.
 
 **Benchmark:**
 
@@ -388,16 +447,74 @@ Additionality: [X]% deadweight, [X]% displacement, [X]% leakage (net factor: [X]
 
 | Metric | Value | Category |
 |--------|-------|----------|
-| Total monetised benefits | GBP [val] | |
+| Total monetised benefits (PV) | GBP [val] | |
 | Total programme cost | GBP [val] | |
 | **BCR** | **[val]** | **[VfM category]** |
-| Cost per outcome | GBP [val] | |
+| **RPSC** | **[val]** | (Return on Public Sector Cost) |
+| Cost per net outcome | GBP [val] | |
 | Evidence level | SMS Level [N] | [Method name] |
 
 **Assessment:** [2-3 sentences. Did the programme achieve its intended outcomes? How does the BCR compare to similar interventions? How confident are we in these findings given the evidence level?]
 
 *Note: Always interpret BCR alongside the evidence level. A BCR of 3.0 based on Level 5 (RCT) evidence is much more credible than a BCR of 3.0 based on Level 1 (descriptive) evidence.*
 ```
+
+### Step 5b: Sensitivity analysis (mandatory)
+
+**This section is always generated.** Per Green Book and Magenta Book requirements, key assumptions must be tested.
+
+Compute the BCR under the following scenarios:
+
+```
+Sensitivity tests:
+1. Discount rate: recompute BCR at 1.5% (lower bound) and 7% (upper bound)
+2. Additionality: recompute BCR using optimistic and conservative scenarios from uk/additionality.json
+3. Benefit duration: recompute BCR with +/- 1 year on the assumed benefit duration
+4. Decay rate: if constant benefits assumed, test with 10% annual decay
+5. Switching values: for each key parameter (additionality, benefit duration, unit cost per outcome),
+   compute the value at which the BCR crosses 1.0 (i.e., the programme breaks even)
+```
+
+Present as:
+
+```markdown
+## Sensitivity Analysis
+
+### Scenario testing
+
+| Scenario | BCR | VfM category | Change from central |
+|----------|-----|-------------|-------------------|
+| **Central case** | **[val]** | **[category]** | - |
+| Lower discount rate (1.5%) | [val] | [category] | [+/- val] |
+| Higher discount rate (7%) | [val] | [category] | [+/- val] |
+| Optimistic additionality (net factor [val]) | [val] | [category] | [+/- val] |
+| Conservative additionality (net factor [val]) | [val] | [category] | [+/- val] |
+| Benefit duration +1 year | [val] | [category] | [+/- val] |
+| Benefit duration -1 year | [val] | [category] | [+/- val] |
+| 10% annual decay (if not already applied) | [val] | [category] | [+/- val] |
+
+### Switching values
+
+| Parameter | Central value | Switching value (BCR = 1.0) | Headroom |
+|-----------|--------------|---------------------------|----------|
+| Net additionality factor | [val] | [val] | [val]% |
+| Benefit duration | [val] years | [val] years | [val] years |
+| Value per outcome | GBP [val] | GBP [val] | [val]% |
+
+**Assessment:** [1-2 sentences. Is the VfM conclusion robust to plausible variations in assumptions? Which parameter is the BCR most sensitive to? Are there scenarios where the VfM category changes?]
+```
+
+### Step 5c: Opportunity cost (brief)
+
+Include a brief note in the effectiveness assessment:
+
+```markdown
+### Opportunity cost
+
+The programme cost of GBP [val] could alternatively have funded [brief comparison, e.g., "approximately [N] additional apprenticeship places at GBP [val] each" or "[N] school places"]. This comparison is illustrative only and does not account for differences in outcomes or targeting.
+```
+
+Use a relevant comparator from `uk/unit-costs.json` in the same sector. If the programme is in employment, compare to apprenticeship cost. If in crime, compare to prison places. Keep it to 1-2 sentences.
 
 ### Step 6: Fiscal return (optional)
 
@@ -414,8 +531,17 @@ If yes:
 For each outcome type, look up the relevant fiscal unit cost from `uk/unit-costs.json`. Fiscal unit costs represent the direct saving to public services when a negative outcome is avoided.
 
 ```
-fiscal_saving_per_outcome_type = net_outcomes * fiscal_unit_cost
-total_fiscal_saving = sum(fiscal_saving_per_outcome_type)
+# For annual fiscal savings, discount over the same benefit duration used in Step 5:
+PV_fiscal_saving = 0
+for t in 1 to benefit_duration:
+    annual_fiscal_saving_t = sum(net_outcomes_by_type * fiscal_unit_cost_by_type)
+    if decay_rate > 0:
+        annual_fiscal_saving_t = annual_fiscal_saving_t * (1 - decay_rate)^(t-1)
+    discount_factor_t = 1 / (1 + 0.035)^t  # Green Book STPR
+    PV_fiscal_saving += annual_fiscal_saving_t * discount_factor_t
+
+# For one-off fiscal savings (e.g., crime events avoided), no time dimension needed.
+total_fiscal_saving = PV_fiscal_saving + one_off_fiscal_savings
 fiscal_bcr = total_fiscal_saving / total_cost
 ```
 
@@ -512,22 +638,35 @@ fiscal_bcr = total_fiscal_saving / total_cost
 
 Compute the IEG 6-point outcome rating:
 
-```
-For each of the three IEG dimensions (Relevance, Efficacy, Efficiency),
-rate as: High, Substantial, Modest, or Negligible.
+The IEG rates three dimensions, with Relevance split into two sub-dimensions:
 
-Overall Outcome = weighted synthesis:
-  If all three are Substantial or above -> Satisfactory (or higher)
-  If any dimension is Negligible -> Unsatisfactory (or lower)
-  Mixed results -> Moderately Satisfactory or Moderately Unsatisfactory
+```
+Relevance:
+  - Relevance of objectives: Were the project's objectives relevant to the country's development priorities and the Bank's strategy?
+  - Relevance of design: Was the project design appropriate for achieving the objectives?
+  Rate each sub-dimension as: High, Substantial, Modest, or Negligible.
+  Overall Relevance = judgment-based synthesis of the two sub-ratings.
+
+Efficacy: To what extent did the project achieve its stated objectives?
+  Rate as: High, Substantial, Modest, or Negligible.
+
+Efficiency: How economically were resources converted into results?
+  Rate as: High, Substantial, Modest, or Negligible.
+
+Overall Outcome = judgment-informed synthesis (not mechanical):
+  The IEG uses validator judgment informed by the sub-ratings. The following are guidelines, not rigid rules:
+  - Highly Satisfactory: All dimensions High or Substantial, outcomes exceeded expectations, no shortcomings
+  - Satisfactory: All dimensions Substantial+, outcomes broadly met expectations
+  - Moderately Satisfactory: Most dimensions Substantial+, minor shortcomings in one area
+  - Moderately Unsatisfactory: Significant shortcomings in one or more dimensions, but some positive results
+  - Unsatisfactory: Major shortcomings across dimensions, objectives largely not achieved
+  - Highly Unsatisfactory: Severe shortcomings, negligible results, fundamental design or relevance failures
+
+  Note: A Negligible rating on Efficacy is a strong signal for Unsatisfactory or below. A Negligible Relevance of Design does not automatically trigger the same if objectives were relevant and efficacy was Substantial. The overall rating requires judgment.
 
 6-point scale:
-  Highly Satisfactory: All three High, outcomes exceeded expectations
-  Satisfactory: All three Substantial+, outcomes met expectations
-  Moderately Satisfactory: Two Substantial+, one Modest
-  Moderately Unsatisfactory: Two Modest, one Substantial
-  Unsatisfactory: All Modest or worse
-  Highly Unsatisfactory: Negligible on any dimension, major shortcomings
+  Highly Satisfactory (6), Satisfactory (5), Moderately Satisfactory (4),
+  Moderately Unsatisfactory (3), Unsatisfactory (2), Highly Unsatisfactory (1)
 ```
 
 ```markdown
@@ -535,15 +674,27 @@ Overall Outcome = weighted synthesis:
 
 | Dimension | Rating | Rationale |
 |-----------|--------|-----------|
-| Relevance | [High/Substantial/Modest/Negligible] | [1-line assessment] |
+| Relevance of objectives | [High/Substantial/Modest/Negligible] | [1-line assessment] |
+| Relevance of design | [High/Substantial/Modest/Negligible] | [1-line assessment] |
+| **Relevance (overall)** | **[High/Substantial/Modest/Negligible]** | |
 | Efficacy | [High/Substantial/Modest/Negligible] | [1-line assessment] |
 | Efficiency | [High/Substantial/Modest/Negligible] | [1-line assessment] |
-| **Overall Outcome** | **[6-point rating]** | |
+| **Overall Outcome** | **[6-point rating]** | [1-line synthesis] |
+
+*Rating methodology: IEG ICR Review Manual (August 2018). The overall outcome rating is a judgment-informed synthesis, not a mechanical average of sub-ratings.*
 ```
 
-**OECD DAC: Impact and Sustainability**
+**OECD DAC: Coherence, Impact and Sustainability**
 
 ```markdown
+## Coherence
+
+### Internal coherence
+[Are the intervention's components consistent with each other? Do the different activities and objectives work together, or are there tensions or contradictions?]
+
+### External coherence
+[Is the intervention consistent with other interventions in the same context? Are there synergies or duplications with other programmes addressing the same issue? Does it align with the partner country's own policies and priorities?]
+
 ## Impact
 
 [What difference has the intervention made? What are the positive and negative, intended and unintended, higher-level effects? Consider social, environmental, economic, and political impacts.]
@@ -561,14 +712,14 @@ Overall Outcome = weighted synthesis:
 | Domain | Impact | Evidence |
 |--------|--------|---------|
 | Health | [Positive/Neutral/Negative] | [Brief rationale] |
-| Income and consumption | [Positive/Neutral/Negative] | [Brief rationale] |
+| Income, consumption and wealth | [Positive/Neutral/Negative] | [Brief rationale] |
 | Housing | [Positive/Neutral/Negative] | [Brief rationale] |
 | Knowledge and skills | [Positive/Neutral/Negative] | [Brief rationale] |
 | Work, care and volunteering | [Positive/Neutral/Negative] | [Brief rationale] |
 | Safety | [Positive/Neutral/Negative] | [Brief rationale] |
-| Social connections | [Positive/Neutral/Negative] | [Brief rationale] |
+| Family and friends | [Positive/Neutral/Negative] | [Brief rationale] |
 | Subjective wellbeing | [Positive/Neutral/Negative] | [Brief rationale] |
-| Cultural capability | [Positive/Neutral/Negative] | [Brief rationale] |
+| Cultural capability and belonging | [Positive/Neutral/Negative] | [Brief rationale] |
 | Environmental amenity | [Positive/Neutral/Negative] | [Brief rationale] |
 | Engagement and voice | [Positive/Neutral/Negative] | [Brief rationale] |
 | Leisure and play | [Positive/Neutral/Negative] | [Brief rationale] |
@@ -622,14 +773,19 @@ EFFECTIVENESS
   Net outcomes:        [val]  (after [val]% additionality)
   Cost per outcome:    GBP [val]
   BCR:                 [val]  ([VfM category])
+  RPSC:                [val]  (Return on Public Sector Cost)
   Evidence level:      SMS Level [N] ([method])
   Benchmark:           Typical BCR for [sector]: [range]
 
 FISCAL RETURN (if computed)
-  Fiscal saving:       GBP [val]
+  Fiscal saving (PV):  GBP [val]
   Fiscal BCR:          [val]
 
-OVERALL VFM:           [Poor / Low / Medium / High / Very High]
+SENSITIVITY
+  BCR range:           [val] (conservative) to [val] (optimistic)
+  Key switching value: [parameter] at [val] flips VfM to Poor
+
+OVERALL VFM:           [Very Poor / Poor / Low / Medium / High / Very High]
                        Evidence: SMS Level [N]
 ```
 
@@ -649,7 +805,8 @@ Options:
 - Logic model / theory of change
 - Economy assessment (cost analysis, benchmarks)
 - Efficiency assessment (delivery rate, cost-efficiency)
-- Effectiveness assessment (outcomes, BCR, evidence level)
+- Effectiveness assessment (outcomes, BCR, RPSC, evidence level)
+- Sensitivity analysis (scenario testing, switching values)
 - Fiscal return (unit cost savings)
 - Equity assessment (4Es/FCDO only)
 - VfM summary and classification
@@ -691,6 +848,12 @@ Evidence level: SMS Level [N] ([method]). [Interpretation of evidence strength.]
 | Cost per [outcome] | GBP [val] | GBP [val] (GMCA) |
 | BCR (if computable) | [val] | Typical: [range] for [sector] |
 
+### Optimism bias note
+
+[If the narrative includes forward-looking projections (e.g., projected future outcomes or scale-up estimates): "Forward-looking estimates should be adjusted for optimism bias per Green Book supplementary guidance. The Green Book recommends uplift factors of 10-40% for programme costs depending on the intervention type and stage (Flyvbjerg et al.). Without adjustment, projected BCRs may be overstated."]
+
+[If the narrative is purely ex-post (reporting what has already happened): omit this section.]
+
 ### Case for continued funding
 
 [1-2 paragraphs: why this represents value for money, what would be lost if funding ceased, how the programme could be improved]
@@ -730,7 +893,8 @@ total_cost: [val]
 outputs_delivered: [val]
 net_outcomes: [val]
 bcr: [val]
-vfm_category: [Poor/Low/Medium/High/Very High]
+vfm_category: [Very Poor/Poor/Low/Medium/High/Very High]
+rpsc: [val]
 evidence_level: [1-5]
 fiscal_bcr: [val]
 additionality_factor: [val]
@@ -793,11 +957,16 @@ The workbook must have the following structure and formatting:
 - BCR computation: benefits row, cost row, BCR row (highlighted)
 - Evidence level and benchmark comparison
 
-**Sheet 6: Fiscal Return** (if computed)
-- Fiscal unit cost table
-- Fiscal BCR computation
+**Sheet 6: Sensitivity**
+- Scenario testing table (all scenarios from Step 5b)
+- Switching values table
+- Conditional formatting: highlight rows where VfM category changes from central case
 
-**Sheet 7: Assumptions**
+**Sheet 7: Fiscal Return** (if computed)
+- Fiscal unit cost table
+- Fiscal BCR and RPSC computation
+
+**Sheet 8: Assumptions**
 - All parameters used: discount rate, additionality rates, unit costs, benefit duration
 - Source for each parameter
 - Price base year
@@ -817,7 +986,7 @@ The workbook must have the following structure and formatting:
 - No merged cells in data tables (merged cells only on Cover and KPI row)
 - Print area set on each sheet. Landscape orientation for wide tables.
 - Freeze panes: top row frozen on all data sheets
-- Sheet tab colours: Cover=navy, Dashboard=navy, Economy=green, Efficiency=green, Effectiveness=green, Fiscal=blue, Assumptions=grey
+- Sheet tab colours: Cover=navy, Dashboard=navy, Economy=green, Efficiency=green, Effectiveness=green, Sensitivity=orange, Fiscal=blue, Assumptions=grey
 
 **Word (.docx)** (if selected):
 Invoke the `/docx` skill. Navy headings, formatted tables with RAG colours, title page with programme name and date. Save as `vfm-eval-{slug}-{date}.docx`.
@@ -883,7 +1052,7 @@ Based on the VfM assessment above:
 
 **Methodology note:**
 ```markdown
-**Methodology:** Value for Money evaluation following the HM Treasury Magenta Book [3Es/4Es] framework. Economy assessed by benchmarking unit costs against the GMCA Unit Cost Database (Green Book supplementary guidance). Efficiency assessed by delivery rate against targets. Effectiveness assessed using [evaluation method] (Maryland SMS Level [N]) with additionality adjustments per HM Treasury Additionality Guide (4th edition, 2014). BCR computed from monetised benefits vs total programme cost. Fiscal return estimated using GMCA fiscal unit costs. [If 4Es: "Equity assessed against FCDO equity framework (2019)."] All unit costs in [year] prices.
+**Methodology:** Value for Money evaluation following the HM Treasury Magenta Book [3Es/4Es] framework. Economy assessed by benchmarking unit costs against the GMCA Unit Cost Database (Green Book supplementary guidance). Efficiency assessed by delivery rate against targets. Effectiveness assessed using [evaluation method] (Maryland SMS Level [N]) with additionality adjustments per HM Treasury Additionality Guide (4th edition, 2014) [if multiplier > 1.0: "including Type [I/II] multiplier of [val]"]. BCR and RPSC computed from discounted monetised benefits (Green Book STPR [val]%) vs total programme cost [if decay: "with [val]% annual benefit decay"]. Sensitivity analysis conducted on discount rate, additionality, and benefit duration. Fiscal return estimated using GMCA fiscal unit costs, discounted over [val] years. [If WELLBY: "Wellbeing impacts monetised using WELLBY valuation (GBP 13,000, 2019 prices) per Green Book supplementary guidance."] [If 4Es: "Equity assessed against FCDO equity framework (2019)."] All unit costs in [year] prices.
 ```
 
 **Slide summary:**
@@ -893,11 +1062,12 @@ Based on the VfM assessment above:
 - Total cost: **GBP [val]** over [period]
 - Delivered **[val] [outputs]** ([val]% of target)
 - **[val] net additional outcomes** (after [val]% additionality)
-- **BCR: [val]** ([VfM category]) | Evidence: SMS Level [N]
+- **BCR: [val]** ([VfM category]) | RPSC: [val] | Evidence: SMS Level [N]
 - [If fiscal return: Fiscal saving: **GBP [val]** (fiscal BCR: [val])]
+- Sensitivity: BCR range [val]-[val] across scenarios
 - [1-line headline recommendation]
 
-*Magenta Book framework. GMCA unit costs. [Evaluation method]. Powered by econstack.*
+*Magenta Book framework. GMCA unit costs. Green Book discounting. [Evaluation method]. Powered by econstack.*
 ```
 
 ## Important Rules
