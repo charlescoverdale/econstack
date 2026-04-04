@@ -477,10 +477,10 @@ weight(income) = (median_income / income) ^ elasticity
 ```
 
 Example weights (using default values):
-- Household on £20,000: weight = (35000/20000)^1.3 = 2.01 (benefits count double)
+- Household on £20,000: weight = (35000/20000)^1.3 = 2.07 (benefits count double)
 - Household on £35,000: weight = 1.00 (median, no adjustment)
-- Household on £60,000: weight = (35000/60000)^1.3 = 0.49 (benefits count half)
-- Household on £100,000: weight = (35000/100000)^1.3 = 0.27
+- Household on £60,000: weight = (35000/60000)^1.3 = 0.50 (benefits count half)
+- Household on £100,000: weight = (35000/100000)^1.3 = 0.26
 
 Ask the user to estimate the income distribution of beneficiaries and cost-bearers. Compute a weighted NPV alongside the unweighted NPV. Present both.
 
@@ -673,27 +673,51 @@ For projects with PV costs exceeding £100m (or equivalent), or when the user re
 
 Ask: "Would you like a probabilistic (Monte Carlo) sensitivity analysis? This samples from distributions around your cost and benefit estimates to show the probability of achieving positive NPV."
 
-If yes:
+If yes, generate and run an R script to perform the simulation. Do NOT attempt to reason through 10,000 iterations as text. Write the script, execute it, and parse the JSON output.
 
+```bash
+Rscript -e '
+  library(jsonlite)
+  set.seed(42)
+  n <- 10000
+
+  pv_costs <- PV_COSTS_VALUE
+  pv_benefits <- PV_BENEFITS_VALUE
+
+  # Triangular distribution sampler
+  rtri <- function(n, min, mode, max) {
+    u <- runif(n)
+    f <- (mode - min) / (max - min)
+    ifelse(u < f,
+      min + sqrt(u * (max - min) * (mode - min)),
+      max - sqrt((1 - u) * (max - min) * (max - mode)))
+  }
+
+  cost_mult <- rtri(n, min=0.80, mode=1.00, max=1.50)
+  benefit_mult <- rtri(n, min=0.50, mode=1.00, max=1.20)
+
+  npv <- pv_benefits * benefit_mult - pv_costs * cost_mult
+  bcr <- (pv_benefits * benefit_mult) / (pv_costs * cost_mult)
+
+  result <- list(
+    mean_npv = mean(npv),
+    median_npv = median(npv),
+    p5 = quantile(npv, 0.05),
+    p25 = quantile(npv, 0.25),
+    p75 = quantile(npv, 0.75),
+    p95 = quantile(npv, 0.95),
+    mean_bcr = mean(bcr),
+    prob_npv_positive = mean(npv > 0) * 100,
+    prob_bcr_gt_1 = mean(bcr > 1) * 100,
+    prob_bcr_gt_2 = mean(bcr > 2) * 100
+  )
+  cat(toJSON(result, auto_unbox=TRUE, pretty=TRUE))
+'
 ```
-Run 10,000 iterations. For each iteration:
-  1. Sample cost multiplier from triangular distribution:
-     - min: 0.80, mode: 1.00, max: 1.50 (skewed upward, reflecting cost overrun risk)
-  2. Sample benefit multiplier from triangular distribution:
-     - min: 0.50, mode: 1.00, max: 1.20 (skewed downward, reflecting optimism in benefit forecasts)
-  3. Compute NPV(i) = PV_benefits * benefit_mult(i) - PV_costs * cost_mult(i)
-  4. Record NPV(i)
 
-Report:
-  - Mean NPV across all iterations
-  - Median NPV
-  - P5 (5th percentile): "There is a 95% chance NPV exceeds this value"
-  - P25 (25th percentile)
-  - P75 (75th percentile)
-  - P95 (95th percentile): "There is only a 5% chance NPV exceeds this value"
-  - Probability of positive NPV: % of iterations where NPV > 0
-  - Probability of BCR > 1.0
-  - Probability of BCR > 2.0
+**IMPORTANT:** Replace `PV_COSTS_VALUE` and `PV_BENEFITS_VALUE` with the actual numeric PV values (in millions) computed in Step 4 before running the script. If R is not available, note: "Monte Carlo simulation requires R. The deterministic sensitivity analysis above is still valid."
+
+Parse the JSON output and report:
 
 Present as a table:
 

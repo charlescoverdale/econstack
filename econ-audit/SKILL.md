@@ -43,8 +43,8 @@ This is the "second pair of eyes" that catches errors a reviewer would flag. It 
 ```
 
 **Options:**
-- `--strict` : Treat amber issues as failures (default: only red issues fail)
-- `--fix` : Auto-fix issues where possible (rewrites the file)
+- `--strict` : Treat amber issues as failures for grading purposes. The letter grade cap applies to both RED and AMBER issues. Default: only RED issues cap the grade.
+- `--fix` : Auto-fix issues where possible, skipping the interactive fix question. Only fixes RED issues by default (numerical inconsistencies, formula errors, missing caveats). Does NOT change methodology choices (discount rate, additionality assumptions, framework selection). Does NOT delete content. All fixes are shown to the user before being applied. If `--strict` is also specified, AMBER issues are fixed too.
 - `--json` : Output the audit as structured JSON
 - `--framework <name>` : Override framework detection (uk, eu, us, wb, au, nz)
 - `--format <type>` : Output format(s): `markdown`, `html`, `word`, `pptx`, `pdf`, or `all`. Comma-separate for multiple (e.g. `--format html,pdf`). Default: markdown only

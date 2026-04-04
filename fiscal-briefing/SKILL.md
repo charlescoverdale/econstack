@@ -61,6 +61,8 @@ Generate a narrative briefing on public finances for the UK, US, or Australia. C
 
 Parse flags. Determine country from `--country` (default: `uk`).
 
+**Validate the country code.** Supported values: `uk`, `us`, `au`. If the user passes an unsupported code (e.g., `--country eu`, `--country nz`), stop and tell them: "Country '[code]' is not yet supported for fiscal briefings. Supported countries: uk (default), us, au. More countries coming soon."
+
 - `uk`: A1 -> B1 -> C1
 - `us`: A2 -> B2 -> C2
 - `au`: A3 -> B3 -> C3

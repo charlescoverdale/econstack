@@ -73,11 +73,15 @@ cat "$DATA_DIR/${LA_SLUG}/employment.json"
 cat "$DATA_DIR/${LA_SLUG}/earnings.json"
 cat "$DATA_DIR/${LA_SLUG}/housing.json"
 cat "$DATA_DIR/${LA_SLUG}/population.json"
+cat "$DATA_DIR/${LA_SLUG}/gva.json"
 
-# Extended (may not exist)
+# Extended (may not exist for all LAs)
 cat "$DATA_DIR/${LA_SLUG}/industry.json" 2>/dev/null
 cat "$DATA_DIR/${LA_SLUG}/skills.json" 2>/dev/null
 cat "$DATA_DIR/${LA_SLUG}/commuting.json" 2>/dev/null
+cat "$DATA_DIR/${LA_SLUG}/deprivation.json" 2>/dev/null
+cat "$DATA_DIR/${LA_SLUG}/business.json" 2>/dev/null
+cat "$DATA_DIR/${LA_SLUG}/business-demography.json" 2>/dev/null
 
 # Benchmarks
 cat "$DATA_DIR/national-benchmarks.json"
@@ -85,10 +89,24 @@ cat "$DATA_DIR/national-benchmarks.json"
 
 Determine country from ONS code: E = England, S = Scotland, W = Wales. Use the matching country benchmark throughout.
 
-If the LA slug is not found:
-```bash
-ls "$DATA_DIR/" | grep -i "<search_term>"
-```
+**LA fuzzy matching (same procedure as /io-report):**
+
+If the LA slug is not found exactly:
+
+1. Slugify the input (lowercase, replace spaces with hyphens, remove apostrophes).
+2. Try exact match on the slugified version.
+3. Try case-insensitive partial match: `ls "$DATA_DIR/" | grep -i "{slug}"`
+4. Try matching on just the first word: `ls "$DATA_DIR/" | grep -i "{first_word}"`
+5. Try common aliases:
+   - "London" -> suggest "city-of-london", "westminster", "camden", "tower-hamlets", "southwark"
+   - "Edinburgh" -> "city-of-edinburgh"
+   - "Bristol" -> "bristol-city-of"
+   - "Hull" -> "kingston-upon-hull-city-of"
+   - "Stoke" -> "stoke-on-trent"
+   - "Brighton" -> "brighton-and-hove"
+   - "Newcastle" -> "newcastle-upon-tyne"
+6. If multiple matches found, present them as AskUserQuestion options (max 4).
+7. If no matches: "No local authority found matching '[input]'. The data covers 391 UK local authorities."
 
 ### Step 3: Show headline stats and ask what the user needs
 

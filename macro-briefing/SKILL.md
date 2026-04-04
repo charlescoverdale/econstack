@@ -95,7 +95,11 @@ Key BoE codes:
 
 ### Step 1: Identify arguments and route
 
-Parse any flags from the user's command. Determine the country from `--country` (default: `uk`). Then execute the matching pipeline:
+Parse any flags from the user's command. Determine the country from `--country` (default: `uk`).
+
+**Validate the country code.** Supported values: `uk`, `us`, `eu`, `au`. If the user passes an unsupported code (e.g., `--country de`, `--country nz`), stop and tell them: "Country '[code]' is not yet supported. Supported countries: uk (default), us, eu, au. More countries coming soon."
+
+Then execute the matching pipeline:
 
 - `uk`: A1 + A5 -> B1 -> C1 + D1
 - `us`: A2 + A5 -> B2 -> C2 + D1
