@@ -81,7 +81,9 @@ Read each JSON file and use the values throughout the computation. When referenc
 
 **Fallback:** If `$PARAMS_DIR` does not exist or the jurisdiction directory is missing, use the built-in defaults hardcoded in this skill. Tell the user: "Parameter database not found. Using built-in defaults. For the latest values, run: cd ~/econstack-data && git pull"
 
-**Staleness check:** If any loaded parameter file has `last_verified` more than 18 months ago, warn: "Note: [parameter] values were last verified [date]. Check for updated source data."
+**Staleness check:** For each loaded parameter file, compare today's date against `expected_next_update`. If today is past the expected update date, warn: "Note: [parameter label] ([jurisdiction]) was last verified [last_verified]. The source ([source.publication]) typically updates [source.update_frequency]. Expected update by [expected_next_update]. Values may be outdated. Run `cd ~/econstack-data && git pull` for latest."
+
+If `last_verified` is more than 2 years old regardless of `expected_next_update`, upgrade to a stronger warning: "WARNING: [parameter label] values are over 2 years old (last verified [date]). These should be checked against the source before use in a formal appraisal."
 
 **Citation:** When writing the methodology section, use the `source` metadata from each loaded parameter to auto-generate citations. For example: "Discount rate: 3.5% STPR (HM Treasury, The Green Book 2026)."
 
