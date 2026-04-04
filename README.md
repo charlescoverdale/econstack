@@ -6,11 +6,6 @@ econstack is a set of [Claude Code](https://claude.ai/code) skills that handle t
 
 Skills are currently built around the UK, US, EU, and Australia, with further regional support coming soon.
 
-```
-/io-report £10m in Manufacturing in Manchester
-/cost-benefit --framework us
-```
-
 ---
 
 ## Quick start
