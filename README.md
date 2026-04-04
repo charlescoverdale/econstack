@@ -6,6 +6,7 @@ econstack is a set of [Claude Code](https://claude.ai/code) skills that generate
 
 ```
 /io-report £10m in Manufacturing in Manchester
+/cost-benefit --framework us
 ```
 
 ---
@@ -16,7 +17,7 @@ econstack is a set of [Claude Code](https://claude.ai/code) skills that generate
 # Install the skills
 git clone https://github.com/charlescoverdale/econstack.git ~/.claude/skills/econstack
 
-# Get the data (391 UK local authority datasets)
+# Get the data (391 UK local authority datasets + CBA parameter database)
 git clone https://github.com/charlescoverdale/econstack-data.git ~/econstack-data
 ```
 
@@ -85,8 +86,6 @@ Claude:  IMPACT COMPUTED
          D) Data only (JSON)
 ```
 
-You don't need a 10-page report. You need the exec summary for an email, the tables for your spreadsheet, and a methodology note for a footnote. Pick the pieces and build your own deliverable.
-
 ---
 
 ## Skills
@@ -109,10 +108,11 @@ Regional IO model using FLQ regionalization (Flegg et al. 1995) of ONS Input-Out
 
 ### `/cost-benefit`
 
-Green Book cost-benefit analysis, with support for 8 international frameworks.
+Cost-benefit analysis with full parameter database support for 4 jurisdictions.
 
 ```
 /cost-benefit
+/cost-benefit --framework us
 /cost-benefit --framework eu
 /cost-benefit --from assumptions.json --full --format xlsx,pdf
 ```
@@ -121,7 +121,9 @@ Interactive options appraisal, or skip the questions with `--from file.json`.
 
 **8 frameworks:** UK Green Book, EU Cohesion Policy, US OMB A-4, World Bank, Australian Government, NZ Treasury CBAx, EIB, ADB. Auto-detected from your project description.
 
-**What it computes:** declining discount rates, optimism bias by project stage (SOC/OBC/FBC), S-curve capital phasing, benefit ramp-up, whole-life costing, additionality, carbon valuation, switching values, sensitivity (+/-20%), Monte Carlo (10k iterations), incremental analysis, distributional welfare weights, TAG transport values, QALY/DALY health values.
+**Parameter database:** The skill loads jurisdiction-specific parameters (discount rates, carbon values, VSL, QALY, VTTS, distributional weights) from `~/econstack-data/parameters/`. UK, US, EU, and AU have full parameter coverage. Other frameworks use built-in defaults. Parameters include source citations and staleness detection.
+
+**What it computes:** declining discount rates, optimism bias by project stage (SOC/OBC/FBC), S-curve capital phasing, benefit ramp-up, whole-life costing, additionality, carbon valuation, switching values, sensitivity (+/-20%), Monte Carlo (10k iterations), incremental analysis, distributional welfare weights, TAG/DOT transport values, QALY/DALY health values.
 
 **Output formats:** Markdown, Excel (IB-style blue inputs, linked formulas, heat-map sensitivity), Word, PowerPoint, PDF. Chain with `--audit` to auto-run `/econ-audit`.
 
@@ -137,7 +139,7 @@ Audit any economic analysis output against methodology standards and academic li
 /econ-audit . --fix
 ```
 
-60+ checks across 10 categories: numerical consistency, discount rates, optimism bias, additionality, double counting, multiplier plausibility, framing, sector-specific (TAG, QALY, carbon), academic benchmarks (Flyvbjerg cost overruns, Moretti multipliers), and data quality.
+60+ checks across 10 categories: numerical consistency, discount rates, optimism bias, additionality, double counting, multiplier plausibility, framing, sector-specific (TAG, QALY, carbon), academic benchmarks (Flyvbjerg cost overruns, Moretti multipliers), and data quality. Validates against the same parameter database used by `/cost-benefit`.
 
 Each issue is RED (must fix), AMBER (should address), or GREEN (pass). Every RED issue includes a concrete fix and a reference. Letter grade A through F, with RED issues capping the grade. Option to auto-fix and recompute.
 
@@ -185,7 +187,9 @@ UK public finances: borrowing, debt, receipts, spending, fiscal rules.
 
 ---
 
-## Data coverage
+## Data
+
+### Local authority data
 
 **391 local authorities** across England, Wales, and Scotland. 16 data files per LA, from official government open sources.
 
@@ -200,25 +204,36 @@ UK public finances: borrowing, debt, receipts, spending, fiscal rules.
 
 **IO model:** ONS Input-Output Analytical Tables 2023 (Blue Book 2025). 104 industries aggregated to 19 SIC sections. FLQ regionalization (delta = 0.3). Type I default, Type II optional.
 
-**Data path:** Skills expect LA data at `~/econstack-data/src/data/`. Update `DATA_DIR=` in the SKILL.md files if your data is elsewhere.
+### CBA parameter database
 
-### CBA parameters
-
-The `/cost-benefit`, `/io-report`, and `/econ-audit` skills use a structured parameter database at `~/econstack-data/parameters/`. 33 JSON files covering UK, US, EU, Australia, and OECD:
+33 JSON parameter files at `~/econstack-data/parameters/` covering 4 jurisdictions plus OECD cross-country transfer. Each file includes the value, source citation, methodology note, caveats, and staleness metadata.
 
 | Category | UK | US | EU | AU |
 |----------|:--:|:--:|:--:|:--:|
-| Discount rates | Green Book declining | OMB A-4 revised (2%) + legacy 3%/7% | 3%/5% | 7% (4%/10%) |
-| Carbon values | DESNZ traded + non-traded | EPA SC-GHG (3 discount rates) | EIB shadow price | ACCU + Safeguard |
-| VSL / VPF | TAG GBP 2.35M | DOT/EPA/HHS ($12.5-13.7M) | EUR 3.6M + transfer | OIA AUD 5.87M |
-| Health (QALY) | GBP 70,000 | $190-250K + FDA threshold | EUR 40-100K | AUD 50-70K |
-| VTTS | TAG Data Book | DOT wage-% method | | ATAP formula |
-| Distributional weights | e=1.3 | e=1.4 (A-4 revised) | e=1.0-1.5 | |
-| Optimism bias | 6 types x 3 stages | N/A | N/A | N/A |
+| Discount rates | Green Book declining (3.5% to 1.0%) | OMB A-4 revised (2%) + legacy 3%/7% | 3% / 5% (cohesion) | 7% (4%/10%) |
+| Carbon values | DESNZ traded + non-traded | EPA SC-GHG (3 discount rates, CO2/CH4/N2O) | EIB shadow price (to EUR 800/t by 2050) | ACCU + Safeguard Mechanism |
+| VSL / VPF | TAG GBP 2.35M | DOT $13.7M / EPA $12.5M / HHS $13.6M | EUR 3.6M + member state transfer | OIA AUD 5.87M |
+| Health (QALY) | GBP 70,000 | $190-250K + FDA $100-150K | EUR 40-100K (varies by MS) | AUD 50-70K (PBAC implicit) |
+| VTTS | TAG Data Book (fixed values/hr) | DOT wage-% method (50/70/100%) | | ATAP formula (% of AWE) |
+| Distributional weights | e = 1.3, median GBP 35K | e = 1.4, median $80K (A-4 revised) | e = 1.0-1.5, median EUR 18K | |
+| Optimism bias | 6 project types x 3 stages | N/A | N/A | N/A |
 | Additionality | HMT 3 scenarios | N/A | N/A | N/A |
-| Tax parameters | Income tax, NICs, VAT | N/A | Conversion factors | N/A |
+| Tax parameters | Income tax, NICs, VAT (2024/25) | N/A | Conversion factors, shadow wages | N/A |
+| Accident costs | TAG A4.1 (fatal/serious/slight) | DOT MAIS severity fractions | | ATAP/BITRE (national + state) |
+| Transport externalities | TAG A5.4 (congestion, noise, air, GHG) | | | |
+| Fleet/emissions | TAG fleet composition + CO2/km | | | |
+| S-curve profiles | 2/3/5/7/10-year capex phasing | | | |
+| Construction benchmarks | Flyvbjerg overruns, asset lives, BCR bands | | | |
 
-Plus OECD cross-country VSL transfer method (benefit transfer for 25+ countries). Skills fall back to built-in defaults if parameter files are not found.
+Plus **OECD cross-country VSL transfer** (income-elasticity method for 25+ countries, based on the 2025 OECD meta-analysis of 277 studies).
+
+**Staleness detection:** Each parameter file includes `expected_next_update`. The `/cost-benefit` skill warns when parameters are past their expected update date.
+
+**Validation:** Run `python3 scripts/validate-parameters.py` in econstack-data to check schema, ranges, consistency (e.g. S-curve weights sum to 1.0, additionality factors match components), and staleness.
+
+**Sources:** All values sourced from official government publications. UK: Green Book 2026, TAG Data Book v2.02, DESNZ 2024. US: OMB A-4 2023, EPA SC-GHG 2023, DOT/HHS 2024-2025. EU: EC DG Regio CBA Guide 2014, EIB 2023. AU: ATAP, OIA 2025. OECD: Mortality Risk Valuation 2025.
+
+**Data path:** `~/econstack-data/parameters/`. Skills fall back to built-in defaults if parameter files are not found.
 
 ---
 
@@ -227,12 +242,12 @@ Plus OECD cross-country VSL transfer method (benefit transfer for 25+ countries)
 ```
 R packages (data access)          econprofile (data + web)         econstack (skills)
 ========================          =======================         ==================
-ons    -> ONS data                391 LA profiles                 /io-report
-boe    -> Bank of England         IO impact calculator            /la-profile
-hmrc   -> HMRC trade              Compare regions tool            /cost-benefit
+ons    -> ONS data                391 LA profiles                 /io-report (UK)
+boe    -> Bank of England         IO impact calculator            /la-profile (UK)
+hmrc   -> HMRC trade              Compare regions tool            /cost-benefit (4 jurisdictions)
 obr    -> OBR fiscal              Embeddable charts               /econ-audit
 fred   -> US FRED data            Country benchmarking            /macro-briefing
-readecb -> ECB data                                               /fiscal-briefing
+readecb -> ECB data                                               /fiscal-briefing (UK)
 readoecd -> OECD data
 
 R packages (analytical)           macrowithr.com
@@ -275,6 +290,7 @@ econstack/
 ├── README.md
 ├── CLAUDE.md
 ├── VERSION
+├── .gitignore
 ├── bin/
 │   └── econstack-update-check
 ├── scripts/
@@ -282,15 +298,23 @@ econstack/
 ├── templates/
 │   └── econstack-report/
 │       └── _extensions/econstack/
-├── io-report/SKILL.md
-├── la-profile/SKILL.md
-├── cost-benefit/SKILL.md
+├── io-report/SKILL.md          (UK)
+├── la-profile/SKILL.md         (UK)
+├── cost-benefit/SKILL.md       (UK, US, EU, AU + 4 more)
 ├── econ-audit/SKILL.md
 ├── macro-briefing/SKILL.md
-└── fiscal-briefing/SKILL.md
-```
+└── fiscal-briefing/SKILL.md    (UK)
 
-Each skill is a single SKILL.md file containing the workflow, computation, output templates, methodology, and quality rules.
+econstack-data/
+├── src/data/                   (391 UK LA datasets)
+├── parameters/                 (33 CBA parameter files)
+│   ├── uk/    (14 files)
+│   ├── us/    (6 files)
+│   ├── eu/    (6 files)
+│   ├── au/    (6 files)
+│   └── oecd/  (1 file)
+└── scripts/                    (extraction + validation)
+```
 
 ---
 
