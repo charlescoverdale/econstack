@@ -3,7 +3,7 @@
 ![Version](https://img.shields.io/badge/version-0.3.0-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Skills](https://img.shields.io/badge/skills-6-orange)
-![Parameters](https://img.shields.io/badge/parameters-34_files-purple)
+![Parameters](https://img.shields.io/badge/parameters-39_files-purple)
 ![Frameworks](https://img.shields.io/badge/frameworks-8_countries-red)
 
 Professional economic analysis, powered by AI.
@@ -60,16 +60,17 @@ It then works through costs using the latest government guidelines and market be
 /cost-benefit --from assumptions.json --full --format xlsx,pdf
 ```
 
-8 frameworks (UK Green Book, US OMB A-4, EU Cohesion, Australia, World Bank, NZ CBAx, EIB, ADB). 34 audited parameter files with source citations and staleness detection.
+8 frameworks (UK Green Book, US OMB A-4, EU Cohesion, Australia, World Bank, NZ CBAx, EIB, ADB). 39 audited parameter files with source citations and staleness detection.
 
-| Parameter | UK | US | EU | AU |
-|-----------|:--:|:--:|:--:|:--:|
-| Discount rates | 3.5% declining | 2% (OMB A-4) + 3%/7% legacy | 3% / 5% | 7% (4%/10%) |
-| Carbon values | DESNZ traded + non-traded | EPA SC-GHG | EIB shadow price | ACCU + Safeguard |
-| VSL | GBP 2.35M | DOT/EPA/HHS ($12.5-13.7M) | EUR 3.6M + transfer | AUD 5.87M |
-| Health (QALY) | GBP 70,000 | $190-250K | EUR 40-100K | AUD 50-70K |
-| VTTS | TAG Data Book | DOT wage-% method | | ATAP formula |
-| Optimism bias | 6 types x 3 stages | | | |
+| Parameter | UK | US | EU | AU | WB | ADB |
+|-----------|:--:|:--:|:--:|:--:|:--:|:---:|
+| Discount rates | 3.5% declining | 2% (OMB A-4) | 3% / 5% | 7% (4%/10%) | 6% ERR | 9-12% ERR |
+| Carbon values | DESNZ | EPA SC-GHG | EIB shadow | ACCU | $40-80/tCO2 | MDB joint |
+| VSL | GBP 2.35M | $12.5-13.7M | EUR 3.6M | AUD 5.87M | By income group | Transfer method |
+| Shadow pricing | | | Conversion factors | | SERF, SCF, SWRF | SERF, SCF, SWRF |
+| Health (QALY) | GBP 70,000 | $190-250K | EUR 40-100K | AUD 50-70K | | |
+| VTTS | TAG Data Book | DOT wage-% | | ATAP formula | | |
+| Optimism bias | 6 types x 3 stages | | | | | |
 
 **Options:** `--framework`, `--from`, `--full`, `--audit`, `--format`
 
@@ -153,7 +154,7 @@ Letter grade A-F, with auto-fix option. **Options:** `--strict`, `--fix`, `--for
 
 **Local authority data:** 391 UK LAs with 16 data files each (employment, earnings, IO multipliers, population, housing, GVA, deprivation, skills, commuting). At `~/econstack-data/src/data/`.
 
-**CBA parameters:** 34 JSON files across UK (14), US (6), EU (6), AU (6), OECD (1), and common (1). Discount rates, carbon values, VSL, QALY, VTTS, optimism bias, additionality, tax parameters, and more. Source citations, staleness detection, and validation script included. At `~/econstack-data/parameters/`. See the [parameters README](https://github.com/charlescoverdale/econstack-data/blob/main/parameters/README.md) for full documentation.
+**CBA parameters:** 39 JSON files across UK (14), US (6), EU (6), AU (6), World Bank (2), ADB (2), OECD (2), and common (1). Discount rates, carbon values, VSL, QALY, VTTS, optimism bias, additionality, tax parameters, and more. Source citations, staleness detection, and validation script included. At `~/econstack-data/parameters/`. See the [parameters README](https://github.com/charlescoverdale/econstack-data/blob/main/parameters/README.md) for full documentation.
 
 ---
 
@@ -162,7 +163,7 @@ Letter grade A-F, with auto-fix option. **Options:** `--strict`, `--fix`, `--for
 ```
 R packages (data access)          econprofile (data + web)         econstack (skills)
 ========================          =======================         ==================
-ons    -> ONS data                391 LA profiles                 /cost-benefit (UK, US, EU, AU)
+ons    -> ONS data                391 LA profiles                 /cost-benefit (UK, US, EU, AU, WB, ADB)
 boe    -> Bank of England         IO impact calculator            /macro-briefing (UK, US, EU, AU)
 hmrc   -> HMRC trade              Compare regions tool            /fiscal-briefing (UK, US, AU)
 obr    -> OBR fiscal              Embeddable charts               /io-report (UK)
