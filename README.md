@@ -30,7 +30,7 @@ Install econstack in Claude Code and start talking to it about your analysis. De
 
 Cost-benefit analysis that meets you where you are. Come with a one-line description ("I'm building a bridge in Melbourne") or a detailed set of inputs (costing schedules, theory of change, benefit streams by beneficiary group). The skill walks you through what it needs, fills in the framework-specific parameters automatically, and asks the right questions based on your project type and location.
 
-It learns about your asset class, location, and beneficiaries, then works through costs, benefits, additionality, and risk. The output is a structured CBA model that's 80% done: correct discounting, optimism bias, sensitivity analysis, switching values, and Monte Carlo. You edit from there.
+Whether you've finalised the exact location, scale, and beneficiary groups or you're still at the back-of-envelope stage, the skill adapts. It thinks through costs using the latest government guidelines and market benchmarks, provides defensible estimates, and lets you override anything. The output is a structured CBA model that's 80% done: correct discounting, optimism bias, sensitivity analysis, switching values, and Monte Carlo. You edit from there.
 
 ```
 /cost-benefit
