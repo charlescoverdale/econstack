@@ -55,7 +55,7 @@ Whether you've finalised the exact location, scale, and beneficiary groups or yo
 
 ### `/macro-briefing`
 
-Macroeconomic monitor for UK, US, Euro area, and Australia.
+Up-to-date macroeconomic reports for the UK, US, Euro area, and Australia. Pulls live data from official government databases (ONS, FRED, ECB, ABS), structures it into a professional briefing following each central bank's reporting conventions, and lets you pick the sections you need. Every number is traceable: full methodology, data sources, and vintage dates included.
 
 ```
 /macro-briefing                     # UK (BoE MPR structure, 27 indicators)
@@ -65,7 +65,7 @@ Macroeconomic monitor for UK, US, Euro area, and Australia.
 /macro-briefing --international     # Add 30-country comparison tables
 ```
 
-Each country follows its central bank's reporting structure. Traffic-light macro assessment (GREEN/AMBER/RED) with quantitative thresholds. **Options:** `--country`, `--full`, `--focus`, `--international`, `--format`
+Traffic-light macro assessment (GREEN/AMBER/RED) with quantitative thresholds. Outputs to Markdown, HTML, Word, PowerPoint, or PDF. **Options:** `--country`, `--full`, `--focus`, `--international`, `--format`
 
 ---
 
