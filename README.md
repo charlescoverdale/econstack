@@ -5,7 +5,7 @@ Professional economic analysis, powered by AI.
 econstack is a set of [Claude Code](https://claude.ai/code) skills that generate professional economic analysis. Type a slash command, get the key numbers in seconds, then pick the output you need: a full report, specific sections for your own document, slide-ready bullets, an elevator pitch, or just the raw data as JSON.
 
 ```
-/impact-report £10m in Manufacturing in Manchester
+/io-report £10m in Manufacturing in Manchester
 ```
 
 The skill computes the impact, shows you the key numbers, then asks what you need. Full report? Just the sensitivity table for your Excel model? Slide bullets for a client presentation? The methodology appendix for a business case? You pick the pieces and build your own deliverable.
@@ -47,7 +47,7 @@ That's it. No npm install, no API keys, no configuration. Claude Code automatica
 Open [Claude Code](https://claude.ai/code) and type:
 
 ```
-/impact-report £10m in Manufacturing in Manchester
+/io-report £10m in Manufacturing in Manchester
 ```
 
 Claude reads the local authority data, runs the IO computation, applies HM Treasury additionality adjustments, and writes a full report to your working directory. Takes about 30 seconds.
@@ -57,7 +57,7 @@ Claude reads the local authority data, runs the IO computation, applies HM Treas
 Add `--format` for Word, PowerPoint, HTML, or PDF output:
 
 ```
-/impact-report £10m in Manufacturing in Manchester --format word,pdf
+/io-report £10m in Manufacturing in Manchester --format word,pdf
 ```
 
 Or skip the flag and the skill will ask you interactively which formats you need. PDF requires [Quarto](https://quarto.org) (`brew install quarto` on macOS). Word and PowerPoint are generated automatically.
@@ -66,10 +66,10 @@ Or skip the flag and the skill will ask you interactively which formats you need
 
 ```
 # Economic impact assessment
-/impact-report £10m in Manufacturing in Manchester
-/impact-report 500 jobs in Construction in Glasgow --type2
-/impact-report £25m in Financial & Insurance in City of London --conservative
-/impact-report £5m in Accommodation & Food in Brighton and Hove --format word,pptx
+/io-report £10m in Manufacturing in Manchester
+/io-report 500 jobs in Construction in Glasgow --type2
+/io-report £25m in Financial & Insurance in City of London --conservative
+/io-report £5m in Accommodation & Food in Brighton and Hove --format word,pptx
 
 # Local authority economic profile
 /la-profile Manchester
@@ -83,7 +83,7 @@ Or skip the flag and the skill will ask you interactively which formats you need
 **Both skills are interactive.** They compute first, then ask what you need. Here's what the conversation looks like:
 
 ```
-You:     /impact-report £10m in Manufacturing in Manchester
+You:     /io-report £10m in Manufacturing in Manchester
 
 Claude:  IMPACT COMPUTED
          ===============
@@ -160,7 +160,7 @@ The skills expect local authority data at this path:
 ```
 
 If your data is elsewhere, update the data paths in:
-- `~/.claude/skills/econstack/skills/impact-report/SKILL.md`
+- `~/.claude/skills/econstack/skills/io-report/SKILL.md`
 - `~/.claude/skills/econstack/skills/la-profile/SKILL.md`
 
 Search for `DATA_DIR=` and replace the path with your data location.
@@ -174,9 +174,9 @@ econstack skills are not software. They are instructions. Each SKILL.md file tel
 Claude is the runtime. The SKILL.md is the prompt. The data comes from econstack-data sitting on your disk.
 
 ```
-You type:    /impact-report £10m in Manufacturing in Manchester
+You type:    /io-report £10m in Manufacturing in Manchester
                                     |
-Claude reads: ~/.claude/skills/econstack/skills/impact-report/SKILL.md
+Claude reads: ~/.claude/skills/econstack/skills/io-report/SKILL.md
                                     |
 Claude loads: ~/econstack-data/src/data/manchester/multipliers.json
               ~/econstack-data/src/data/manchester/summary.json
@@ -186,7 +186,7 @@ Claude runs:  IO computation (Leontief inverse, FLQ regionalization)
               Additionality adjustment (HM Treasury defaults)
               Sensitivity analysis (+/- 15% multiplier variation)
                                     |
-Claude writes: impact-report-manchester-2026-04-02.md
+Claude writes: io-report-manchester-2026-04-02.md
 ```
 
 No API keys. No build step. No dependencies beyond Claude Code and the data files.
@@ -194,7 +194,7 @@ No API keys. No build step. No dependencies beyond Claude Code and the data file
 For additional output formats, add `--format` to any command. You can request Word, PowerPoint, HTML, or PDF (or combine them):
 
 ```
-/impact-report £10m in Manufacturing in Manchester --format word,pdf
+/io-report £10m in Manufacturing in Manchester --format word,pdf
 ```
 
 Or skip the flag entirely and the skill will ask you interactively which formats you need.
@@ -206,7 +206,7 @@ Or skip the flag entirely and the skill will ask you interactively which formats
 Every skill generates **Markdown + JSON** by default. You can also get HTML, Word, PowerPoint, or PDF, either via the `--format` flag or by answering the interactive format question.
 
 ```
-/impact-report £10m in Manufacturing in Manchester --format word,pptx
+/io-report £10m in Manufacturing in Manchester --format word,pptx
 ```
 
 ### Markdown (.md)
@@ -236,15 +236,15 @@ You can also render any existing markdown report manually:
 
 ## Skills
 
-### `/impact-report`
+### `/io-report`
 
-Generate an economic impact assessment for an investment or job creation in any UK local authority.
+Input-output economic impact assessment for an investment or job creation in any UK local authority.
 
 ```
-/impact-report £10m in Manufacturing in Manchester
-/impact-report 500 jobs in Construction in Glasgow
-/impact-report £25m in Financial & Insurance in City of London --type2
-/impact-report £5m in Accommodation & Food in Brighton and Hove --conservative
+/io-report £10m in Manufacturing in Manchester
+/io-report 500 jobs in Construction in Glasgow
+/io-report £25m in Financial & Insurance in City of London --type2
+/io-report £5m in Accommodation & Food in Brighton and Hove --conservative
 ```
 
 **What you get:** A 9-section report covering:
@@ -351,7 +351,7 @@ Audit any economic analysis output against methodology standards and academic li
 
 ```
 /econ-audit cba-london-bridge-2026-04-03.md
-/econ-audit impact-report-manchester-2026-04-03.md --strict
+/econ-audit io-report-manchester-2026-04-03.md --strict
 /econ-audit . --fix
 ```
 
@@ -439,7 +439,7 @@ econstack is part of a broader suite of economic data tools. The R packages prov
 ```
 R packages (data access)          econprofile (data + web)         econstack (skills)
 ========================          =======================         ==================
-ons    -> ONS data                391 LA profiles                 /impact-report
+ons    -> ONS data                391 LA profiles                 /io-report
 boe    -> Bank of England         IO impact calculator            /la-profile
 hmrc   -> HMRC trade              Compare regions tool            /macro-briefing (soon)
 obr    -> OBR fiscal              Embeddable charts               /sector-analysis (soon)
@@ -496,7 +496,7 @@ econstack/
 │       └── _extensions/econstack/
 │           ├── _extension.yml             # Quarto extension config
 │           └── typst-template.typ         # Typst template (cover, headers, tables)
-├── impact-report/
+├── io-report/
 │   └── SKILL.md                           # Economic impact assessment
 ├── la-profile/
 │   └── SKILL.md                           # Local authority profile

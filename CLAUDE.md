@@ -6,7 +6,8 @@ Claude Code skills for professional economic analysis.
 
 Each skill has its own directory with a `SKILL.md` defining the workflow.
 
-- `impact-report/SKILL.md` : Economic impact assessment (IO model)
+- `io-report/SKILL.md` : Input-output economic impact assessment
+- `econ-audit/SKILL.md` : Methodology audit (60+ checks, RED/AMBER/GREEN grading)
 - `la-profile/SKILL.md` : Local authority economic profile report
 - `macro-briefing/SKILL.md` : UK macroeconomic monitor (GDP, CPI, employment, rates)
 - `fiscal-briefing/SKILL.md` : Public finances briefing (borrowing, debt, receipts, spending)
@@ -23,4 +24,4 @@ Each skill has its own directory with a `SKILL.md` defining the workflow.
 
 ## Data Dependencies
 
-The impact-report and la-profile skills read multiplier and LA data from a local data directory. The path is configured in each SKILL.md file. Update it if your data is in a different location.
+The io-report and la-profile skills read multiplier and LA data from a local data directory. The path is configured in each SKILL.md file. Update it if your data is in a different location.

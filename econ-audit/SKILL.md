@@ -37,7 +37,7 @@ This is the "second pair of eyes" that catches errors a reviewer would flag. It 
 **Examples:**
 ```
 /econ-audit cba-london-bridge-2026-04-03.md
-/econ-audit impact-report-southwark-2026-04-03.md
+/econ-audit io-report-southwark-2026-04-03.md
 /econ-audit .                                       # audit all econ outputs in cwd
 /econ-audit --strict                                 # fail on any amber issue
 ```

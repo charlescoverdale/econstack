@@ -1,6 +1,6 @@
 ---
-name: impact-report
-description: Generate economic impact assessment sections using regional input-output multipliers. Interactive, lets you pick which sections you need.
+name: io-report
+description: Input-output economic impact assessment. Regional IO multipliers with FLQ regionalization, additionality, tax revenue, temporal profiles. Interactive.
 allowed-tools:
   - Bash
   - Read
@@ -21,7 +21,7 @@ Then continue with the skill normally.
 ~/.claude/skills/econstack/bin/econstack-update-check 2>/dev/null || true
 ```
 
-# /impact-report: Economic Impact Assessment
+# /io-report: Input-Output Economic Impact Assessment
 
 Generate professional economic impact assessment content for an investment or job creation in any UK local authority. Uses regional input-output multipliers with FLQ regionalization, additionality adjustments per HM Treasury Green Book guidance, and full methodology documentation.
 
@@ -30,15 +30,15 @@ Generate professional economic impact assessment content for an investment or jo
 ## Arguments
 
 ```
-/impact-report <amount> in <sector> in <local_authority> [options]
+/io-report <amount> in <sector> in <local_authority> [options]
 ```
 
 **Examples:**
 ```
-/impact-report £10m in Manufacturing in Manchester
-/impact-report 500 jobs in Construction in Glasgow
-/impact-report £25m in Financial & Insurance in City of London --type2
-/impact-report £5m in Accommodation & Food in Brighton and Hove --full
+/io-report £10m in Manufacturing in Manchester
+/io-report 500 jobs in Construction in Glasgow
+/io-report £25m in Financial & Insurance in City of London --type2
+/io-report £5m in Accommodation & Food in Brighton and Hove --full
 ```
 
 **Options:**
@@ -564,16 +564,16 @@ Based on HM Treasury Additionality Guide (BIS, 2009; updated 2014) and MHCLG App
 
 ### Step 5: Save and present
 
-Save the output as `impact-report-{la-slug}-{date}.md` (or just the selected sections).
+Save the output as `io-report-{la-slug}-{date}.md` (or just the selected sections).
 Always save the companion `impact-data-{la-slug}-{date}.json`.
 
 **Then generate each additional format the user selected:**
 
 **Markdown** (always generated):
-Save as `impact-report-{slug}-{date}.md`. This is the primary output. No extra steps needed.
+Save as `io-report-{slug}-{date}.md`. This is the primary output. No extra steps needed.
 
 **HTML** (if selected):
-Generate a self-contained HTML file with inline CSS. Use GOV.UK-style navy branding (#003078), KPI cards at the top, professional tables with navy headers and alternating row stripes, callout boxes for key notes. The HTML must be fully self-contained (no external CSS/JS) so it can be emailed or opened offline. Save as `impact-report-{slug}-{date}.html`.
+Generate a self-contained HTML file with inline CSS. Use GOV.UK-style navy branding (#003078), KPI cards at the top, professional tables with navy headers and alternating row stripes, callout boxes for key notes. The HTML must be fully self-contained (no external CSS/JS) so it can be emailed or opened offline. Save as `io-report-{slug}-{date}.html`.
 
 **Word (.docx)** (if selected):
 Invoke the `/docx` skill to convert the markdown report into a formatted Word document. Pass the full markdown content and instruct the skill to:
@@ -581,7 +581,7 @@ Invoke the `/docx` skill to convert the markdown report into a formatted Word do
 - Format all tables with borders and header row styling
 - Include the report title and subtitle on the first page
 - If `--client` was specified, include "Prepared for: [client]" on the first page
-Save as `impact-report-{slug}-{date}.docx`.
+Save as `io-report-{slug}-{date}.docx`.
 
 **PowerPoint (.pptx)** (if selected):
 Invoke the `/pptx` skill to create a slide deck. Instruct it to create these slides:
@@ -591,13 +591,13 @@ Invoke the `/pptx` skill to create a slide deck. Instruct it to create these sli
 4. Sensitivity slide: the additionality scenarios table
 5. Methodology slide: one-paragraph methodology summary and key caveats
 Use navy (#003078) as the accent colour. If `--client` was specified, include "Prepared for: [client]" on the title slide.
-Save as `impact-report-{slug}-{date}.pptx`.
+Save as `io-report-{slug}-{date}.pptx`.
 
 **PDF** (if selected):
 Render the markdown through the EconStack template:
 ```bash
 ECONSTACK_DIR="${CLAUDE_SKILL_DIR}/../.."
-"$ECONSTACK_DIR/scripts/render-report.sh" impact-report-{la-slug}-{date}.md \
+"$ECONSTACK_DIR/scripts/render-report.sh" io-report-{la-slug}-{date}.md \
   --title "Economic Impact Assessment" \
   --subtitle "{LA name} | {Sector} | {Amount}" \
   [--client "{client name}" if specified]
@@ -607,18 +607,18 @@ If Quarto is not installed, tell the user: "PDF rendering requires Quarto (https
 Tell the user what was generated, listing only the files that were actually produced:
 ```
 Files saved:
-  impact-report-{slug}-{date}.md     (report / selected sections)
+  io-report-{slug}-{date}.md     (report / selected sections)
   impact-data-{slug}-{date}.json     (structured data)
-  impact-report-{slug}-{date}.html   (if HTML selected)
-  impact-report-{slug}-{date}.docx   (if Word selected)
-  impact-report-{slug}-{date}.pptx   (if PowerPoint selected)
-  impact-report-{slug}-{date}.pdf    (if PDF selected)
+  io-report-{slug}-{date}.html   (if HTML selected)
+  io-report-{slug}-{date}.docx   (if Word selected)
+  io-report-{slug}-{date}.pptx   (if PowerPoint selected)
+  io-report-{slug}-{date}.pdf    (if PDF selected)
 ```
 
 **If `--audit` was specified:**
 
 After saving all files, invoke the `/econ-audit` skill on the generated markdown file:
-  /econ-audit impact-report-{la-slug}-{date}.md
+  /econ-audit io-report-{la-slug}-{date}.md
 
 This produces an audit scorecard alongside the report, catching any methodology issues. The audit will cross-check the companion JSON against the prose numbers.
 
