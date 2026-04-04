@@ -28,7 +28,9 @@ Install econstack in Claude Code and start talking to it about your analysis. Al
 
 ### `/cost-benefit`
 
-Cost-benefit analysis with parameter database support for UK, US, EU, and Australia.
+Cost-benefit analysis that meets you where you are. Come with a one-line description ("I'm building a bridge in Melbourne") or a detailed set of inputs (costing schedules, theory of change, benefit streams by beneficiary group). The skill walks you through what it needs, fills in the framework-specific parameters automatically, and asks the right questions based on your project type and location.
+
+It learns about your asset class, location, and beneficiaries, then works through costs, benefits, additionality, and risk. The output is a structured CBA model that's 80% done: correct discounting, optimism bias, sensitivity analysis, switching values, and Monte Carlo. You edit from there.
 
 ```
 /cost-benefit
@@ -36,7 +38,7 @@ Cost-benefit analysis with parameter database support for UK, US, EU, and Austra
 /cost-benefit --from assumptions.json --full --format xlsx,pdf
 ```
 
-8 frameworks (UK Green Book, US OMB A-4, EU Cohesion, Australia, World Bank, NZ CBAx, EIB, ADB). Declining discount rates, optimism bias, S-curve phasing, carbon valuation, Monte Carlo, switching values, distributional weights. 34 audited parameter files with source citations and staleness detection.
+8 frameworks (UK Green Book, US OMB A-4, EU Cohesion, Australia, World Bank, NZ CBAx, EIB, ADB). 34 audited parameter files with source citations and staleness detection.
 
 | Parameter | UK | US | EU | AU |
 |-----------|:--:|:--:|:--:|:--:|
