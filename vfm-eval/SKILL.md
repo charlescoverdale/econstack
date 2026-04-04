@@ -271,15 +271,34 @@ Ask using AskUserQuestion:
 Question: "Do you want to apply additionality adjustments to the outcomes?"
 
 Options:
-- A) **Standard** (central estimates: 20% deadweight, 25% displacement, 10% leakage, no multiplier, net factor 0.54)
+- A) **Sector defaults** (use sector-specific estimates from the Additionality Guide, based on the sector selected in Step 1)
 - B) **Custom rates** (I'll specify my own deadweight, displacement, leakage, substitution, and multiplier)
 - C) **None** (report gross outcomes only)
 
-If A, load from `uk/additionality.json`:
+If A, use the sector selected in Step 1 to load sector-specific additionality parameters. The Additionality Guide (4th Edition) provides the following ranges by intervention type:
+
+| Sector | Deadweight | Displacement | Leakage | Net factor |
+|--------|-----------|-------------|---------|------------|
+| Employment and skills | 15-25% | 10-20% | 5-15% | 0.51-0.73 |
+| Crime and justice | 10-20% | 5-10% | 5-10% | 0.66-0.81 |
+| Health and wellbeing | 15-25% | 5-15% | 5-10% | 0.58-0.73 |
+| Education | 10-20% | 10-20% | 5-10% | 0.58-0.73 |
+| Housing and homelessness | 20-35% | 15-25% | 10-20% | 0.39-0.61 |
+| Regeneration and local growth | 20-35% | 25-50% | 10-25% | 0.24-0.54 |
+| Transport | 10-20% | 10-25% | 5-15% | 0.51-0.73 |
+| Environment and energy | 15-25% | 5-15% | 5-10% | 0.58-0.73 |
+| International development | 10-20% | 5-15% | 15-30% | 0.48-0.73 |
+
+Use the midpoint of each range as the central estimate for the selected sector. Apply substitution = 0% and multiplier = 1.0 as defaults.
+
 ```
-net_outcomes = gross_outcomes * 0.54
+# Example for Employment and skills:
+deadweight = 0.20, displacement = 0.15, leakage = 0.10
+net_factor = (1-0.20) * (1-0.15) * (1-0.10) = 0.80 * 0.85 * 0.90 = 0.612
+net_outcomes = gross_outcomes * 0.612
 ```
-Note: The standard scenario uses a multiplier of 1.0 (no multiplier effect), which is conservative. This is appropriate for most programme-level evaluations. For area-based impact assessments where supply chain effects are material, consider using custom rates with a multiplier > 1.0.
+
+Note: These sector defaults are derived from ranges in the Additionality Guide. The Guide emphasises that actual additionality depends on the specific intervention, local context, and labour market conditions. The defaults are starting points for assessment, not definitive values. For regeneration and local growth programmes, displacement is particularly high (25-50%) because new activity often displaces existing local businesses.
 
 If B, ask for deadweight %, displacement %, leakage %, substitution %, and multiplier. Load multiplier guidance from `uk/additionality.json`:
 - Type I multiplier (supply chain only): typically 1.3-1.5
@@ -413,18 +432,24 @@ Classify VfM using DfT categories from `uk/vfm-benchmarks.json` (6 categories, M
 
 Boundary rule: boundary values go into the upper category (per DfT VfM Supplementary Guidance on Categories, November 2024). So BCR of exactly 1.0 is Low, 1.5 is Medium, 2.0 is High, 4.0 is Very High.
 
-**Compute RPSC (Return on Public Sector Cost):**
+**Compute NPSV and RPSC (Green Book metrics):**
 
-Per the Green Book, RPSC measures net benefits to society per pound of net public sector cost:
+Per the Green Book, two additional metrics complement the BCR:
 
 ```
+# Net Present Social Value: the absolute net benefit
+npsv = total_monetised_benefits - total_cost
+
+# Return on Public Sector Cost: net benefit per pound of net public sector outlay
 net_public_sector_cost = total_cost - PV(fiscal_savings_that_flow_back_to_public_sector)
-rpsc = total_monetised_benefits / net_public_sector_cost
+rpsc = npsv / net_public_sector_cost
 ```
 
-If fiscal return was computed in Step 6, use those discounted fiscal savings. Otherwise, set net_public_sector_cost = total_cost (RPSC equals BCR).
+If fiscal return was computed in Step 6, use those discounted fiscal savings to compute net_public_sector_cost. Otherwise, set net_public_sector_cost = total_cost.
 
-RPSC will always be >= BCR because the denominator is smaller. Present RPSC alongside BCR in the effectiveness assessment.
+RPSC interpretation: a positive RPSC means the programme generates net benefits. RPSC of 0.5 means every GBP 1 of net public sector cost generates GBP 0.50 of net social benefit. RPSC can be negative (net costs exceed net benefits). Present NPSV and RPSC alongside BCR in the effectiveness assessment.
+
+Note: RPSC uses NPSV (benefits minus costs) in the numerator, not total benefits. This is the standard Green Book formulation. Do not confuse with BCR (which uses total benefits / total costs).
 
 **Benchmark:**
 
@@ -450,7 +475,8 @@ Additionality: [X]% deadweight, [X]% displacement, [X]% leakage (net factor: [X]
 | Total monetised benefits (PV) | GBP [val] | |
 | Total programme cost | GBP [val] | |
 | **BCR** | **[val]** | **[VfM category]** |
-| **RPSC** | **[val]** | (Return on Public Sector Cost) |
+| **NPSV** | **GBP [val]** | (Net Present Social Value) |
+| **RPSC** | **[val]** | (Return on Public Sector Cost: NPSV / net public sector cost) |
 | Cost per net outcome | GBP [val] | |
 | Evidence level | SMS Level [N] | [Method name] |
 
@@ -502,6 +528,14 @@ Present as:
 | Value per outcome | GBP [val] | GBP [val] | [val]% |
 
 **Assessment:** [1-2 sentences. Is the VfM conclusion robust to plausible variations in assumptions? Which parameter is the BCR most sensitive to? Are there scenarios where the VfM category changes?]
+
+### Optimism bias note
+
+If the benefit duration is 3+ years or the evaluation stage is "mid-term" (i.e., some benefits are projected rather than observed), include:
+
+"This evaluation assumes benefits persist for [N] years. [N-observed] years of benefits are projected forward from observed data. Per Green Book supplementary guidance, forward-looking projections are subject to optimism bias. Flyvbjerg et al. find systematic overestimation of benefits (typically 20-40%) in programme evaluations. The sensitivity analysis above tests the robustness of the BCR to shorter benefit duration and benefit decay, which partially addresses this risk."
+
+If all benefits are fully observed (evaluation stage = "ex-post" or "final" with benefit duration <= observed period), omit this note.
 ```
 
 ### Step 5c: Opportunity cost (brief)
@@ -773,7 +807,8 @@ EFFECTIVENESS
   Net outcomes:        [val]  (after [val]% additionality)
   Cost per outcome:    GBP [val]
   BCR:                 [val]  ([VfM category])
-  RPSC:                [val]  (Return on Public Sector Cost)
+  NPSV:                GBP [val]
+  RPSC:                [val]  (NPSV / net public sector cost)
   Evidence level:      SMS Level [N] ([method])
   Benchmark:           Typical BCR for [sector]: [range]
 
