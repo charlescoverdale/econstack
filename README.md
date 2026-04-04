@@ -42,7 +42,7 @@ Cost-benefit analysis that meets you where you are. Come with a one-line descrip
 
 Whether you've finalised the exact location, scale, and beneficiary groups or you're still at the back-of-envelope stage, the skill adapts. It follows standard business case logic: establishing a baseline (what happens without the project), developing options, and ensuring all benefit calculations are marginal compared to that baseline. It helps you think through scenario development and options selection before jumping to the numbers.
 
-It then works through costs using the latest government guidelines and market benchmarks, provides defensible estimates, and lets you override anything. The output is a structured CBA model that's 80% done: correct discounting, optimism bias, sensitivity analysis, switching values, and Monte Carlo. You edit from there.
+It then works through costs using the latest government guidelines and market benchmarks, provides defensible estimates, and lets you override anything. The output is a structured CBA model and associated documentation that's 80% done: correct discounting, optimism bias, sensitivity analysis, switching values, and Monte Carlo. Ready for a business case submission, client report, or internal appraisal. You edit from there.
 
 ```
 /cost-benefit
