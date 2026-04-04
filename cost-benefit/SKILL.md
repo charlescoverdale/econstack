@@ -77,7 +77,9 @@ Load all JSON files from `$PARAMS_DIR/{jurisdiction}/` where jurisdiction matche
 - `eu` framework -> load `$PARAMS_DIR/eu/*.json`
 - `au` framework -> load `$PARAMS_DIR/au/*.json`
 - `us` framework -> load `$PARAMS_DIR/us/*.json`
-- Other frameworks (wb, nz, eib, adb) -> parameter files not yet available, use built-in defaults below
+- `wb` framework -> load `$PARAMS_DIR/wb/*.json`
+- `adb` framework -> load `$PARAMS_DIR/adb/*.json`
+- Other frameworks (nz, eib) -> parameter files not yet available, use built-in defaults below
 
 All frameworks also load `$PARAMS_DIR/common/*.json` for shared parameters (S-curve capital phasing profiles, benefit ramp-up profiles). These are mathematical shapes that apply universally.
 
