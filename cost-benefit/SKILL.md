@@ -323,6 +323,8 @@ If carbon impacts exist, ask for estimated annual tonnes of CO2e (positive = emi
 
 Carbon benefits/costs are included as a separate line item in the benefit/cost tables, not subject to additionality adjustments (they are global externalities, not local economic activity).
 
+**OECD carbon benchmark context:** When writing the carbon section of the report, load `oecd/carbon-benchmarks.json` and note how the carbon price used in the appraisal compares to the OECD benchmarks. For example: "The carbon value of [X]/tCO2 used in this appraisal is [above/below] the OECD net-zero pathway benchmark of EUR 120/tCO2 by 2030." This gives international context regardless of which national framework is selected.
+
 **If B (year-by-year):**
 
 Ask the user to paste or describe a table:
