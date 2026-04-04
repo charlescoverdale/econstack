@@ -86,16 +86,18 @@ Outputs to Markdown, HTML, Word, PowerPoint, or PDF. **Options:** `--country`, `
 
 ---
 
-### `/io-report` (UK)
+### `/io-report` (UK, more countries coming soon)
 
-Input-output economic impact assessment for 391 UK local authorities.
+Quantitative economic impact assessment for 391 UK local authorities. Input an investment amount or jobs number in a specific sector and location, and the skill builds regional input-output tables from the latest ONS economic data, computes direct and indirect (supply chain) multipliers, and estimates the net additional impact on output, employment, GVA, and tax revenue.
+
+Allows you to choose between Type I and Type II multipliers, adjust for additionality (deadweight, displacement, leakage) with sensitivities, and benchmark your results against comparable areas. All additionality assumptions are aligned with HM Treasury Green Book guidance. Full report output includes detailed methodology and an honest discussion of the limitations of IO models.
 
 ```
 /io-report £10m in Manufacturing in Manchester
 /io-report 500 jobs in Construction in Glasgow --type2
 ```
 
-Regional IO model (FLQ regionalization, ONS 2023). Tax revenue estimates, additionality, sensitivity analysis, multiplier benchmarking. **Options:** `--type2`, `--conservative`/`--optimistic`, `--audit`, `--format`
+**Options:** `--type2`, `--conservative`/`--optimistic`, `--audit`, `--format`
 
 ---
 
