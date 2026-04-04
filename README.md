@@ -78,15 +78,17 @@ It then works through costs using the latest government guidelines and market be
 
 ### `/vfm-eval`
 
-The companion to `/cost-benefit`. Where `/cost-benefit` asks "should we do this?" (ex-ante), `/vfm-eval` asks "did it work? was it worth it?" (ex-post). Walks you through the Magenta Book 3Es framework (economy, efficiency, effectiveness), benchmarks your programme costs against the GMCA Unit Cost Database, applies additionality adjustments, discounts multi-year benefits using the Green Book STPR schedule, computes a BCR, and grades the evidence quality using the Maryland Scientific Methods Scale.
+The companion to `/cost-benefit`. Where `/cost-benefit` asks "should we do this?" (ex-ante), `/vfm-eval` asks "did it work? was it worth it?" (ex-post). Walks you through the Magenta Book 3Es framework (economy, efficiency, effectiveness), benchmarks your programme costs against the GMCA Unit Cost Database, applies additionality adjustments with optional multiplier effects, discounts multi-year benefits using the Green Book STPR schedule with persistence/decay modelling, computes BCR and RPSC (Return on Public Sector Cost), and grades the evidence quality using the Maryland Scientific Methods Scale.
 
-Computes fiscal return by mapping outcomes to published unit cost savings (crime, employment, health, education, housing). Supports 8 evaluation frameworks: UK 3Es, FCDO 4Es (adding equity), Australia 4Es (adding ethics), EC Better Regulation (5 criteria), US GAO/OMB, World Bank IEG (6-point outcome rating), OECD DAC (6 criteria), and NZ Living Standards Framework. Also has a lighter "Spending Review narrative" mode for quick VfM evidence sections.
+Mandatory sensitivity analysis on every evaluation: scenarios across discount rates, additionality, and benefit duration, plus switching value analysis showing where the VfM conclusion flips. Computes fiscal return (discounted) by mapping outcomes to published unit cost savings (crime, employment, health, education, housing). Supports WELLBY valuation for wellbeing programmes per Green Book supplementary guidance. Price base year checks with GDP deflator adjustment.
 
-Outputs to Markdown, HTML, Excel (IB-style workbook with cover page, RAG dashboard, and assumption sheets), Word, PowerPoint, or PDF.
+8 evaluation frameworks: UK 3Es, FCDO 4Es (adding equity), Australia 4Es (adding ethics), EC Better Regulation (5 criteria), US GAO/OMB, World Bank IEG (6-point outcome rating), OECD DAC (6 criteria including coherence), and NZ Living Standards Framework (12 domains, 4 capitals). Also has a lighter "Spending Review narrative" mode with optimism bias guidance for forward-looking projections.
+
+Outputs to Markdown, HTML, Excel (IB-style workbook with cover page, RAG dashboard, sensitivity sheet, and assumption sheets), Word, PowerPoint, or PDF.
 
 ```
 /vfm-eval
-/vfm-eval --framework 4e
+/vfm-eval --framework dac
 /vfm-eval --mode narrative
 /vfm-eval --full --format xlsx,pdf
 ```
