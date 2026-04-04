@@ -22,6 +22,8 @@ Built on 16 R packages on CRAN and a 34-file parameter database covering the UK,
 
 If you spend time wrangling discount rates, formatting CBA spreadsheets, or copying ONS data into briefing templates, econstack automates the mechanical parts so you can focus on the judgment calls.
 
+If you already have a report, model, or output format that you like, upload it or link to it and the skills will adapt to match your structure and style. Your previous work becomes the template for future analyses.
+
 ---
 
 ## Quick start
