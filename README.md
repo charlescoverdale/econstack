@@ -116,14 +116,16 @@ Local authority economic profile for 391 UK areas.
 
 ### `/econ-audit`
 
-Audit any economic analysis against methodology standards and academic literature.
+Full methodology audit of any output from the skills above, or any economic analysis you point it at. Runs 60+ checks across 10 categories and produces a RAG (red, amber, green) rating on how your methods and assumptions compare to best practice. Agnostic to region or asset class: it draws on government guidance (Green Book, OMB A-4, EC CBA Guide) and published academic literature (Flyvbjerg, Moretti, Flegg) to assess numerical consistency, discount rates, additionality, multiplier plausibility, double counting, and framing.
+
+Designed to get better over time as the rest of the repo evolves. As the parameter database and skill coverage expand, so does the audit's ability to cross-check your work.
 
 ```
 /econ-audit io-report-manchester-2026-04-03.md --strict
 /econ-audit . --fix
 ```
 
-60+ checks across 10 categories. RED/AMBER/GREEN grading, letter grade A-F, auto-fix option. **Options:** `--strict`, `--fix`, `--format`
+Letter grade A-F, with auto-fix option. **Options:** `--strict`, `--fix`, `--format`
 
 ---
 
