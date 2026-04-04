@@ -36,7 +36,18 @@ Cost-benefit analysis with parameter database support for UK, US, EU, and Austra
 /cost-benefit --from assumptions.json --full --format xlsx,pdf
 ```
 
-8 frameworks (UK Green Book, US OMB A-4, EU Cohesion, Australia, World Bank, NZ CBAx, EIB, ADB). Declining discount rates, optimism bias, S-curve phasing, carbon valuation, Monte Carlo, switching values, distributional weights. 34 audited parameter files with source citations and staleness detection. **Options:** `--framework`, `--from`, `--full`, `--audit`, `--format`
+8 frameworks (UK Green Book, US OMB A-4, EU Cohesion, Australia, World Bank, NZ CBAx, EIB, ADB). Declining discount rates, optimism bias, S-curve phasing, carbon valuation, Monte Carlo, switching values, distributional weights. 34 audited parameter files with source citations and staleness detection.
+
+| Parameter | UK | US | EU | AU |
+|-----------|:--:|:--:|:--:|:--:|
+| Discount rates | 3.5% declining | 2% (OMB A-4) + 3%/7% legacy | 3% / 5% | 7% (4%/10%) |
+| Carbon values | DESNZ traded + non-traded | EPA SC-GHG | EIB shadow price | ACCU + Safeguard |
+| VSL | GBP 2.35M | DOT/EPA/HHS ($12.5-13.7M) | EUR 3.6M + transfer | AUD 5.87M |
+| Health (QALY) | GBP 70,000 | $190-250K | EUR 40-100K | AUD 50-70K |
+| VTTS | TAG Data Book | DOT wage-% method | | ATAP formula |
+| Optimism bias | 6 types x 3 stages | | | |
+
+**Options:** `--framework`, `--from`, `--full`, `--audit`, `--format`
 
 ---
 
