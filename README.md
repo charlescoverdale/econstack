@@ -2,35 +2,15 @@
 
 Professional economic analysis, powered by AI.
 
-econstack is a set of [Claude Code](https://claude.ai/code) skills that generate professional economic analysis. Type a slash command, get the key numbers in seconds, then pick the output you need: a full report, specific sections for your own document, slide-ready bullets, an elevator pitch, or just the raw data as JSON.
+econstack is a set of [Claude Code](https://claude.ai/code) skills that generate professional economic analysis. Type a slash command, get the key numbers in seconds, then pick the output you need.
 
 ```
 /io-report £10m in Manufacturing in Manchester
 ```
 
-The skill computes the impact, shows you the key numbers, then asks what you need. Full report? Just the sensitivity table for your Excel model? Slide bullets for a client presentation? The methodology appendix for a business case? You pick the pieces and build your own deliverable.
-
-Every output includes a companion `.json` file with all computed values, so you can plug the numbers into your own tools.
-
----
-
-## Why this exists
-
-Professional business economists spend 60-70% of their time on data wrangling, not analysis. They pull data from ONS, BoE, OECD, and a dozen other sources. They clean it, align frequencies, merge datasets, make charts, write reports, and do it all again next week.
-
-The tools are either free and fragmented (individual R packages, CSV downloads, manual Excel) or expensive and institutional (Bloomberg at GBP 25k/yr, Haver Analytics at GBP 15k+, Macrobond at GBP 5k+). There is nothing in between.
-
-econstack fills that gap. It takes the data from [econprofile](https://econprofile.com) (391 UK local authority profiles with input-output multipliers, employment, earnings, housing, deprivation, and more) and wraps it in analytical workflows that produce real deliverables.
-
-The skills encode how a professional economist thinks about these problems: which data to use, what methodology is appropriate, what caveats to include, which academic references to cite. You provide the question. econstack provides the analysis.
-
 ---
 
 ## Quick start
-
-**Step 1: Install (30 seconds)**
-
-Open your terminal and run these two commands:
 
 ```bash
 # Install the skills
@@ -40,47 +20,53 @@ git clone https://github.com/charlescoverdale/econstack.git ~/.claude/skills/eco
 git clone https://github.com/charlescoverdale/econstack-data.git ~/econstack-data
 ```
 
-That's it. No npm install, no API keys, no configuration. Claude Code automatically discovers skills in `~/.claude/skills/`.
+No npm, no API keys, no configuration. Claude Code discovers skills in `~/.claude/skills/` automatically.
 
-**Step 2: Use**
-
-Open [Claude Code](https://claude.ai/code) and type:
+Then open Claude Code and type:
 
 ```
 /io-report £10m in Manufacturing in Manchester
 ```
 
-Claude reads the local authority data, runs the IO computation, applies HM Treasury additionality adjustments, and writes a full report to your working directory. Takes about 30 seconds.
-
-**Step 3: Choose your output format (optional)**
-
-Add `--format` for Word, PowerPoint, HTML, or PDF output:
+The skill computes the impact, shows you the key numbers, then asks what you need: full report, specific sections, slide bullets, or raw JSON. Every output includes a companion `.json` with all computed values.
 
 ```
 /io-report £10m in Manufacturing in Manchester --format word,pdf
 ```
 
-Or skip the flag and the skill will ask you interactively which formats you need. PDF requires [Quarto](https://quarto.org) (`brew install quarto` on macOS). Word and PowerPoint are generated automatically.
+Add `--format` for Word, PowerPoint, HTML, Excel, or PDF. Or skip the flag and the skill asks you interactively.
 
-### More examples
+---
+
+## How it works
+
+econstack skills are instructions, not software. Each SKILL.md tells Claude Code what to do: which data to read, what to compute, how to structure the output, and what caveats to include. Claude is the runtime.
 
 ```
-# Economic impact assessment
-/io-report £10m in Manufacturing in Manchester
-/io-report 500 jobs in Construction in Glasgow --type2
-/io-report £25m in Financial & Insurance in City of London --conservative
-/io-report £5m in Accommodation & Food in Brighton and Hove --format word,pptx
-
-# Local authority economic profile
-/la-profile Manchester
-/la-profile Glasgow City --brief
-/la-profile Leeds --compare Birmingham
-/la-profile Bristol --focus housing --format pdf
+You type:    /io-report £10m in Manufacturing in Manchester
+                                    |
+Claude reads: ~/.claude/skills/econstack/io-report/SKILL.md
+Claude loads: ~/econstack-data/src/data/manchester/multipliers.json
+Claude runs:  IO computation, additionality, sensitivity
+Claude writes: io-report-manchester-2026-04-02.md + .json
 ```
 
-### What you get
+### Output formats
 
-**Both skills are interactive.** They compute first, then ask what you need. Here's what the conversation looks like:
+All skills generate Markdown + JSON by default. Additional formats available via `--format`:
+
+| Format | Use it for |
+|--------|------------|
+| Markdown (.md) | Default. Paste anywhere, convert to anything |
+| Excel (.xlsx) | IB-style model with blue inputs and linked formulas (CBA only) |
+| HTML (.html) | Self-contained branded page for email or browser |
+| Word (.docx) | Edit in Word, drop sections into your own report |
+| PowerPoint (.pptx) | Client presentation with key numbers and tables |
+| PDF (.pdf) | Branded consulting-quality document (requires [Quarto](https://quarto.org)) |
+
+### Interactive output selection
+
+Every skill computes first, then asks what you need:
 
 ```
 You:     /io-report £10m in Manufacturing in Manchester
@@ -89,148 +75,17 @@ Claude:  IMPACT COMPUTED
          ===============
          Net additional output:  £5.7m   (after additionality)
          Net additional jobs:    23
-         Gross output:           £10.6m  (before additionality)
-         Gross jobs:             43
          GVA contribution:       £3.2m
-         Estimated tax:          £420k
          Output multiplier:      1.06x
-         Additionality factor:   54%
 
          What output do you need?
-         A) Full report (8 sections, 5-10 pages)
-         B) Pick sections (choose only what you need)
-         C) Slide summary (5 bullet points for PowerPoint)
-         D) Data only (JSON file for your own analysis)
-
-You:     B
-
-Claude:  Which sections?
-         ☑ Executive summary
-         ☑ Impact tables
-         ☐ Additionality adjustment
-         ☐ Sensitivity analysis
-         ☐ Key risks
-         ☐ Local context
-         ☐ Full methodology
-         ☑ Methodology summary (one paragraph)
-         ☐ References
-
-         [Generates only the 3 selected sections]
-         [Saves companion JSON with all computed values]
-
-Claude:  What file formats do you need?
-         ☑ Markdown (.md)
-         ☐ HTML
-         ☑ Word (.docx)
-         ☐ PowerPoint (.pptx)
-         ☐ PDF
-
-         [Generates markdown + Word document]
+         A) Full report
+         B) Pick sections
+         C) Slide summary
+         D) Data only (JSON)
 ```
 
-**The idea:** you don't need a 10-page report. You need the exec summary for an email, the tables for your spreadsheet, and a one-paragraph methodology note for a footnote. Pick the pieces and build your own deliverable.
-
-**Output options:**
-
-| Option | What you get | Use it for |
-|--------|-------------|------------|
-| Full report | All sections, 5-10 pages | Formal business cases, funding bids |
-| Pick sections | Only what you select | Dropping into your own document or deck |
-| Slide summary | 5 bullet points | Quick talking points |
-| Elevator pitch | One paragraph (la-profile) | Meeting prep, email intros |
-| Data only | `.json` file | Your own Excel model, charts, analysis |
-
-**Output formats** (choose one or more):
-
-| Format | File | Use it for |
-|--------|------|------------|
-| Markdown | `.md` | Default. Paste into any editor, convert to anything |
-| HTML | `.html` | Self-contained branded page. Email or open in browser |
-| Word | `.docx` | Edit in Microsoft Word, add to your own report |
-| PowerPoint | `.pptx` | Client presentation with key numbers and tables |
-| PDF | `.pdf` | Branded consulting-quality document (requires Quarto) |
-
-Every output includes a **companion `.json` file** with all computed values. The skills produce building blocks, not finished deliverables. You take the 80% first draft and make it yours.
-
-### Data path
-
-The skills expect local authority data at this path:
-```
-~/econstack-data/src/data/
-```
-
-If your data is elsewhere, update the data paths in:
-- `~/.claude/skills/econstack/skills/io-report/SKILL.md`
-- `~/.claude/skills/econstack/skills/la-profile/SKILL.md`
-
-Search for `DATA_DIR=` and replace the path with your data location.
-
----
-
-## How it works
-
-econstack skills are not software. They are instructions. Each SKILL.md file tells Claude Code exactly what to do: which data files to read, what computation to run, how to structure the output, what methodology to document, and what caveats to include.
-
-Claude is the runtime. The SKILL.md is the prompt. The data comes from econstack-data sitting on your disk.
-
-```
-You type:    /io-report £10m in Manufacturing in Manchester
-                                    |
-Claude reads: ~/.claude/skills/econstack/skills/io-report/SKILL.md
-                                    |
-Claude loads: ~/econstack-data/src/data/manchester/multipliers.json
-              ~/econstack-data/src/data/manchester/summary.json
-              ~/econstack-data/src/data/national-benchmarks.json
-                                    |
-Claude runs:  IO computation (Leontief inverse, FLQ regionalization)
-              Additionality adjustment (HM Treasury defaults)
-              Sensitivity analysis (+/- 15% multiplier variation)
-                                    |
-Claude writes: io-report-manchester-2026-04-02.md
-```
-
-No API keys. No build step. No dependencies beyond Claude Code and the data files.
-
-For additional output formats, add `--format` to any command. You can request Word, PowerPoint, HTML, or PDF (or combine them):
-
-```
-/io-report £10m in Manufacturing in Manchester --format word,pdf
-```
-
-Or skip the flag entirely and the skill will ask you interactively which formats you need.
-
----
-
-## Output formats
-
-Every skill generates **Markdown + JSON** by default. You can also get HTML, Word, PowerPoint, or PDF, either via the `--format` flag or by answering the interactive format question.
-
-```
-/io-report £10m in Manufacturing in Manchester --format word,pptx
-```
-
-### Markdown (.md)
-Always generated. Plain text with tables, ready to paste into any editor or convert to other formats.
-
-### HTML (.html)
-Self-contained single-page report with inline CSS. GOV.UK-style navy branding, KPI cards, professional tables. No external dependencies. Open in a browser, attach to an email, or host on an intranet.
-
-### Word (.docx)
-Formatted Word document with navy headings, styled tables, and title page. Ready to edit, add your own branding, or drop sections into a client deliverable.
-
-### PowerPoint (.pptx)
-Slide deck with title slide, key numbers, impact tables, sensitivity analysis, and methodology note. Navy accent colour. Ready for client presentations.
-
-### PDF
-Branded consulting-quality PDF rendered via Quarto and Typst. Cover page, headers/footers, navy heading hierarchy, professional tables with alternating stripes, callout boxes, section numbering.
-
-**Requirements:** [Quarto](https://quarto.org) >= 1.5.0 (includes Typst). On macOS: `brew install quarto`. The render script auto-detects Quarto at `/Applications/quarto/bin/quarto` or on your PATH.
-
-You can also render any existing markdown report manually:
-
-```bash
-~/.claude/skills/econstack/scripts/render-report.sh my-report.md --title "Custom Title"
-```
+You don't need a 10-page report. You need the exec summary for an email, the tables for your spreadsheet, and a methodology note for a footnote. Pick the pieces and build your own deliverable.
 
 ---
 
@@ -242,78 +97,13 @@ Input-output economic impact assessment for an investment or job creation in any
 
 ```
 /io-report £10m in Manufacturing in Manchester
-/io-report 500 jobs in Construction in Glasgow
-/io-report £25m in Financial & Insurance in City of London --type2
-/io-report £5m in Accommodation & Food in Brighton and Hove --conservative
+/io-report 500 jobs in Construction in Glasgow --type2
+/io-report £25m in Financial & Insurance in City of London --conservative
 ```
 
-**What you get:** A 9-section report covering:
+Regional IO model using FLQ regionalization (Flegg et al. 1995) of ONS Input-Output Analytical Tables 2023. 391 local authorities, 19 SIC sections, Type I multipliers by default. Includes tax revenue estimates, multi-year temporal profiles (construction vs operational phases), and multiplier benchmarking against comparable areas.
 
-| Section | Contents |
-|---------|----------|
-| Executive summary | 2-3 paragraphs for a non-technical reader |
-| Investment parameters | Input table: amount, sector, LA, multiplier type |
-| Gross impact | Direct / indirect / induced output and jobs, GVA, tax estimates |
-| Additionality adjustment | Deadweight, displacement, leakage per HM Treasury guidance |
-| Sensitivity analysis | +/- 15% multiplier variation table |
-| Multiplier explanation | Why this area has this specific multiplier (lambda, FLQ) |
-| Local context | Key stats for the LA (employment, earnings, claimant rate) |
-| Methodology | Full IO model documentation (2 pages) |
-| References | 10 academic and government citations |
-
-**Options:**
-
-| Flag | Effect |
-|------|--------|
-| `--type2` | Include household spending (induced) effects |
-| `--conservative` | 35% deadweight, 40% displacement, 20% leakage |
-| `--optimistic` | 10% deadweight, 10% displacement, 5% leakage |
-| `--no-additionality` | Gross figures only |
-| `--brief` | Executive summary only (1 page) |
-| `--format <type>` | Output format(s): `markdown`, `html`, `word`, `pptx`, `pdf`, or `all`. Comma-separate for multiple (e.g. `--format word,pdf`) |
-
-**Methodology:** Regional input-output model using FLQ regionalization (Flegg et al. 1995) of ONS Input-Output Analytical Tables 2023 (Blue Book 2025). 104 industries aggregated to 19 SIC sections. Type I multipliers by default (conservative). Additionality from HM Treasury Additionality Guide (4th edition, 2014) and MHCLG Appraisal Guide (3rd edition, 2025).
-
----
-
-### `/la-profile`
-
-Generate a full local authority economic profile.
-
-```
-/la-profile Manchester
-/la-profile Glasgow City --brief
-/la-profile Leeds --compare Birmingham
-/la-profile Bristol --focus housing
-```
-
-**What you get:** A 10-section report covering:
-
-| Section | Contents |
-|---------|----------|
-| At a glance | Summary table: population, jobs, earnings, claimant rate, GVA, house price |
-| Summary | 3-4 paragraph narrative (what kind of economy is this?) |
-| Demographics | Population, working-age %, growth trend |
-| Labour market | Employment by sector, specialisation (LQ), shift-share analysis |
-| Earnings | Percentile distribution (p10-p90), gender pay gap |
-| Housing | Prices, affordability, tenure breakdown |
-| Business activity | Enterprise counts, size bands, birth/death rates |
-| Productivity | GVA per job, rank, sector breakdown |
-| Deprivation | IMD rank, domain-level scores |
-| Benchmarking | Comparison to England/Scotland/Wales and GB averages |
-
-All data is benchmarked against the LA's own country (not just England). A Scottish LA gets Scottish averages. A Welsh LA gets Welsh averages.
-
-**Options:**
-
-| Flag | Effect |
-|------|--------|
-| `--brief` | Executive summary only (1-2 pages) |
-| `--compare <LA>` | Side-by-side comparison with another LA |
-| `--focus labour` | Emphasise labour market and skills |
-| `--focus housing` | Emphasise housing and affordability |
-| `--focus business` | Emphasise business activity and industry structure |
-| `--format <type>` | Output format(s): `markdown`, `html`, `word`, `pptx`, `pdf`, or `all` |
+**Options:** `--type2` (induced effects), `--conservative` / `--optimistic` (additionality), `--audit` (auto-run quality checks), `--format`
 
 ---
 
@@ -327,23 +117,15 @@ Green Book cost-benefit analysis, with support for 8 international frameworks.
 /cost-benefit --from assumptions.json --full --format xlsx,pdf
 ```
 
-Interactive options appraisal: define your options (do nothing, do minimum, preferred), enter costs and benefits (summary figures, year-by-year, or describe in plain English), and the skill handles the rest. Or skip the questions entirely with `--from file.json`.
+Interactive options appraisal, or skip the questions with `--from file.json`.
 
 **8 frameworks:** UK Green Book, EU Cohesion Policy, US OMB A-4, World Bank, Australian Government, NZ Treasury CBAx, EIB, ADB. Auto-detected from your project description.
 
-**What it computes:**
-- Correct declining discount rate schedule (framework-specific)
-- Optimism bias by project type and stage (SOC/OBC/FBC)
-- S-curve capital phasing, benefit ramp-up, whole-life costing
-- Additionality adjustments (deadweight, displacement, leakage)
-- Carbon valuation (DESNZ, EIB, or EPA prices)
-- Switching values (correctly interpreted for positive and negative NPV)
-- Sensitivity analysis (+/-20%) and optional Monte Carlo (10,000 iterations)
-- Incremental analysis between options
-- Distributional welfare weights and place-based adjustments
-- TAG transport values, QALY/DALY health values (country-specific)
+**What it computes:** declining discount rates, optimism bias by project stage (SOC/OBC/FBC), S-curve capital phasing, benefit ramp-up, whole-life costing, additionality, carbon valuation, switching values, sensitivity (+/-20%), Monte Carlo (10k iterations), incremental analysis, distributional welfare weights, TAG transport values, QALY/DALY health values.
 
-**Output formats:** Markdown, Excel (IB-style blue inputs, linked formulas, heat-map sensitivity), Word, PowerPoint, PDF. Chain with `--audit` to auto-run `/econ-audit` on the output.
+**Output formats:** Markdown, Excel (IB-style blue inputs, linked formulas, heat-map sensitivity), Word, PowerPoint, PDF. Chain with `--audit` to auto-run `/econ-audit`.
+
+---
 
 ### `/econ-audit`
 
@@ -355,96 +137,84 @@ Audit any economic analysis output against methodology standards and academic li
 /econ-audit . --fix
 ```
 
-Reads your CBA, impact assessment, fiscal briefing, or macro briefing. Runs 60+ checks across 10 categories: numerical consistency, discount rates, optimism bias, additionality, double counting, multiplier plausibility, framing, sector-specific (TAG, QALY, carbon), academic benchmarks (Flyvbjerg cost overruns, Moretti multipliers), and data quality.
+60+ checks across 10 categories: numerical consistency, discount rates, optimism bias, additionality, double counting, multiplier plausibility, framing, sector-specific (TAG, QALY, carbon), academic benchmarks (Flyvbjerg cost overruns, Moretti multipliers), and data quality.
 
-Each issue is graded RED (must fix), AMBER (should address), or GREEN (pass). Every RED issue includes a concrete fix and a specific reference. Letter grade A through F, with RED issues capping the grade at C or below. Option to auto-fix and recompute.
+Each issue is RED (must fix), AMBER (should address), or GREEN (pass). Every RED issue includes a concrete fix and a reference. Letter grade A through F, with RED issues capping the grade. Option to auto-fix and recompute.
+
+---
 
 ### `/macro-briefing`
 
-UK macroeconomic monitor with international comparison across the top 30 economies.
+UK macroeconomic monitor with international comparison across 30 economies.
 
 ```
 /macro-briefing
 /macro-briefing --full
-/macro-briefing --focus prices
 /macro-briefing --international
 ```
 
-Follows the Bank of England Monetary Policy Report narrative structure: output, labour market, prices, wages, financial conditions, monetary policy, fiscal, trade, housing, outlook.
+Bank of England Monetary Policy Report structure: output, labour market, prices, wages, financial conditions, monetary policy, fiscal, trade, housing, outlook.
 
-**UK data** from `ons` and `boe` R packages: GDP, monthly GDP, unemployment, employment, inactivity, vacancies, wages, CPI, CPIH, core CPI, retail sales, trade, public finances, productivity, house prices, Bank Rate, gilt yields, SONIA, mortgage approvals, exchange rates.
+**UK data** via `ons` and `boe` R packages: GDP, unemployment, employment, inactivity, vacancies, wages, CPI, CPIH, core CPI, retail sales, trade, public finances, productivity, house prices, Bank Rate, gilt yields, SONIA, mortgage approvals, exchange rates.
 
-**International data** (with `--international`): 27 countries via FRED, Euro area via ECB, G7/G20/OECD aggregates via readoecd. Covers the US, China, Germany, Japan, India, France, Italy, Brazil, Canada, Russia, South Korea, Australia, Mexico, Spain, Indonesia, Netherlands, Turkey, Switzerland, Poland, Belgium, Sweden, Argentina, Ireland, Norway, Israel, Austria, and Saudi Arabia.
+**International data** (with `--international`): 27 countries via FRED, Euro area via ECB, G7/G20/OECD aggregates via readoecd.
+
+---
+
+### `/la-profile`
+
+Local authority economic profile.
+
+```
+/la-profile Manchester
+/la-profile Leeds --compare Birmingham
+/la-profile Bristol --focus housing --format pdf
+```
+
+10-section report: demographics, labour market, earnings, housing, business activity, productivity, deprivation, benchmarking. All data benchmarked against the LA's own country (Scottish LAs get Scottish averages).
+
+---
 
 ### `/fiscal-briefing`
 
-UK public finances briefing: borrowing, debt, receipts, spending, fiscal rules.
+UK public finances: borrowing, debt, receipts, spending, fiscal rules.
 
 ```
-/fiscal-briefing
 /fiscal-briefing --full
 ```
-
-Covers: current PSNB/PSND vs OBR forecast, tax receipts breakdown, expenditure and debt interest, fiscal rules headroom (PSNFL target), and outlook. Uses `obr` (15 functions) + `ons`.
-
-### Coming soon
-
-| Skill | What it does |
-|-------|-------------|
-| `/sector-analysis` | Industry deep dive: BRES employment, IO multipliers, shift-share, LQ analysis |
-| `/benchmarking` | Cross-area or cross-country comparison across standardised indicators |
 
 ---
 
 ## Data coverage
 
-econstack currently covers **391 local authorities** across England, Wales, and Scotland. The underlying data comes from official government open sources, pre-fetched and processed by the [econprofile](https://econprofile.com) data pipeline.
-
-### Per local authority (16 data files each)
+**391 local authorities** across England, Wales, and Scotland. 16 data files per LA, from official government open sources.
 
 | Dataset | Source | Refresh |
 |---------|--------|---------|
 | Employment by sector (19 SIC sections) | BRES via Nomis | Annual |
-| Earnings (percentiles p10-p90, gender gap) | ASHE via Nomis | Annual |
-| IO multipliers (output + employment, Type I + II) | ONS IOAT 2023 + FLQ | On SUT update |
-| Population (mid-year estimates, age profile, trend) | ONS | Annual |
-| Housing (prices, affordability, tenure) | DLUHC / HM Land Registry | Annual |
-| GVA by industry | ONS (estimated from BRES + national ratios) | Annual |
-| Business counts (size bands) | ONS UK Business Counts | Annual |
-| Business demography (births, deaths, survival) | ONS | Annual |
+| Earnings (p10-p90, gender gap) | ASHE via Nomis | Annual |
+| IO multipliers (Type I + II) | ONS IOAT 2023 + FLQ | On SUT update |
+| Population, housing, GVA, business counts | ONS / DLUHC | Annual |
 | Deprivation (IMD, 7 domains) | MHCLG (England only) | Periodic |
-| Skills (occupations, qualifications) | Census 2021 via Nomis | Decennial |
-| Commuting (modes, WFH %) | Census 2021 via Nomis | Decennial |
-| Industry shift-share analysis | Derived from BRES | Annual |
-| Location quotients | Derived from BRES | Annual |
-| National benchmarks (England, Scotland, Wales, GB) | Aggregated from above | On data update |
+| Skills, commuting | Census 2021 via Nomis | Decennial |
 
-### National IO model
+**IO model:** ONS Input-Output Analytical Tables 2023 (Blue Book 2025). 104 industries aggregated to 19 SIC sections. FLQ regionalization (delta = 0.3). Type I default, Type II optional.
 
-| Parameter | Value |
-|-----------|-------|
-| Source | ONS Input-Output Analytical Tables, 2023 (Blue Book 2025) |
-| Industries | 104 (aggregated to 19 SIC sections A-S) |
-| Aggregation method | Output-weighted averaging |
-| Regionalization | Flegg Location Quotient (FLQ), delta = 0.3 |
-| Multiplier types | Type I (default) + Type II (optional) |
-| Additionality | HM Treasury (2014) + MHCLG (2025) guidance |
+**Data path:** Skills expect LA data at `~/econstack-data/src/data/`. Update `DATA_DIR=` in the SKILL.md files if your data is elsewhere.
 
 ---
 
 ## The ecosystem
-
-econstack is part of a broader suite of economic data tools. The R packages provide programmatic data access. econprofile provides the pre-built data and web interface. macrowithr teaches the methods. econstack ties them together into workflows.
 
 ```
 R packages (data access)          econprofile (data + web)         econstack (skills)
 ========================          =======================         ==================
 ons    -> ONS data                391 LA profiles                 /io-report
 boe    -> Bank of England         IO impact calculator            /la-profile
-hmrc   -> HMRC trade              Compare regions tool            /macro-briefing (soon)
-obr    -> OBR fiscal              Embeddable charts               /sector-analysis (soon)
-fred   -> US FRED data            Country benchmarking            /fiscal-monitor (soon)
-readecb -> ECB data                                               /nowcast (soon)
+hmrc   -> HMRC trade              Compare regions tool            /cost-benefit
+obr    -> OBR fiscal              Embeddable charts               /econ-audit
+fred   -> US FRED data            Country benchmarking            /macro-briefing
+readecb -> ECB data                                               /fiscal-briefing
 readoecd -> OECD data
 
 R packages (analytical)           macrowithr.com
@@ -485,55 +255,30 @@ climatekit  -> Climate indices
 ```
 econstack/
 ├── README.md
-├── CLAUDE.md                              # Claude Code project context
+├── CLAUDE.md
 ├── VERSION
 ├── bin/
-│   └── econstack-update-check             # Version checking
+│   └── econstack-update-check
 ├── scripts/
-│   └── render-report.sh                   # Markdown to branded PDF converter
+│   └── render-report.sh
 ├── templates/
 │   └── econstack-report/
 │       └── _extensions/econstack/
-│           ├── _extension.yml             # Quarto extension config
-│           └── typst-template.typ         # Typst template (cover, headers, tables)
-├── io-report/
-│   └── SKILL.md                           # Economic impact assessment
-├── la-profile/
-│   └── SKILL.md                           # Local authority profile
-├── cost-benefit/
-│   └── SKILL.md                           # Green Book CBA (8 frameworks)
-├── econ-audit/
-│   └── SKILL.md                           # Methodology audit (60+ checks)
-├── macro-briefing/
-│   └── SKILL.md                           # UK macro monitor (30 countries)
-└── fiscal-briefing/
-    └── SKILL.md                           # UK public finances
+├── io-report/SKILL.md
+├── la-profile/SKILL.md
+├── cost-benefit/SKILL.md
+├── econ-audit/SKILL.md
+├── macro-briefing/SKILL.md
+└── fiscal-briefing/SKILL.md
 ```
 
-Each skill is a single SKILL.md file. No code, no dependencies, no build step. The SKILL.md contains:
-
-1. **YAML frontmatter**: name, description, allowed tools
-2. **Instructions**: step-by-step workflow Claude follows
-3. **Report template**: the exact structure of the output document
-4. **Methodology**: the economic model, parameters, and references
-5. **Rules**: formatting, caveats, and quality standards
+Each skill is a single SKILL.md file containing the workflow, computation, output templates, methodology, and quality rules.
 
 ---
 
 ## Contributing
 
-The most useful contributions are new skills. If you have a workflow you repeat regularly (sector analysis, trade briefing, fiscal projection), it can probably be encoded as a skill.
-
-A good skill has:
-- A clear trigger ("when someone asks for X")
-- Specific data requirements (which JSON files, which R packages)
-- A structured output template (sections, tables, charts)
-- Methodology documentation (what model, what assumptions)
-- Honest caveats (what can go wrong, what the limitations are)
-
-To add a skill: create `skills/<skill-name>/SKILL.md`, follow the format of existing skills, and open a PR.
-
----
+Create `<skill-name>/SKILL.md`, follow the format of existing skills, and open a PR.
 
 ## License
 
