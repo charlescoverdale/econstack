@@ -48,7 +48,7 @@ Generate a professional macroeconomic briefing for the UK, US, Euro area, or Aus
 - `--focus <area>` : Emphasise a specific area (output, labour, prices, monetary, fiscal, trade, housing)
 - `--international` : Include international comparison tables (30 economies)
 - `--client "Name"` : Add "Prepared for" on outputs
-- `--format pdf` : Also render branded PDF
+- `--format <type>` : Output format(s): `markdown`, `html`, `word`, `pptx`, `pdf`, or `all`. Comma-separate for multiple (e.g. `--format word,pdf`). Default: markdown only
 
 ## Country Routing
 
@@ -1431,25 +1431,63 @@ After the traffic-light table, include the existing upside/downside risk format:
 
 ---
 
-### Step 5: Save and present
+### Step 5: Output formats
+
+**If `--format` was NOT specified on the command line**, ask using AskUserQuestion:
+
+Question: "What file formats do you need?"
+
+Options (multiSelect: true):
+- Markdown (.md) : Default, always included
+- HTML : Self-contained branded page for email or browser
+- Word (.docx) : Formatted document for editing
+- PowerPoint (.pptx) : Slide deck with dashboard and key sections
+- PDF : Branded consulting-quality PDF via Quarto
+
+Markdown is always generated regardless of selection.
+
+**If `--format` was specified**, skip the question and use the specified format(s).
+
+### Step 6: Save and present
 
 Save as `macro-briefing-{country}-{date}.md`. Always save `macro-data-{country}-{date}.json`.
 
-Country-specific data source footer:
-- UK: *Data sources: ONS (via ons R package), Bank of England (via boe R package).*
-- US: *Data sources: FRED (Federal Reserve Economic Data, via fred R package).*
-- EU: *Data sources: ECB Statistical Data Warehouse (via readecb R package).*
-- AU: *Data sources: FRED and OECD (via fred and readoecd R packages).*
+**Then generate each additional format the user selected:**
 
-If `--format pdf`, render through the template:
+**HTML** (if selected):
+Generate a self-contained HTML file with inline CSS. GOV.UK-style navy branding (#003078), dashboard KPI cards at the top, professional tables. Save as `macro-briefing-{country}-{date}.html`.
+
+**Word (.docx)** (if selected):
+Invoke the `/docx` skill. Pass the markdown content. Navy headings, formatted tables, title page with country and date. If `--client` specified, include "Prepared for". Save as `macro-briefing-{country}-{date}.docx`.
+
+**PowerPoint (.pptx)** (if selected):
+Invoke the `/pptx` skill. Create slides: (1) Title, (2) Dashboard table, (3) Key sections as selected, (4) Traffic-light assessment, (5) Data sources. Navy accent. Save as `macro-briefing-{country}-{date}.pptx`.
+
+**PDF** (if selected):
 ```bash
 ECONSTACK_DIR="${CLAUDE_SKILL_DIR}/../.."
 "$ECONSTACK_DIR/scripts/render-report.sh" macro-briefing-{country}-{date}.md \
   --title "[Country Name] Macroeconomic Briefing" \
   --subtitle "[Month Year]"
 ```
-
 Where country name is: "UK" / "US" / "Euro Area" / "Australia".
+
+Tell the user what was generated:
+```
+Files saved:
+  macro-briefing-{country}-{date}.md      (report)
+  macro-data-{country}-{date}.json        (structured data)
+  macro-briefing-{country}-{date}.html    (if HTML selected)
+  macro-briefing-{country}-{date}.docx    (if Word selected)
+  macro-briefing-{country}-{date}.pptx    (if PowerPoint selected)
+  macro-briefing-{country}-{date}.pdf     (if PDF selected)
+```
+
+Country-specific data source footer:
+- UK: *Data sources: ONS (via ons R package), Bank of England (via boe R package).*
+- US: *Data sources: FRED (Federal Reserve Economic Data, via fred R package).*
+- EU: *Data sources: ECB Statistical Data Warehouse (via readecb R package).*
+- AU: *Data sources: ABS (via readabs), RBA (via readrba), FRED, and OECD.*
 
 ## Important Rules
 

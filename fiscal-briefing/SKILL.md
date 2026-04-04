@@ -44,7 +44,7 @@ Generate a narrative briefing on public finances for the UK, US, or Australia. C
 - `--full` : Skip menu, generate all sections
 - `--dsa` : Add a debt sustainability analysis section using the `debtkit` R package (projections, stress tests, fan chart description)
 - `--client "Name"` : Add "Prepared for"
-- `--format pdf` : Branded PDF
+- `--format <type>` : Output format(s): `markdown`, `html`, `word`, `pptx`, `pdf`, or `all`. Comma-separate for multiple. Default: markdown only
 
 ## Country Routing
 
@@ -819,22 +819,59 @@ Rscript -e '
 
 ## SECTION D: OUTPUT
 
+### Step 3b: Output formats
+
+**If `--format` was NOT specified on the command line**, ask using AskUserQuestion:
+
+Question: "What file formats do you need?"
+
+Options (multiSelect: true):
+- Markdown (.md) : Default, always included
+- HTML : Self-contained branded page for email or browser
+- Word (.docx) : Formatted document for editing
+- PowerPoint (.pptx) : Slide deck with dashboard and key charts
+- PDF : Branded consulting-quality PDF via Quarto
+
+Markdown is always generated regardless of selection.
+
 ### Step 4: Save and present
 
 Save as `fiscal-briefing-{country}-{date}.md`. Always save `fiscal-data-{country}-{date}.json`.
 
-Country-specific data source footer:
-- UK: *Data from ONS and OBR. Powered by econstack.*
-- US: *Data from FRED (Treasury Monthly Statement, BEA NIPA, OMB). Powered by econstack.*
-- AU: *Data from ABS GFS (via readabs) and Budget papers. Powered by econstack.*
+**Then generate each additional format the user selected:**
 
-If `--format pdf`, render through the template:
+**HTML** (if selected):
+Generate a self-contained HTML file with inline CSS. Navy branding (#003078), dashboard KPI cards, professional tables. Save as `fiscal-briefing-{country}-{date}.html`.
+
+**Word (.docx)** (if selected):
+Invoke the `/docx` skill. Navy headings, formatted tables, title page. Save as `fiscal-briefing-{country}-{date}.docx`.
+
+**PowerPoint (.pptx)** (if selected):
+Invoke the `/pptx` skill. Slides: (1) Title, (2) Dashboard, (3) Receipts table, (4) Expenditure table, (5) Debt/outlook, (6) Methodology. Save as `fiscal-briefing-{country}-{date}.pptx`.
+
+**PDF** (if selected):
 ```bash
 ECONSTACK_DIR="${CLAUDE_SKILL_DIR}/../.."
 "$ECONSTACK_DIR/scripts/render-report.sh" fiscal-briefing-{country}-{date}.md \
   --title "[Country] Public Finances Briefing" \
   --subtitle "[Month Year]"
 ```
+
+Tell the user what was generated:
+```
+Files saved:
+  fiscal-briefing-{country}-{date}.md      (report)
+  fiscal-data-{country}-{date}.json        (structured data)
+  fiscal-briefing-{country}-{date}.html    (if HTML selected)
+  fiscal-briefing-{country}-{date}.docx    (if Word selected)
+  fiscal-briefing-{country}-{date}.pptx    (if PowerPoint selected)
+  fiscal-briefing-{country}-{date}.pdf     (if PDF selected)
+```
+
+Country-specific data source footer:
+- UK: *Data from ONS and OBR. Powered by econstack.*
+- US: *Data from FRED (Treasury Monthly Statement, BEA NIPA, OMB). Powered by econstack.*
+- AU: *Data from ABS GFS (via readabs) and Budget papers. Powered by econstack.*
 
 ## Important Rules
 

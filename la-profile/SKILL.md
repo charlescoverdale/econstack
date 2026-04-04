@@ -48,7 +48,7 @@ Generate professional economic profile content for any UK local authority. Cover
 - `--focus housing` : Emphasise housing and affordability
 - `--focus business` : Emphasise business activity and industry structure
 - `--client "Name"` : Add "Prepared for: [Name]" on outputs
-- `--format pdf` : Also render branded PDF
+- `--format <type>` : Output format(s): `markdown`, `html`, `word`, `pptx`, `pdf`, or `all`. Comma-separate for multiple. Default: markdown only
 
 ## Instructions
 
@@ -356,9 +356,37 @@ End with a "Key Differences" paragraph highlighting the 3-4 most notable contras
 
 ### Step 6: Save and present
 
+### Output formats
+
+**If `--format` was NOT specified on the command line**, ask using AskUserQuestion:
+
+Question: "What file formats do you need?"
+
+Options (multiSelect: true):
+- Markdown (.md) : Default, always included
+- HTML : Self-contained branded page for email or browser
+- Word (.docx) : Formatted document for editing
+- PowerPoint (.pptx) : Slide deck with key charts and tables
+- PDF : Branded consulting-quality PDF via Quarto
+
+Markdown is always generated regardless of selection.
+
+### Save and present
+
 Save output as `la-profile-{slug}-{date}.md`. Always save `la-data-{slug}-{date}.json`.
 
-If `--format pdf`, render through the template:
+**Then generate each additional format the user selected:**
+
+**HTML** (if selected):
+Generate a self-contained HTML file with inline CSS. Navy branding (#003078), KPI cards, professional tables. Save as `la-profile-{slug}-{date}.html`.
+
+**Word (.docx)** (if selected):
+Invoke the `/docx` skill. Navy headings, formatted tables, title page with LA name and country. Save as `la-profile-{slug}-{date}.docx`.
+
+**PowerPoint (.pptx)** (if selected):
+Invoke the `/pptx` skill. Slides: (1) Title with LA name, (2) Key stats dashboard, (3) Employment/industry, (4) Earnings/housing, (5) Deprivation/benchmarks. Save as `la-profile-{slug}-{date}.pptx`.
+
+**PDF** (if selected):
 ```bash
 ECONSTACK_DIR="${CLAUDE_SKILL_DIR}/../.."
 "$ECONSTACK_DIR/scripts/render-report.sh" la-profile-{slug}-{date}.md \
@@ -371,7 +399,10 @@ Tell the user what was generated:
 Files saved:
   la-profile-{slug}-{date}.md     (profile / selected sections)
   la-data-{slug}-{date}.json      (structured data)
-  la-profile-{slug}-{date}.pdf    (if --format pdf)
+  la-profile-{slug}-{date}.html   (if HTML selected)
+  la-profile-{slug}-{date}.docx   (if Word selected)
+  la-profile-{slug}-{date}.pptx   (if PowerPoint selected)
+  la-profile-{slug}-{date}.pdf    (if PDF selected)
 ```
 
 ## Important Rules
