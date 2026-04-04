@@ -1085,9 +1085,139 @@ Based on the VfM assessment above:
 *These recommendations are based on the quantitative VfM assessment. They should be considered alongside qualitative evidence, strategic priorities, and political context.*
 ```
 
-**Methodology note:**
+**Methodology annex:**
+
+When the user selects "Methodology note" from the section picker, or when `--full` is specified, generate the following detailed methodology annex. This should be a standalone section that a government economist, auditor, or peer reviewer can read to understand every assumption, data source, and computational step.
+
 ```markdown
-**Methodology:** Value for Money evaluation following the HM Treasury Magenta Book [3Es/4Es] framework. Economy assessed by benchmarking unit costs against the GMCA Unit Cost Database (Green Book supplementary guidance). Efficiency assessed by delivery rate against targets. Effectiveness assessed using [evaluation method] (Maryland SMS Level [N]) with additionality adjustments per HM Treasury Additionality Guide (4th edition, 2014) [if multiplier > 1.0: "including Type [I/II] multiplier of [val]"]. BCR and RPSC computed from discounted monetised benefits (Green Book STPR [val]%) vs total programme cost [if decay: "with [val]% annual benefit decay"]. Sensitivity analysis conducted on discount rate, additionality, and benefit duration. Fiscal return estimated using GMCA fiscal unit costs, discounted over [val] years. [If WELLBY: "Wellbeing impacts monetised using WELLBY valuation (GBP 13,000, 2019 prices) per Green Book supplementary guidance."] [If 4Es: "Equity assessed against FCDO equity framework (2019)."] All unit costs in [year] prices.
+## Methodology
+
+### Evaluation framework
+
+This evaluation follows the HM Treasury Magenta Book (2020, updated July 2025) [3Es/4Es] framework. The three dimensions of value for money are:
+
+- **Economy:** Were inputs purchased at the right price and quality? Assessed by benchmarking programme unit costs against published comparators.
+- **Efficiency:** Were inputs converted into outputs at an acceptable rate? Assessed by comparing planned vs delivered outputs.
+- **Effectiveness:** Did the programme achieve its intended outcomes? Assessed by computing a benefit-cost ratio (BCR) from monetised outcomes.
+
+[If 4Es: "A fourth dimension, **Equity**, assesses whether benefits were distributed fairly across target populations, per FCDO guidance (2019)."]
+
+### Evidence quality
+
+Evidence quality is graded using the Maryland Scientific Methods Scale (SMS), the standard used by the What Works Centre for Local Economic Growth and adopted across UK government for impact evaluation.
+
+| SMS Level | Design | Counterfactual strength |
+|-----------|--------|------------------------|
+| 5 | Randomised control trial (RCT) | Strongest: eliminates observable and unobservable selection bias |
+| 4 | Quasi-experimental (RDD, IV) | Strong: exploits natural experiments or policy thresholds |
+| 3 | Difference-in-differences with comparison group | Moderate: controls for time-invariant differences and common trends |
+| 2 | Before-and-after with statistical controls | Limited: controls for observable confounders only |
+| 1 | Simple before-and-after or descriptive | Weakest: no counterfactual, cannot attribute outcomes to programme |
+
+This evaluation uses [evaluation method] (SMS Level [N]). [1-2 sentences on what this means for the credibility of the BCR. E.g., "At Level 1, the BCR should be interpreted as indicative. The observed outcomes cannot be attributed solely to the programme; external trends may explain part of the improvement."]
+
+Source: [What Works Centre SMS Scoring Guide](https://whatworksgrowth.org/resource-library/the-maryland-scientific-methods-scale-sms/).
+
+### Additionality
+
+Net additional outcomes are computed per the HM Treasury Additionality Guide (4th edition, 2014):
+
+```
+net_additional = gross_outcomes * (1 - deadweight) * (1 - displacement) * (1 - leakage) * (1 - substitution) * multiplier
+```
+
+| Parameter | Value used | Rationale |
+|-----------|-----------|-----------|
+| Deadweight | [val]% | [Sector default / custom. What would have happened without the programme.] |
+| Displacement | [val]% | [Sector default / custom. Activity displaced from elsewhere in the local economy.] |
+| Leakage | [val]% | [Sector default / custom. Benefits that accrue outside the target area.] |
+| Substitution | [val]% | [Sector default / custom. Firms substituting subsidised for unsubsidised activity.] |
+| Multiplier | [val] | [1.0 (no multiplier) / Type I / Type II. Indirect and induced effects.] |
+| **Net factor** | **[val]** | |
+
+[If sector defaults used: "Sector-specific central estimates derived from Additionality Guide ranges for [sector]. See the Guide for full ranges and guidance on when to deviate."]
+
+Source: [HM Treasury Additionality Guide, 4th edition (2014)](https://www.gov.uk/government/publications/green-book-supplementary-guidance-additionality).
+
+### Monetisation
+
+Outcomes are monetised using the following unit values:
+
+| Outcome type | Unit value | Price year | Source |
+|-------------|-----------|-----------|--------|
+| [Outcome 1] | GBP [val] | [year] | [GMCA Unit Cost Database / Green Book / custom] |
+| [Outcome 2] | GBP [val] | [year] | [source] |
+[If WELLBY: "| Wellbeing impact | GBP 13,000/WELLBY | 2019 | Green Book Wellbeing Guidance (2021) |"]
+
+Unit costs are national averages from the Greater Manchester Combined Authority (GMCA) Unit Cost Database, adopted as Green Book supplementary guidance. Actual costs vary by region, local service configuration, and individual circumstances.
+
+[If price base year adjustment applied: "Programme costs (in [year] prices) were adjusted to [year] prices using the GDP deflator to ensure comparability with unit cost benchmarks."]
+
+Source: [GO Lab Unit Cost Database](https://golab.bsg.ox.ac.uk/knowledge-bank/resources/unit-cost-database/).
+
+### Discounting
+
+Multi-year benefits are discounted to present value using the Green Book Social Time Preference Rate (STPR):
+
+| Period | Discount rate | Source |
+|--------|-------------|--------|
+| Years 0-30 | 3.5% | Green Book 2026, Ramsey formula: delta=0.5%, L=1%, mu=1, g=2% |
+| Years 31-75 | 3.0% | Green Book declining schedule |
+| Years 76-125 | 2.5% | Green Book declining schedule |
+
+Benefit duration: [N] years. [If decay: "Annual benefits decline at [val]% per year to reflect outcome persistence decay (e.g., some participants leave employment over time)."]
+
+All costs are assumed to occur in year 0 (programme period). [If multi-year costs: "Programme costs spanning multiple years were also discounted."]
+
+Source: [HM Treasury Green Book 2026](https://www.gov.uk/government/publications/the-green-book-appraisal-and-evaluation-in-central-government).
+
+### Key metrics
+
+| Metric | Formula | Value |
+|--------|---------|-------|
+| BCR | PV(benefits) / PV(costs) | [val] |
+| NPSV | PV(benefits) - PV(costs) | GBP [val] |
+| RPSC | NPSV / net public sector cost | [val] |
+| Fiscal BCR | PV(fiscal savings) / PV(costs) | [val] |
+| Cost per net outcome | PV(costs) / net additional outcomes | GBP [val] |
+
+VfM classification follows DfT categories (May 2025): Very Poor (BCR < 0), Poor (0 to < 1.0), Low (1.0 to < 1.5), Medium (1.5 to < 2.0), High (2.0 to < 4.0), Very High (>= 4.0). Boundary values go to the upper category.
+
+Source: [DfT Value for Money Framework (May 2025)](https://www.gov.uk/government/publications/dft-value-for-money-framework).
+
+### Sensitivity analysis
+
+Key assumptions were tested per Green Book and Magenta Book requirements:
+
+- **Discount rate:** Central (3.5%), low (1.5%), high (7%)
+- **Additionality:** Central (net factor [val]), optimistic ([val]), conservative ([val])
+- **Benefit duration:** Central ([N] years), +/- 1 year
+- **Decay rate:** [If applicable: "[val]% annual decay" / "Tested at 10% if constant assumed"]
+- **Switching values:** Parameters at which the BCR crosses 1.0
+
+[If optimism bias note included: "Forward-looking benefit projections are subject to optimism bias per Green Book supplementary guidance (Flyvbjerg et al.). The sensitivity analysis on benefit duration and decay rate partially addresses this."]
+
+### Data sources
+
+| Data element | Source | Vintage | Access |
+|-------------|--------|---------|--------|
+| Programme costs | [Programme monitoring data] | [year] | [Provided by user] |
+| Programme outcomes | [Programme monitoring data / evaluation report] | [year] | [Provided by user] |
+| Unit costs | GMCA Unit Cost Database; NHS NCC; HMPPS; PSSRU | 2023-2025 | [GO Lab, NHS England, gov.uk] |
+| Additionality parameters | HM Treasury Additionality Guide (4th ed.) | 2014 | [gov.uk] |
+| Discount rates | HM Treasury Green Book | 2026 | [gov.uk] |
+| BCR benchmarks | DfT VfM Framework; What Works Centre | 2024-2025 | [gov.uk, whatworksgrowth.org] |
+[If WELLBY: "| WELLBY value | Green Book Wellbeing Guidance | 2021 | [gov.uk] |"]
+
+### Limitations
+
+1. **Evidence quality:** This evaluation is based on SMS Level [N] evidence. [If Level 1-2: "Without a credible counterfactual, the BCR may overstate or understate the true programme impact. External trends, selection effects, and regression to the mean cannot be ruled out."]
+2. **Unit cost precision:** Unit costs are national averages. Actual costs in [programme location] may differ due to local service configuration, labour market conditions, and demographic factors.
+3. **Benefit persistence:** [If assumptions made about future benefits: "The assumed benefit duration of [N] years is an estimate. Actual persistence depends on the sustainability of outcomes, which may be affected by external factors not captured in this evaluation."]
+4. **Double-counting risk:** [If multiple outcome types monetised: "Where multiple outcome types are monetised, there is a risk that unit costs for different outcomes overlap (e.g., homelessness costs may include a health component). The unit costs used have been checked for overlap where documentation permits, but some residual double-counting risk remains."]
+5. **Scope:** This evaluation covers the quantitative VfM assessment only. It does not replace a process evaluation, qualitative assessment, or strategic review of the programme's theory of change.
+
+*This methodology annex was generated by econstack. All parameters, sources, and computations are documented in the companion JSON file (`vfm-data-{slug}-{date}.json`).*
 ```
 
 **Slide summary:**
