@@ -1,6 +1,6 @@
 ---
 name: macro-briefing
-description: Generate a UK macroeconomic briefing. Pulls GDP, inflation, employment, wages, rates, trade, housing, and fiscal data. Interactive section selection.
+description: Macroeconomic monitor. Supports UK, US, Euro area, and Australia. Pulls GDP, inflation, employment, wages, rates, trade, housing, and fiscal data. Each country follows its central bank's reporting structure. Interactive section selection.
 allowed-tools:
   - Bash
   - Read
@@ -19,9 +19,9 @@ Then continue with the skill normally.
 ~/.claude/skills/econstack/bin/econstack-update-check 2>/dev/null || true
 ```
 
-# /macro-briefing: UK Macroeconomic Monitor
+# /macro-briefing: Macroeconomic Monitor
 
-Generate a professional UK macro briefing covering output, labour market, prices, monetary conditions, fiscal position, trade, and housing. Follows the Bank of England Monetary Policy Report narrative structure.
+Generate a professional macroeconomic briefing for the UK, US, Euro area, or Australia. Each country follows its central bank's reporting structure: BoE MPR for the UK, FOMC/Beige Book for the US, ECB Economic Bulletin for the Euro area, RBA Statement on Monetary Policy for Australia.
 
 **This skill is interactive.** It pulls the latest data, shows you a dashboard, then asks what output you need.
 
@@ -33,18 +33,36 @@ Generate a professional UK macro briefing covering output, labour market, prices
 
 **Examples:**
 ```
-/macro-briefing
+/macro-briefing                     # UK (default)
+/macro-briefing --country us        # US macro briefing (Fed structure)
+/macro-briefing --country eu        # Euro area briefing (ECB structure)
+/macro-briefing --country au        # Australia briefing (RBA structure)
 /macro-briefing --full
-/macro-briefing --focus prices
+/macro-briefing --country us --focus prices
 /macro-briefing --international
 ```
 
 **Options:**
+- `--country <code>` : Country to brief. `uk` (default), `us`, `eu`, `au`
 - `--full` : Skip the interactive menu, generate all sections
 - `--focus <area>` : Emphasise a specific area (output, labour, prices, monetary, fiscal, trade, housing)
-- `--international` : Include major economies (US, Euro area, Japan, China, Canada, Australia, G7/OECD aggregates)
+- `--international` : Include international comparison tables (30 economies)
 - `--client "Name"` : Add "Prepared for" on outputs
 - `--format pdf` : Also render branded PDF
+
+## Country Routing
+
+Parse the `--country` flag. Default is `uk` if not specified.
+
+| Country | Data (Section A) | Dashboard (B) | Narrative (C) | Central bank style |
+|---------|-----------------|---------------|---------------|-------------------|
+| `uk` | A1: ons + boe packages | B1 | C1: 12 sections | BoE Monetary Policy Report |
+| `us` | A2: fred package | B2 | C2: 8 sections | FOMC / Beige Book |
+| `eu` | A3: readecb package | B3 | C3: 6 sections | ECB Economic Bulletin |
+| `au` | A4: fred + readoecd | B4 | C4: 5 sections | RBA Statement on Monetary Policy |
+
+All countries also run A5 (global indicators: Brent, VIX, consumer confidence).
+If `--international` is specified, also run A6 (30-country comparison data) and D2 (comparison tables).
 
 ## CDID Reference Table
 
@@ -74,11 +92,22 @@ Key BoE codes:
 
 ## Instructions
 
-### Step 1: Identify arguments
+### Step 1: Identify arguments and route
 
-Parse any flags from the user's command.
+Parse any flags from the user's command. Determine the country from `--country` (default: `uk`). Then execute the matching pipeline:
 
-### Step 2: Fetch data
+- `uk`: A1 + A5 -> B1 -> C1 + D1
+- `us`: A2 + A5 -> B2 -> C2 + D1
+- `eu`: A3 + A5 -> B3 -> C3 + D1
+- `au`: A4 + A5 -> B4 -> C4 + D1
+
+If `--international` is also specified, additionally run A6 + D2.
+
+---
+
+## SECTION A: DATA FETCHING
+
+### A1: UK Data Fetching
 
 Use the ons and boe R packages. These handle ONS API changes, CSV parsing, caching, and retry logic.
 
@@ -157,10 +186,194 @@ For each indicator in the data:
 Add a "Data freshness" footer to EVERY output (markdown, HTML, PDF, etc.):
 
 ---
-*Data sources: ONS (via ons R package), Bank of England (via boe R package).*
-*Latest data points: GDP [date], CPI [date], unemployment [date], wages [date], Bank Rate [date].*
+*Data sources: [country-specific footer, see Step 5].*
+*Latest data points: GDP [date], CPI/HICP [date], unemployment [date], [key rate name] [date].*
 *[If any stale]: Note: [indicator] data is [X] days old and may not reflect the latest release.*
 ---
+
+### A2: US Data Fetching
+
+**Only run if `--country us` is specified.** Requires the `fred` R package with a FRED API key.
+
+```bash
+Rscript -e '
+  library(fred); library(jsonlite)
+
+  tryCatch({
+    data <- list(
+      # Output and activity
+      gdp = tail(fred_series("A191RL1Q225SBEA"), 8),
+      industrial_production = tail(fred_series("INDPRO"), 12),
+      retail_sales = tail(fred_series("RSAFS"), 12),
+
+      # Labour market
+      unemployment = tail(fred_series("UNRATE"), 12),
+      payrolls = tail(fred_series("PAYEMS"), 12),
+      initial_claims = tail(fred_series("ICSA"), 12),
+      jolts_openings = tail(fred_series("JTSJOL"), 12),
+      avg_hourly_earnings = tail(fred_series("CES0500000003"), 12),
+
+      # Prices
+      cpi = tail(fred_series("CPIAUCSL", units="pc1"), 12),
+      cpi_core = tail(fred_series("CPILFESL", units="pc1"), 12),
+      pce = tail(fred_series("PCEPI", units="pc1"), 12),
+      pce_core = tail(fred_series("PCEPILFE", units="pc1"), 12),
+
+      # Monetary policy and financial conditions
+      fed_funds = tail(fred_series("FEDFUNDS"), 12),
+      treasury_2y = tail(fred_series("GS2"), 30),
+      treasury_10y = tail(fred_series("GS10"), 30),
+      yield_spread = tail(fred_series("T10Y2Y"), 30),
+      hy_spread = tail(fred_series("BAMLH0A0HYM2"), 30),
+
+      # Housing
+      housing_starts = tail(fred_series("HOUST"), 12),
+      case_shiller = tail(fred_series("CSUSHPINSA"), 12),
+      mortgage_30y = tail(fred_series("MORTGAGE30US"), 30),
+
+      # Consumer
+      consumer_sentiment = tail(fred_series("UMCSENT"), 12)
+    )
+    cat(toJSON(data, auto_unbox=TRUE, pretty=TRUE))
+  }, error = function(e) {
+    cat(paste0("ERROR: ", e$message))
+  })
+'
+```
+
+If fred is not installed or the API key is missing, tell the user:
+"The US macro briefing requires the fred R package with a FRED API key.
+Install with: install.packages('fred')
+Set key with: fred_set_key('YOUR_KEY')
+Get a free key from: https://fredaccount.stlouisfed.org/apikeys"
+Stop.
+
+**Note on US GDP convention:** The BEA reports GDP growth as an annualized rate (quarterly change x4, roughly). This is different from the UK/EU convention of reporting quarter-on-quarter growth. Always state "annualized" when presenting US GDP growth, and note that dividing by ~4 gives the approximate q/q rate for international comparison.
+
+---
+
+### A3: Euro Area Data Fetching
+
+**Only run if `--country eu` is specified.** Uses the `readecb` R package. No API key required.
+
+```bash
+Rscript -e '
+  library(readecb); library(jsonlite)
+
+  tryCatch({
+    data <- list(
+      # Economic activity
+      gdp = tail(ecb_gdp(), 8),
+
+      # Labour market
+      unemployment = tail(ecb_unemployment(), 12),
+
+      # Prices (full ECB decomposition)
+      hicp = tail(ecb_hicp(), 12),
+      hicp_core = tail(ecb_get("ICP.M.U2.N.XEF000.4.ANR"), 12),
+      hicp_services = tail(ecb_get("ICP.M.U2.N.SERV00.4.ANR"), 12),
+      hicp_food = tail(ecb_get("ICP.M.U2.N.FOOD00.4.ANR"), 12),
+      hicp_neig = tail(ecb_get("ICP.M.U2.N.IGD_NNRG.4.ANR"), 12),
+
+      # Monetary and financial conditions
+      ecb_rates = tail(ecb_policy_rates(), 30),
+      estr = tail(ecb_estr(), 30),
+      euribor_3m = tail(ecb_euribor("3M"), 30),
+      euribor_12m = tail(ecb_euribor("12M"), 30),
+      yield_2y = tail(ecb_yield_curve("2"), 30),
+      yield_10y = tail(ecb_yield_curve("10"), 30),
+      m3 = tail(ecb_money_supply("M3"), 12),
+      lending_rates = tail(ecb_lending_rates(), 12),
+      mortgage_rates = tail(ecb_mortgage_rates(), 12),
+
+      # Fiscal
+      govt_debt = tail(ecb_government_debt(), 8),
+
+      # Exchange rates
+      eur_usd = tail(ecb_exchange_rate("USD"), 30)
+    )
+    cat(toJSON(data, auto_unbox=TRUE, pretty=TRUE))
+  }, error = function(e) {
+    cat(paste0("ERROR: ", e$message))
+  })
+'
+```
+
+If readecb is not installed, tell the user:
+"The Euro area macro briefing requires the readecb R package. Install with: install.packages('readecb')"
+Stop.
+
+---
+
+### A4: Australia Data Fetching
+
+**Only run if `--country au` is specified.** Uses `fred` (primary) with `readoecd` backup. FRED API key required.
+
+```bash
+Rscript -e '
+  library(jsonlite)
+  data <- list()
+
+  # FRED (primary)
+  if (requireNamespace("fred", quietly = TRUE)) {
+    library(fred)
+    tryCatch({
+      data$gdp = tail(fred_series("NAEXKP01AUQ189S"), 8)
+      data$cpi = tail(fred_series("CPALTT01AUM661N"), 12)
+      data$unemployment = tail(fred_series("LRUNTTTTAUM156S"), 12)
+      data$rba_rate = tail(fred_series("IRSTCB01AUM156N"), 12)
+    }, error = function(e) message("FRED fetch failed: ", e$message))
+  }
+
+  # readoecd (backup for any missing series)
+  if (requireNamespace("readoecd", quietly = TRUE)) {
+    library(readoecd)
+    if (is.null(data$gdp)) tryCatch({ data$gdp = tail(get_oecd_gdp("AUS"), 8) }, error = function(e) NULL)
+    if (is.null(data$cpi)) tryCatch({ data$cpi = tail(get_oecd_cpi("AUS"), 12) }, error = function(e) NULL)
+    if (is.null(data$unemployment)) tryCatch({ data$unemployment = tail(get_oecd_unemployment("AUS"), 12) }, error = function(e) NULL)
+  }
+
+  if (length(data) == 0) {
+    cat("ERROR: No data retrieved. Install fred (with API key) or readoecd.")
+  } else {
+    cat(toJSON(data, auto_unbox=TRUE, pretty=TRUE))
+  }
+'
+```
+
+**Note:** The Australia briefing covers fewer indicators than the US or Euro area due to data availability through free APIs. For additional Australian data (labour force survey detail, building approvals, NAB business confidence, trimmed mean CPI), refer to the ABS and RBA websites directly.
+
+---
+
+### A5: Global Indicators
+
+**Run for ALL countries.** These provide energy, financial stress, and forward-looking context.
+
+```bash
+Rscript -e '
+  library(jsonlite)
+  global <- list()
+
+  if (requireNamespace("fred", quietly = TRUE)) {
+    library(fred)
+    tryCatch({ global$brent = tail(fred_series("DCOILBRENTEU"), 30) }, error = function(e) NULL)
+    tryCatch({ global$henry_hub = tail(fred_series("DHHNGSP"), 30) }, error = function(e) NULL)
+    tryCatch({ global$vix = tail(fred_series("VIXCLS"), 30) }, error = function(e) NULL)
+  }
+
+  cat(toJSON(global, auto_unbox=TRUE, pretty=TRUE))
+'
+```
+
+If fred is not available, note: "Global indicators (oil, VIX) require the fred package." Continue without them.
+
+**PMI data:** Manufacturing and services PMIs (S&P Global, ISM) are proprietary and not available through free APIs. When writing the outlook section, Claude should reference the latest PMI readings from its training data and flag: "PMI figures are from Claude's knowledge base and may not reflect the most recent release. Check S&P Global or ISM for current readings."
+
+---
+
+### A6: International Comparison Data
+
+**Only run if `--international` is specified (combinable with any `--country`).**
 
 **If `--international` is specified:**
 
@@ -382,9 +595,15 @@ Rscript -e '
 - If ALL international packages are missing: "No international data packages available. Install fred, readecb, or readoecd for international comparisons."
 - Each country fetch is wrapped in tryCatch. If one country fails, the others still proceed.
 
+---
+
+## SECTION B: DASHBOARDS
+
 ### Step 3: Show the dashboard and ask what the user needs
 
-Present the headline numbers:
+Present the country-specific dashboard.
+
+### B1: UK Dashboard
 
 ```
 UK MACRO DASHBOARD
@@ -412,6 +631,78 @@ Trade balance:        £[val]m
 Data as of: [latest date from each series]
 ```
 
+### B2: US Dashboard
+
+```
+US MACRO DASHBOARD
+==================
+GDP (annualized q/q):  [val]%        (prev: [val]%)
+Nonfarm payrolls:      +[val]k       (prev: +[val]k)
+Unemployment:          [val]%        (prev: [val]%)
+Initial claims:        [val]k        (4wk avg: [val]k)
+CPI (annual):          [val]%        (prev: [val]%)
+Core CPI:              [val]%
+PCE (annual):          [val]%        (Fed's preferred measure)
+Core PCE:              [val]%
+Fed funds rate:        [val]%
+2yr Treasury:          [val]%
+10yr Treasury:         [val]%
+10y-2y spread:         [val]bp
+HY spread:             [val]bp
+30yr mortgage:         [val]%
+Housing starts:        [val]k (SAAR)
+Case-Shiller HPI:     [val]% y/y
+Consumer sentiment:    [val]         (prev: [val])
+Brent crude:           $[val]/bbl
+VIX:                   [val]
+
+Data as of: [latest date from each series]
+```
+
+### B3: Euro Area Dashboard
+
+```
+EURO AREA MACRO DASHBOARD
+==========================
+GDP (q/q):             [val]%        (prev: [val]%)
+Unemployment:          [val]%        (prev: [val]%)
+HICP (annual):         [val]%        (prev: [val]%)
+Core HICP:             [val]%
+Services HICP:         [val]%
+ECB deposit rate:      [val]%
+ECB MRO rate:          [val]%
+ESTR:                  [val]%
+3m EURIBOR:            [val]%
+12m EURIBOR:           [val]%
+2yr AAA yield:         [val]%
+10yr AAA yield:        [val]%
+M3 growth (y/y):       [val]%
+NFC lending rate:      [val]%
+Mortgage rate:         [val]%
+EUR/USD:               [val]
+Govt debt/GDP:         [val]%
+Brent crude:           EUR [val]/bbl
+
+Data as of: [latest date from each series]
+```
+
+### B4: Australia Dashboard
+
+```
+AUSTRALIA MACRO DASHBOARD
+==========================
+GDP (q/q):             [val]%        (prev: [val]%)
+Unemployment:          [val]%        (prev: [val]%)
+CPI (annual):          [val]%        (prev: [val]%)
+RBA cash rate:         [val]%
+Brent crude:           A$[val]/bbl
+
+Data as of: [latest date from each series]
+Note: Limited indicator coverage via free APIs. See RBA and ABS for additional data.
+```
+
+### Interactive Menu
+
 **If `--full` was NOT specified**, ask using AskUserQuestion:
 
 Question: "What output do you need?"
@@ -422,9 +713,9 @@ Options:
 - C) **Dashboard only** : Just the summary table above
 - D) **Data only** : JSON file with all values
 
-**If user picks B**, ask a follow-up (multiSelect: true):
+**If user picks B**, ask a follow-up (multiSelect: true) with country-specific sections:
 
-Options:
+**UK sections:**
 - Output and activity (GDP quarterly + monthly, production, services, retail)
 - Labour market (unemployment, employment, inactivity, claimant count, vacancies)
 - Wages and earnings (AWE total, regular, real wages)
@@ -435,10 +726,43 @@ Options:
 - Trade and external (trade balance, current account)
 - Housing market (house prices, mortgage approvals, affordability)
 - Productivity (output per hour, output per worker)
-- International comparison (UK vs major economies and G7/OECD aggregates, requires --international data)
-- Outlook and risks (growth trajectory, inflation path, key risks)
+- International comparison (requires --international data)
+- Outlook and risks
+
+**US sections:**
+- Output and activity (GDP annualized, industrial production, retail sales)
+- Labour market (payrolls, unemployment, claims, JOLTS, earnings)
+- Prices (CPI headline/core, PCE headline/core)
+- Monetary policy (Fed funds, FOMC context)
+- Financial conditions (Treasuries, yield curve, HY spreads, mortgage rates)
+- Housing (starts, Case-Shiller, affordability)
+- Consumer (sentiment, retail trajectory)
+- Outlook and risks
+
+**Euro area sections:**
+- Economic activity (GDP, production)
+- Labour market (unemployment, employment, wages)
+- Prices (HICP headline, core, services, food, non-energy goods)
+- Monetary and financial conditions (ECB rates, ESTR, EURIBOR, yields, M3, lending)
+- Fiscal (government debt/GDP)
+- Outlook and risks
+
+**Australia sections:**
+- Domestic economy (GDP, consumption)
+- Labour market (unemployment, participation)
+- Inflation (CPI headline, trimmed mean)
+- Financial conditions (cash rate, yields)
+- Outlook and risks
+
+---
+
+## SECTION C: NARRATIVE TEMPLATES
 
 ### Step 4: Generate the requested output
+
+Use the narrative templates matching the selected country. C1 for UK, C2 for US, C3 for EU, C4 for AU. All countries also use D1 (traffic-light outlook) in their Outlook section.
+
+### C1: UK Narrative Templates (BoE MPR structure)
 
 **Always include a key numbers block at the top:**
 
@@ -671,27 +995,363 @@ Note: This outlook is based on the data trajectory and recent policy signals. Fo
 *Data from ONS and Bank of England. Powered by econstack.*
 ```
 
+---
+
+### C2: US Narrative Templates (FOMC / Beige Book structure)
+
+Each section follows the same bold-lead-sentence pattern as the UK templates. Every section stands alone.
+
+**US key numbers block:**
+```markdown
+<!-- KEY NUMBERS
+type: macro
+date: [YYYY-MM-DD]
+framework: us
+gdp_annualized_pct: [val]
+unemployment_pct: [val]
+payrolls_change_k: [val]
+cpi_pct: [val]
+cpi_core_pct: [val]
+pce_pct: [val]
+pce_core_pct: [val]
+fed_funds_pct: [val]
+treasury_2y_pct: [val]
+treasury_10y_pct: [val]
+yield_spread_bp: [val]
+mortgage_30y_pct: [val]
+housing_starts_k: [val]
+case_shiller_yy_pct: [val]
+consumer_sentiment: [val]
+brent_usd: [val]
+-->
+```
+
+**Output and activity:**
+```markdown
+## Output and Activity
+
+**Real GDP grew at an annualized rate of [val]% in [quarter], [above/below/in line with] the prior quarter's [val]%.** On an approximate quarter-on-quarter basis (~[val/4]%), this compares to [UK/EU equivalent] of [val]%. Industrial production [rose/fell] [val]% in [month]. Retail sales [rose/fell] [val]%.
+
+[1-2 sentences on sectoral composition or momentum.]
+```
+
+**Labour market:**
+```markdown
+## Labour Market
+
+**The economy added [val]k nonfarm jobs in [month], [above/below] the 3-month average of [val]k.** The unemployment rate stands at [val]%, [up/down] from [val]%. Initial jobless claims averaged [val]k over the past 4 weeks.
+
+Job openings (JOLTS) stand at [val]m, giving a vacancies-to-unemployed ratio of [computed]. Average hourly earnings grew [val]% year-on-year. [Interpretation: is the labour market tight, balanced, or loosening?]
+```
+
+**Prices:**
+```markdown
+## Prices
+
+**CPI inflation [rose/fell] to [val]% in [month], while the Fed's preferred measure (core PCE) was [val]%.** Headline PCE was [val]%. Core CPI (excluding food and energy) was [val]%.
+
+The divergence between CPI and PCE [is/is not] significant because [shelter weighting, methodology differences]. [Services vs goods decomposition if relevant.]
+
+*Note: The Fed targets 2% PCE inflation, not CPI. PCE gives lower weight to shelter and uses a chain-weighted methodology.*
+```
+
+**Monetary policy:**
+```markdown
+## Monetary Policy
+
+**The federal funds rate stands at [val]%, [unchanged since / following the [month] FOMC decision to [cut/raise] by [X]bp].** Markets are pricing [X] further [cuts/hikes] by year-end.
+
+[1-2 sentences on FOMC guidance, dot plot implications, or key dissents if relevant.]
+```
+
+**Financial conditions:**
+```markdown
+## Financial Conditions
+
+**Treasury yields:** The 10-year yield stands at [val]%, with the 2-year at [val]%. The 2s10s spread is [val]bp, [indicating/suggesting]. [If inverted: "The yield curve remains inverted, historically a recession signal, though the current inversion has lasted [duration]."]
+
+**Credit conditions:** The high-yield spread is [val]bp, [tight/widening/stable by historical standards]. [Interpretation.]
+
+**Mortgage rates:** The 30-year fixed rate is [val]%, [up/down] from [val]% [period ago]. [Impact on housing affordability.]
+```
+
+**Housing:**
+```markdown
+## Housing
+
+**Housing starts [rose/fell] to [val]k (SAAR) in [month].** The Case-Shiller national home price index is [val]% higher year-on-year. With 30-year mortgage rates at [val]%, affordability remains [assessment].
+
+[1-2 sentences on supply vs demand dynamics.]
+```
+
+**Consumer:**
+```markdown
+## Consumer
+
+**The University of Michigan consumer sentiment index [rose/fell] to [val] in [month], [above/below] its long-run average of ~85.** Retail sales [rose/fell] [val]% in [month], suggesting [consumer spending assessment].
+
+[1-2 sentences on consumer balance sheets, savings rate if data available.]
+```
+
+**Outlook and risks:** Use the traffic-light system from Section D1.
+
+**US slide summary:**
+```markdown
+**US Macro Snapshot, [Month Year]**
+
+- GDP **[val]% annualized** in [quarter], payrolls **+[val]k** in [month]
+- Unemployment **[val]%**, avg hourly earnings **[val]%** y/y
+- CPI **[val]%**, core PCE **[val]%** (Fed target: 2%)
+- Fed funds **[val]%**, 10yr Treasury **[val]%**, 2s10s **[val]bp**
+- Housing starts **[val]k**, Case-Shiller **[val]%** y/y, 30yr mortgage **[val]%**
+- Consumer sentiment **[val]**, Brent **$[val]/bbl**
+
+*Data from FRED (Federal Reserve Economic Data). Powered by econstack.*
+```
+
+---
+
+### C3: Euro Area Narrative Templates (ECB Economic Bulletin structure)
+
+**Euro area key numbers block:**
+```markdown
+<!-- KEY NUMBERS
+type: macro
+date: [YYYY-MM-DD]
+framework: eu
+gdp_qq_pct: [val]
+unemployment_pct: [val]
+hicp_pct: [val]
+hicp_core_pct: [val]
+hicp_services_pct: [val]
+ecb_deposit_pct: [val]
+ecb_mro_pct: [val]
+estr_pct: [val]
+euribor_3m_pct: [val]
+yield_10y_pct: [val]
+m3_yy_pct: [val]
+eur_usd: [val]
+govt_debt_gdp_pct: [val]
+brent_eur: [val]
+-->
+```
+
+**Economic activity:**
+```markdown
+## Economic Activity
+
+**Euro area real GDP grew [val]% quarter-on-quarter in [quarter], [above/below] the previous quarter's [val]%.** On a year-on-year basis, output was [val]% higher/lower.
+
+[1-2 sentences on sectoral composition, industrial production, or consumption.]
+```
+
+**Labour market:**
+```markdown
+## Labour Market
+
+**The euro area unemployment rate [rose/fell] to [val]% in [month], [up/down] from [val]%.** [Comparison to pre-pandemic rate.]
+
+[1-2 sentences on employment growth and wage dynamics if data available.]
+```
+
+**Prices:**
+```markdown
+## Prices
+
+**HICP inflation [rose/fell] to [val]% in [month].** Core HICP (excluding energy and food) was [val]%. Services inflation was [val]%. Food inflation was [val]%. Non-energy industrial goods (NEIG) inflation was [val]%.
+
+[The ECB closely monitors the services/core split. Interpret: is underlying inflation sticky or easing?]
+
+*Note: The ECB targets 2% HICP inflation symmetrically. The HICP decomposition (services, food, NEIG, energy) is the standard ECB reporting framework.*
+```
+
+**Monetary and financial conditions:**
+```markdown
+## Monetary and Financial Conditions
+
+**ECB policy rates:** The deposit facility rate stands at [val]%, the main refinancing rate at [val]%, and the marginal lending rate at [val]%. [Context on latest Governing Council decision.]
+
+**Money markets:** ESTR (the euro short-term rate) is [val]%. 3-month EURIBOR is [val]%, 12-month EURIBOR is [val]%.
+
+**Sovereign yields:** The 10-year AAA-rated euro area government bond yield is [val]%, the 2-year is [val]%. [Interpretation of term structure.]
+
+**Credit conditions:** Bank lending rates to non-financial corporations are [val]%. Mortgage rates are [val]%. M3 money supply grew [val]% year-on-year. [Interpretation of credit impulse.]
+
+**Exchange rate:** EUR/USD at [val]. [Direction and implications for import prices.]
+```
+
+**Fiscal:**
+```markdown
+## Fiscal
+
+**Euro area general government debt stands at [val]% of GDP.** [1-2 sentences on aggregate fiscal stance or notable country-level developments if relevant.]
+```
+
+**Outlook and risks:** Use the traffic-light system from Section D1.
+
+**Euro area slide summary:**
+```markdown
+**Euro Area Macro Snapshot, [Month Year]**
+
+- GDP **[val]% q/q** in [quarter]
+- Unemployment **[val]%**, HICP **[val]%**, core **[val]%**, services **[val]%**
+- ECB deposit rate **[val]%**, ESTR **[val]%**, 10yr AAA **[val]%**
+- M3 **[val]%** y/y, NFC lending rate **[val]%**, mortgage rate **[val]%**
+- EUR/USD **[val]**, Brent **EUR [val]/bbl**
+- Govt debt **[val]%** of GDP
+
+*Data from ECB Statistical Data Warehouse (via readecb R package). Powered by econstack.*
+```
+
+---
+
+### C4: Australia Narrative Templates (RBA Statement on Monetary Policy structure)
+
+**Australia key numbers block:**
+```markdown
+<!-- KEY NUMBERS
+type: macro
+date: [YYYY-MM-DD]
+framework: au
+gdp_qq_pct: [val]
+unemployment_pct: [val]
+cpi_pct: [val]
+rba_rate_pct: [val]
+brent_aud: [val]
+-->
+```
+
+**Domestic economy:**
+```markdown
+## Domestic Economy
+
+**Australian real GDP grew [val]% quarter-on-quarter in [quarter], [above/below] the previous quarter's [val]%.** On an annual basis, growth is [val]%.
+
+[1-2 sentences on demand composition if data available: household consumption, dwelling investment, government spending, exports.]
+```
+
+**Labour market:**
+```markdown
+## Labour Market
+
+**The unemployment rate [rose/fell] to [val]% in [month], [up/down] from [val]%.** [If participation rate available: "The participation rate is [val]%."]
+
+[1-2 sentences on employment growth, full-time vs part-time split if data available.]
+```
+
+**Inflation:**
+```markdown
+## Inflation
+
+**CPI inflation [rose/fell] to [val]% year-on-year in [quarter].** [If trimmed mean available: "Trimmed mean inflation, the RBA's preferred core measure, was [val]%."]
+
+[Interpretation relative to the RBA's 2-3% target band. Note that Australian CPI is quarterly, not monthly.]
+
+*Note: The RBA targets 2-3% CPI inflation over the medium term. This is a wider target band than the UK (2%), US (2% PCE), or Euro area (2% HICP).*
+```
+
+**Financial conditions:**
+```markdown
+## Financial Conditions
+
+**The RBA cash rate stands at [val]%, [unchanged since / following the [month] decision to [cut/raise] by [X]bp].** [1-2 sentences on rate outlook.]
+
+[If Brent crude data available: "Brent crude is at A$[val]/bbl, [relevant for terms of trade as Australia is a net energy exporter]."]
+```
+
+**Outlook and risks:** Use the traffic-light system from Section D1.
+
+**Australia slide summary:**
+```markdown
+**Australia Macro Snapshot, [Month Year]**
+
+- GDP **[val]% q/q** in [quarter]
+- Unemployment **[val]%**, CPI **[val]%** (RBA target: 2-3%)
+- RBA cash rate **[val]%**
+- Brent crude **A$[val]/bbl**
+
+*Data from FRED and OECD (via fred and readoecd R packages). Powered by econstack.*
+*Note: Limited indicator coverage via free APIs. See RBA and ABS for comprehensive data.*
+```
+
+---
+
+## SECTION D: CROSS-CUTTING
+
+### D1: Traffic-Light Macro Assessment
+
+Include this table in the "Outlook and Risks" section for ALL countries. It provides a structured, at-a-glance assessment.
+
+```markdown
+### Macro Assessment
+
+| Dimension | Signal | Assessment |
+|-----------|--------|------------|
+| Growth | [GREEN/AMBER/RED] | [1-line rationale] |
+| Inflation | [GREEN/AMBER/RED] | [1-line rationale] |
+| Labour market | [GREEN/AMBER/RED] | [1-line rationale] |
+| Financial conditions | [GREEN/AMBER/RED] | [1-line rationale] |
+| External/trade | [GREEN/AMBER/RED] | [1-line rationale] |
+
+Signal key: GREEN = improving or on target | AMBER = mixed signals, watch | RED = deteriorating or off target
+```
+
+**Assessment rules:**
+
+- **GREEN:** Indicator moving toward or at the central bank's target/comfort zone. GDP above trend. Inflation within 0.5pp of target. Unemployment stable or falling. Financial conditions orderly.
+- **AMBER:** Mixed signals. GDP positive but decelerating. Inflation falling but still >1pp above target. Labour market loosening gradually.
+- **RED:** Clear deterioration. GDP contracting or near-zero. Inflation >2pp above target and sticky. Unemployment rising sharply. Financial conditions tightening abruptly.
+
+**Country-specific calibration:**
+- UK: 2% CPI target, ~3.5% target-consistent wage growth
+- US: 2% PCE target, maximum employment (~4% historically considered full)
+- Euro area: 2% HICP symmetric target
+- Australia: 2-3% CPI target band (wider than others)
+
+After the traffic-light table, include the existing upside/downside risk format:
+
+```markdown
+**Key upside risks:**
+- [Risk 1]
+- [Risk 2]
+
+**Key downside risks:**
+- [Risk 1]
+- [Risk 2]
+```
+
+---
+
 ### Step 5: Save and present
 
-Save as `macro-briefing-{date}.md`. Always save `macro-data-{date}.json`.
+Save as `macro-briefing-{country}-{date}.md`. Always save `macro-data-{country}-{date}.json`.
+
+Country-specific data source footer:
+- UK: *Data sources: ONS (via ons R package), Bank of England (via boe R package).*
+- US: *Data sources: FRED (Federal Reserve Economic Data, via fred R package).*
+- EU: *Data sources: ECB Statistical Data Warehouse (via readecb R package).*
+- AU: *Data sources: FRED and OECD (via fred and readoecd R packages).*
 
 If `--format pdf`, render through the template:
 ```bash
 ECONSTACK_DIR="${CLAUDE_SKILL_DIR}/../.."
-"$ECONSTACK_DIR/scripts/render-report.sh" macro-briefing-{date}.md \
-  --title "UK Macroeconomic Briefing" \
+"$ECONSTACK_DIR/scripts/render-report.sh" macro-briefing-{country}-{date}.md \
+  --title "[Country Name] Macroeconomic Briefing" \
   --subtitle "[Month Year]"
 ```
+
+Where country name is: "UK" / "US" / "Euro Area" / "Australia".
 
 ## Important Rules
 
 - Never use em dashes. Use colons, periods, commas, or parentheses.
 - Never attribute econstack to any individual.
 - Every section stands alone. No cross-references.
-- Bold lead sentence in every section (ECB style): state the finding, not just the topic.
+- Bold lead sentence in every section: state the finding, not just the topic.
 - All comparisons need context: vs previous period, vs year ago, vs target/forecast where applicable.
-- Target-consistent wage growth is approximately 3-3.5% (2% inflation target + 1-1.5% productivity growth). Flag if wages are above or below this.
-- CPI services is the indicator the MPC watches most closely. Always mention it.
-- Real wages = nominal AWE growth minus CPI. Always compute and report.
 - Be specific about dates. "Q4 2025" not "last quarter". "February 2026" not "last month".
 - The companion JSON must include every data point used in the briefing, with dates and sources.
+- **UK-specific:** Target-consistent wage growth is approximately 3-3.5% (2% inflation target + 1-1.5% productivity growth). CPI services is the MPC's closest-watched indicator. Real wages = nominal AWE growth minus CPI.
+- **US-specific:** Always distinguish PCE (Fed's preferred) from CPI. GDP is reported annualized, always state this. Note the 2s10s yield spread and its historical recession signal.
+- **EU-specific:** Report the full HICP decomposition (services, food, NEIG, energy). Note which countries are in the euro area vs EU. ECB targets 2% symmetrically.
+- **AU-specific:** CPI is quarterly, not monthly. The RBA's target band is 2-3%, wider than other central banks. Note data limitations honestly.

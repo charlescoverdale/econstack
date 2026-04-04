@@ -147,19 +147,27 @@ Each issue is RED (must fix), AMBER (should address), or GREEN (pass). Every RED
 
 ### `/macro-briefing`
 
-UK macroeconomic monitor with international comparison across 30 economies.
+Macroeconomic monitor for UK, US, Euro area, and Australia. Each country follows its central bank's reporting structure.
 
 ```
-/macro-briefing
-/macro-briefing --full
-/macro-briefing --international
+/macro-briefing                     # UK (default, BoE MPR structure)
+/macro-briefing --country us        # US (FOMC / Beige Book structure)
+/macro-briefing --country eu        # Euro area (ECB Economic Bulletin structure)
+/macro-briefing --country au        # Australia (RBA SoMP structure)
+/macro-briefing --international     # Add 30-country comparison tables
 ```
 
-Bank of England Monetary Policy Report structure: output, labour market, prices, wages, financial conditions, monetary policy, fiscal, trade, housing, outlook.
+**UK:** 22 indicators via `ons` and `boe` packages. GDP, unemployment, wages, CPI/CPIH/core, Bank Rate, gilts, SONIA, housing, fiscal, trade, productivity.
 
-**UK data** via `ons` and `boe` R packages: GDP, unemployment, employment, inactivity, vacancies, wages, CPI, CPIH, core CPI, retail sales, trade, public finances, productivity, house prices, Bank Rate, gilt yields, SONIA, mortgage approvals, exchange rates.
+**US:** 21 indicators via `fred` package. GDP (annualized), payrolls, CPI/PCE (headline + core), Fed funds, Treasury yields (2y/10y), yield curve spread, housing starts, Case-Shiller, 30yr mortgage, consumer sentiment.
 
-**International data** (with `--international`): 27 countries via FRED, Euro area via ECB, G7/G20/OECD aggregates via readoecd.
+**Euro area:** 17 indicators via `readecb` package (no API key needed). GDP, HICP decomposition (headline/core/services/food/NEIG), ECB rates, ESTR, EURIBOR, AAA yields, M3, lending rates, mortgages, government debt.
+
+**Australia:** 4 core indicators via `fred`/`readoecd`. GDP, CPI, unemployment, RBA cash rate. Thinner coverage, acknowledged honestly.
+
+**All countries** include a traffic-light macro assessment (GREEN/AMBER/RED for growth, inflation, labour, financial conditions, external) and global context (Brent crude, VIX).
+
+**Options:** `--country` (uk/us/eu/au), `--full`, `--focus`, `--international`, `--format pdf`
 
 ---
 
