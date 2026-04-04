@@ -8,6 +8,7 @@ allowed-tools:
   - Glob
   - Grep
   - AskUserQuestion
+  - Skill
 ---
 
 <!-- preamble: update check -->
@@ -1291,7 +1292,7 @@ Save as `cba-{project-slug}-{date}.pptx`.
 **PDF** (if selected):
 Render the markdown through the EconStack template:
 ```bash
-ECONSTACK_DIR="${CLAUDE_SKILL_DIR}/../.."
+ECONSTACK_DIR="$HOME/.claude/skills/econstack"
 "$ECONSTACK_DIR/scripts/render-report.sh" cba-{project-slug}-{date}.md \
   --title "Cost-Benefit Analysis" \
   --subtitle "[Project name]" \

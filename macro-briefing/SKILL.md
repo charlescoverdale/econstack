@@ -8,6 +8,7 @@ allowed-tools:
   - Glob
   - Grep
   - AskUserQuestion
+  - Skill
 ---
 
 <!-- preamble: update check -->
@@ -119,7 +120,7 @@ Rscript -e '
 
   tryCatch({
     data <- list(
-      gdp_q = tail(ons_gdp(frequency="quarterly"), 8),
+      gdp_q = tail(ons_gdp(), 8),
       gdp_m = tail(ons_monthly_gdp(), 12),
       unemployment = tail(ons_unemployment(), 12),
       employment = tail(ons_employment(), 12),
@@ -246,7 +247,7 @@ Rscript -e '
       eci_wages = tail(fred_series("ECIWAG"), 8),
       cpi_shelter = tail(fred_series("CUSR0000SEHC", units="pc1"), 12),
       continuing_claims = tail(fred_series("CCSA"), 12),
-      ism_manufacturing = tail(fred_series("MANEMP"), 12),
+      mfg_employment = tail(fred_series("MANEMP"), 12),
       nfci = tail(fred_series("NFCI"), 30)
     )
     cat(toJSON(data, auto_unbox=TRUE, pretty=TRUE))
@@ -1465,7 +1466,7 @@ Invoke the `/pptx` skill. Create slides: (1) Title, (2) Dashboard table, (3) Key
 
 **PDF** (if selected):
 ```bash
-ECONSTACK_DIR="${CLAUDE_SKILL_DIR}/../.."
+ECONSTACK_DIR="$HOME/.claude/skills/econstack"
 "$ECONSTACK_DIR/scripts/render-report.sh" macro-briefing-{country}-{date}.md \
   --title "[Country Name] Macroeconomic Briefing" \
   --subtitle "[Month Year]"

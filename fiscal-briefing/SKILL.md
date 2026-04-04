@@ -8,6 +8,7 @@ allowed-tools:
   - Glob
   - Grep
   - AskUserQuestion
+  - Skill
 ---
 
 <!-- preamble: update check -->
@@ -80,13 +81,22 @@ If R is available:
 ```r
 library(obr)
 library(ons)
-psnb <- get_psnb()
-psnd <- get_psnd()
-public_finances <- ons_public_finances()
-receipts <- get_receipts()
-expenditure <- get_expenditure()
-forecasts <- get_forecasts()
-efo_fiscal <- get_efo_fiscal()
+library(jsonlite)
+
+tryCatch({
+  data <- list(
+    psnb = get_psnb(),
+    psnd = get_psnd(),
+    public_finances = ons_public_finances(),
+    receipts = get_receipts(),
+    expenditure = get_expenditure(),
+    forecasts = get_forecasts(),
+    efo_fiscal = get_efo_fiscal()
+  )
+  cat(toJSON(data, auto_unbox=TRUE, pretty=TRUE))
+}, error = function(e) {
+  cat(paste0("ERROR: ", e$message))
+})
 ```
 
 **Approach B: Direct web fetch (if R not available)**
@@ -752,22 +762,26 @@ Rscript -e '
   # US: use debt held by public, ~100% debt/GDP
   # AU: use net debt, ~25-30% debt/GDP
 
+  # IMPORTANT: Replace ALL placeholders below with numeric values from the
+  # fiscal data already fetched BEFORE running this Rscript. These are NOT
+  # valid R syntax as written. Example: debt_gdp = 98.5, not debt_gdp = [98.5].
+
   tryCatch({
     # Base case projection (10 years)
     proj <- dk_project(
-      debt_gdp = [current_debt_to_gdp],
-      primary_balance_gdp = [current_primary_balance_to_gdp],
-      interest_rate = [current_effective_interest_rate],
-      growth_rate = [assumed_gdp_growth],
+      debt_gdp = DEBT_TO_GDP_VALUE,
+      primary_balance_gdp = PRIMARY_BALANCE_VALUE,
+      interest_rate = EFFECTIVE_INTEREST_RATE_VALUE,
+      growth_rate = GDP_GROWTH_VALUE,
       years = 10
     )
 
     # Stress tests (IMF-style)
     stress <- dk_stress_test(
-      debt_gdp = [current_debt_to_gdp],
-      primary_balance_gdp = [current_primary_balance_to_gdp],
-      interest_rate = [current_effective_interest_rate],
-      growth_rate = [assumed_gdp_growth]
+      debt_gdp = DEBT_TO_GDP_VALUE,
+      primary_balance_gdp = PRIMARY_BALANCE_VALUE,
+      interest_rate = EFFECTIVE_INTEREST_RATE_VALUE,
+      growth_rate = GDP_GROWTH_VALUE
     )
 
     cat(toJSON(list(projection = proj, stress = stress), auto_unbox=TRUE, pretty=TRUE))
@@ -851,7 +865,7 @@ Invoke the `/pptx` skill. Slides: (1) Title, (2) Dashboard, (3) Receipts table, 
 
 **PDF** (if selected):
 ```bash
-ECONSTACK_DIR="${CLAUDE_SKILL_DIR}/../.."
+ECONSTACK_DIR="$HOME/.claude/skills/econstack"
 "$ECONSTACK_DIR/scripts/render-report.sh" fiscal-briefing-{country}-{date}.md \
   --title "[Country] Public Finances Briefing" \
   --subtitle "[Month Year]"

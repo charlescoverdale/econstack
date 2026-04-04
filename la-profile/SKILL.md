@@ -9,6 +9,7 @@ allowed-tools:
   - Grep
   - Agent
   - AskUserQuestion
+  - Skill
 ---
 
 <!-- preamble: update check -->
@@ -268,7 +269,7 @@ Total workplace jobs: [val]. Claimant rate: [val]% ([country] avg: [val]%, rank 
 
 Median annual earnings (workplace): [val] ([year]). [Country] median: [val] ([X]% above/below).
 
-| Percentile | [LA Name] | England |
+| Percentile | [LA Name] | [Country] |
 |------------|-----------|---------|
 | p10 | [val] | [val] |
 | p25 | [val] | [val] |
@@ -291,7 +292,7 @@ Male median: [val]. Female median: [val]. Gap: [val]% (England: [val]%).
 
 Median house price: [val] ([year change]% year-on-year). Price-to-earnings: [val]x. [Interpretation: <5x affordable, 5-8x moderate, 8-12x expensive, >12x severely unaffordable.]
 
-| Tenure | [LA Name] | England |
+| Tenure | [LA Name] | [Country] |
 |--------|-----------|---------|
 | Owned outright | [val]% | [val]% |
 | Owned with mortgage | [val]% | [val]% |
@@ -307,7 +308,7 @@ Median house price: [val] ([year change]% year-on-year). Price-to-earnings: [val
 
 [If occupation data available:]
 
-| Occupation group | [LA Name] | England |
+| Occupation group | [LA Name] | [Country] |
 |------------------|-----------|---------|
 | Managers & directors | [val]% | [val]% |
 | Professional | [val]% | [val]% |
@@ -388,7 +389,7 @@ Invoke the `/pptx` skill. Slides: (1) Title with LA name, (2) Key stats dashboar
 
 **PDF** (if selected):
 ```bash
-ECONSTACK_DIR="${CLAUDE_SKILL_DIR}/../.."
+ECONSTACK_DIR="$HOME/.claude/skills/econstack"
 "$ECONSTACK_DIR/scripts/render-report.sh" la-profile-{slug}-{date}.md \
   --title "Economic Profile: {LA Name}" \
   --subtitle "{Country} | Data from ONS, BRES, ASHE, DLUHC"

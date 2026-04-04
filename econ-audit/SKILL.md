@@ -386,7 +386,7 @@ Save as `audit-{source-filename}-{date}.pptx`.
 **PDF** (if selected):
 Render the markdown through the EconStack template:
 ```bash
-ECONSTACK_DIR="${CLAUDE_SKILL_DIR}/../.."
+ECONSTACK_DIR="$HOME/.claude/skills/econstack"
 "$ECONSTACK_DIR/scripts/render-report.sh" audit-{source-filename}-{date}.md \
   --title "Economic Audit Report" \
   --subtitle "[source filename] | Grade: [grade]"

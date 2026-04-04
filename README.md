@@ -1,5 +1,11 @@
 # econstack
 
+![Version](https://img.shields.io/badge/version-0.3.0-blue)
+![License](https://img.shields.io/badge/license-MIT-green)
+![Skills](https://img.shields.io/badge/skills-6-orange)
+![Parameters](https://img.shields.io/badge/parameters-34_files-purple)
+![Frameworks](https://img.shields.io/badge/frameworks-8_countries-red)
+
 Professional economic analysis, powered by AI.
 
 econstack is a set of [Claude Code](https://claude.ai/code) skills that handle the first 80% of economic analysis, so you can focus on the interpretation and key decisions. It knows the standard frameworks (Green Book, OMB A-4, EU Cohesion), the right parameters for each jurisdiction, and the business case logic that underpins professional appraisal. You provide the project context; econstack does the computation, structuring, and formatting.

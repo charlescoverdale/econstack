@@ -43,7 +43,7 @@ Generate professional economic impact assessment content for an investment or jo
 
 **Options:**
 - `--type2` : Include household spending (induced) effects (default: Type I only)
-- `--conservative` : Use conservative additionality (35% deadweight, 40% displacement, 20% leakage)
+- `--conservative` : Use conservative additionality (35% deadweight, 40% displacement, 20% leakage, 5% substitution)
 - `--optimistic` : Use optimistic additionality (10% deadweight, 10% displacement, 5% leakage)
 - `--no-additionality` : Report gross figures only
 - `--client "Name"` : Add "Prepared for: [Name]" on outputs
@@ -207,7 +207,9 @@ nics_employee = round(totalJobs * max(0, averageEarningsPerJob - employee_nic_th
 nics_employer = round(totalJobs * max(0, averageEarningsPerJob - employer_nic_threshold) * employer_nic_rate)
 
 # VAT on consumer spending from wages
-net_earnings = averageEarningsPerJob * (1 - effective_income_tax_rate - employee_nic_rate)
+# Use effective NIC rate (NICs only apply above threshold, not on full earnings)
+effective_nic_rate = max(0, averageEarningsPerJob - employee_nic_threshold) * employee_nic_rate / averageEarningsPerJob
+net_earnings = averageEarningsPerJob * (1 - effective_income_tax_rate - effective_nic_rate)
 vat_estimate = round(totalJobs * net_earnings * local_spending * vatable_proportion * vat_rate)
 
 total_tax_revenue = income_tax + nics_employee + nics_employer + vat_estimate
@@ -613,7 +615,7 @@ Save as `io-report-{slug}-{date}.pptx`.
 **PDF** (if selected):
 Render the markdown through the EconStack template:
 ```bash
-ECONSTACK_DIR="${CLAUDE_SKILL_DIR}/../.."
+ECONSTACK_DIR="$HOME/.claude/skills/econstack"
 "$ECONSTACK_DIR/scripts/render-report.sh" io-report-{la-slug}-{date}.md \
   --title "Economic Impact Assessment" \
   --subtitle "{LA name} | {Sector} | {Amount}" \
