@@ -20,7 +20,7 @@ git clone https://github.com/charlescoverdale/econstack-data.git ~/econstack-dat
 
 No npm, no API keys, no configuration. Claude Code discovers skills in `~/.claude/skills/` automatically.
 
-All skills are interactive: pick the sections you need, then choose your output formats (Markdown, HTML, Word, PowerPoint, PDF, or Excel).
+Install econstack in Claude Code and start talking to it about your analysis. All skills are interactive: describe your project, pick the sections you need, then choose your output formats (Markdown, HTML, Word, PowerPoint, PDF, or Excel).
 
 ---
 
