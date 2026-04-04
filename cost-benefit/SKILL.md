@@ -56,7 +56,7 @@ The skill handles the computation and structure. You provide the substance (what
 | `eu` | EU Cohesion Policy CBA Guide (DG Regio) | 3% (advanced MS) / 5% (convergence) | No | No (sensitivity instead) |
 | `us` | US OMB Circular A-4 (2023 revision) | 2% | Yes (long-term declining) | No (sensitivity instead) |
 | `wb` | World Bank project appraisal | 10% (country-specific) | No | No (sensitivity instead) |
-| `au` | Australian Government (OIA) | 7% (sensitivity at 3% and 10%) | No | No (sensitivity instead) |
+| `au` | Australian Government (OIA) | 7% (sensitivity at 4% and 10%) | No | No (sensitivity instead) |
 | `nz` | New Zealand Treasury CBAx | 2% (non-commercial) / 8% (commercial) | No | No (sensitivity instead) |
 | `eib` | European Investment Bank | 3.5-5% (aligned with EU) | No | No (sensitivity instead) |
 | `adb` | Asian Development Bank | 10-12% | No | No (sensitivity instead) |

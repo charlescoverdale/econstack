@@ -140,7 +140,14 @@ Rscript -e '
       gbp_eur = tail(boe_exchange_rate("EUR"), 30),
       gilt_10y = tail(boe_yield_curve(maturity="10", type="nominal_par"), 30),
       sonia = tail(boe_sonia(), 30),
-      mortgage_approvals = tail(boe_mortgage_approvals(), 12)
+      mortgage_approvals = tail(boe_mortgage_approvals(), 12),
+
+      # Additional indicators (referenced in narrative templates)
+      cpi_services = tail(ons_get("CHMK"), 12),
+      claimant_count = tail(ons_get("BCJD"), 12),
+      ppi_output = tail(ons_get("JVZ7"), 12),
+      m4 = tail(boe_money_supply(), 12),
+      consumer_credit = tail(boe_consumer_credit(), 12)
     )
     cat(toJSON(data, auto_unbox=TRUE, pretty=TRUE))
   }, error = function(e) {
@@ -232,7 +239,15 @@ Rscript -e '
       mortgage_30y = tail(fred_series("MORTGAGE30US"), 30),
 
       # Consumer
-      consumer_sentiment = tail(fred_series("UMCSENT"), 12)
+      consumer_sentiment = tail(fred_series("UMCSENT"), 12),
+
+      # Additional indicators (flagged by methodology audit)
+      participation_rate = tail(fred_series("CIVPART"), 12),
+      eci_wages = tail(fred_series("ECIWAG"), 8),
+      cpi_shelter = tail(fred_series("CUSR0000SEHC", units="pc1"), 12),
+      continuing_claims = tail(fred_series("CCSA"), 12),
+      ism_manufacturing = tail(fred_series("MANEMP"), 12),
+      nfci = tail(fred_series("NFCI"), 30)
     )
     cat(toJSON(data, auto_unbox=TRUE, pretty=TRUE))
   }, error = function(e) {
@@ -307,41 +322,87 @@ Stop.
 
 ### A4: Australia Data Fetching
 
-**Only run if `--country au` is specified.** Uses `fred` (primary) with `readoecd` backup. FRED API key required.
+**Only run if `--country au` is specified.** Uses three sources in priority order: `readabs` (ABS time series, richest), `readrba` (RBA statistics), `fred` (OECD MEI series). Falls back gracefully if packages are not installed.
 
 ```bash
 Rscript -e '
   library(jsonlite)
   data <- list()
 
-  # FRED (primary)
-  if (requireNamespace("fred", quietly = TRUE)) {
-    library(fred)
+  # --- readabs (primary: ABS time series) ---
+  if (requireNamespace("readabs", quietly = TRUE)) {
+    library(readabs)
     tryCatch({
-      data$gdp = tail(fred_series("NAEXKP01AUQ189S"), 8)
-      data$cpi = tail(fred_series("CPALTT01AUM661N"), 12)
-      data$unemployment = tail(fred_series("LRUNTTTTAUM156S"), 12)
-      data$rba_rate = tail(fred_series("IRSTCB01AUM156N"), 12)
-    }, error = function(e) message("FRED fetch failed: ", e$message))
+      # GDP (ABS 5206.0 National Accounts)
+      data$gdp = tail(read_abs_series("A2304402X"), 8)  # GDP chain volume, seasonally adjusted
+
+      # Labour force (ABS 6202.0)
+      data$unemployment = tail(read_abs_series("A84423050A"), 12)  # Unemployment rate, SA
+      data$participation = tail(read_abs_series("A84423051L"), 12)  # Participation rate, SA
+      data$employment = tail(read_abs_series("A84423043C"), 12)    # Employment total, SA
+      data$fulltime = tail(read_abs_series("A84423044F"), 12)      # Full-time employment, SA
+      data$hours_worked = tail(read_abs_series("A84423091C"), 12)  # Monthly hours worked, SA
+
+      # CPI (ABS 6401.0, quarterly)
+      data$cpi = tail(read_abs_series("A2325846C"), 8)       # CPI all groups, annual % change
+      data$trimmed_mean = tail(read_abs_series("A3604512T"), 8) # Trimmed mean, annual % change (RBA preferred core)
+
+      # Wage Price Index (ABS 6345.0, quarterly)
+      data$wpi = tail(read_abs_series("A2713849V"), 8)  # WPI total hourly rates, y/y
+
+      # Retail sales (ABS 8501.0)
+      data$retail = tail(read_abs_series("A3348585R"), 12)  # Retail turnover, SA
+
+      # Building approvals (ABS 8731.0)
+      data$building_approvals = tail(read_abs_series("A83728908F"), 12)  # Total dwellings, SA
+
+      data$source_abs <- "ABS via readabs"
+    }, error = function(e) message("readabs fetch failed: ", e$message))
   }
 
-  # readoecd (backup for any missing series)
+  # --- readrba (RBA statistics) ---
+  if (requireNamespace("readrba", quietly = TRUE)) {
+    library(readrba)
+    tryCatch({
+      data$rba_rate = tail(read_rba(series_id = "FIRMMCRT"), 12)    # Cash rate target
+      data$aud_usd = tail(read_rba(series_id = "FXRUSD"), 30)       # AUD/USD exchange rate
+      data$source_rba <- "RBA via readrba"
+    }, error = function(e) message("readrba fetch failed: ", e$message))
+  }
+
+  # --- FRED (backup for any missing core series) ---
+  if (requireNamespace("fred", quietly = TRUE)) {
+    library(fred)
+    if (is.null(data$gdp)) tryCatch({ data$gdp = tail(fred_series("NAEXKP01AUQ189S"), 8) }, error = function(e) NULL)
+    if (is.null(data$cpi)) tryCatch({ data$cpi = tail(fred_series("CPALTT01AUM661N"), 12) }, error = function(e) NULL)
+    if (is.null(data$unemployment)) tryCatch({ data$unemployment = tail(fred_series("LRUNTTTTAUM156S"), 12) }, error = function(e) NULL)
+    if (is.null(data$rba_rate)) tryCatch({ data$rba_rate = tail(fred_series("IRSTCB01AUM156N"), 12) }, error = function(e) NULL)
+    # Iron ore (key for terms of trade and fiscal revenue)
+    tryCatch({ data$iron_ore = tail(fred_series("PIORECRUSDM"), 30) }, error = function(e) NULL)
+  }
+
+  # --- readoecd (final fallback) ---
   if (requireNamespace("readoecd", quietly = TRUE)) {
     library(readoecd)
     if (is.null(data$gdp)) tryCatch({ data$gdp = tail(get_oecd_gdp("AUS"), 8) }, error = function(e) NULL)
-    if (is.null(data$cpi)) tryCatch({ data$cpi = tail(get_oecd_cpi("AUS"), 12) }, error = function(e) NULL)
     if (is.null(data$unemployment)) tryCatch({ data$unemployment = tail(get_oecd_unemployment("AUS"), 12) }, error = function(e) NULL)
   }
 
   if (length(data) == 0) {
-    cat("ERROR: No data retrieved. Install fred (with API key) or readoecd.")
+    cat("ERROR: No AU data retrieved. Install readabs (recommended) for full coverage, or fred/readoecd for headlines.")
   } else {
     cat(toJSON(data, auto_unbox=TRUE, pretty=TRUE))
   }
 '
 ```
 
-**Note:** The Australia briefing covers fewer indicators than the US or Euro area due to data availability through free APIs. For additional Australian data (labour force survey detail, building approvals, NAB business confidence, trimmed mean CPI), refer to the ABS and RBA websites directly.
+**Package priority:**
+- `readabs` (recommended): Provides the richest data. ABS time series for GDP, labour force (6 series), CPI (headline + trimmed mean), WPI, retail sales, building approvals. Install with: `install.packages("readabs")`
+- `readrba`: RBA cash rate and AUD/USD exchange rate. Install with: `install.packages("readrba")`
+- `fred`: Backup for core indicators if readabs not installed, plus iron ore price (FRED only). Requires API key.
+- `readoecd`: Final fallback for GDP and unemployment.
+
+If only `fred` is available, the briefing runs with ~5 indicators and notes the limitation. If `readabs` is available, the briefing has 12+ indicators matching a professional RBA SoMP structure.
 
 ---
 
@@ -688,6 +749,28 @@ Data as of: [latest date from each series]
 
 ### B4: Australia Dashboard
 
+**If readabs + readrba available (full coverage):**
+```
+AUSTRALIA MACRO DASHBOARD
+==========================
+GDP (q/q):             [val]%        (prev: [val]%)
+Unemployment:          [val]%        (prev: [val]%)
+Participation rate:    [val]%
+Employment:            [val]k        (full-time: [val]k)
+CPI (annual, q/q):     [val]%        (prev: [val]%)
+Trimmed mean CPI:      [val]%        (RBA preferred core)
+WPI (y/y):             [val]%
+RBA cash rate:         [val]%
+AUD/USD:               [val]
+Retail sales (m/m):    [val]%
+Building approvals:    [val]k
+Iron ore:              US$[val]/t
+Brent crude:           A$[val]/bbl
+
+Data as of: [latest date from each series]
+```
+
+**If FRED/OECD only (limited coverage):**
 ```
 AUSTRALIA MACRO DASHBOARD
 ==========================
@@ -695,10 +778,10 @@ GDP (q/q):             [val]%        (prev: [val]%)
 Unemployment:          [val]%        (prev: [val]%)
 CPI (annual):          [val]%        (prev: [val]%)
 RBA cash rate:         [val]%
+Iron ore:              US$[val]/t
 Brent crude:           A$[val]/bbl
 
-Data as of: [latest date from each series]
-Note: Limited indicator coverage via free APIs. See RBA and ABS for additional data.
+Data as of: [latest date]. Install readabs + readrba for full coverage (12+ indicators).
 ```
 
 ### Interactive Menu
@@ -1215,8 +1298,15 @@ date: [YYYY-MM-DD]
 framework: au
 gdp_qq_pct: [val]
 unemployment_pct: [val]
+participation_pct: [val]
 cpi_pct: [val]
+trimmed_mean_pct: [val]
+wpi_yy_pct: [val]
 rba_rate_pct: [val]
+aud_usd: [val]
+retail_mm_pct: [val]
+building_approvals_k: [val]
+iron_ore_usd: [val]
 brent_aud: [val]
 -->
 ```
@@ -1227,36 +1317,46 @@ brent_aud: [val]
 
 **Australian real GDP grew [val]% quarter-on-quarter in [quarter], [above/below] the previous quarter's [val]%.** On an annual basis, growth is [val]%.
 
-[1-2 sentences on demand composition if data available: household consumption, dwelling investment, government spending, exports.]
+Retail sales [rose/fell] [val]% in [month], suggesting [consumer spending assessment]. Building approvals were [val]k in [month], [up/down] from [val]k, [interpretation for dwelling investment outlook].
+
+[1-2 sentences on demand composition: household consumption, dwelling investment, government spending, net exports. If iron ore data available: "Iron ore prices at US$[val]/t [support/weigh on] the terms of trade."]
 ```
 
 **Labour market:**
 ```markdown
 ## Labour Market
 
-**The unemployment rate [rose/fell] to [val]% in [month], [up/down] from [val]%.** [If participation rate available: "The participation rate is [val]%."]
+**The unemployment rate [rose/fell] to [val]% in [month], [up/down] from [val]%.** The participation rate is [val]%, [above/below] its pre-pandemic average of ~66%. Total employment stands at [val]k, with [val]k full-time and [val]k part-time.
 
-[1-2 sentences on employment growth, full-time vs part-time split if data available.]
+Monthly hours worked [rose/fell] [val]% in [month]. [Interpretation: hours worked often leads employment turning points.]
+
+[1-2 sentences: is the labour market tightening or loosening? Full-time vs part-time composition? Underemployment context?]
 ```
 
 **Inflation:**
 ```markdown
 ## Inflation
 
-**CPI inflation [rose/fell] to [val]% year-on-year in [quarter].** [If trimmed mean available: "Trimmed mean inflation, the RBA's preferred core measure, was [val]%."]
+**CPI inflation [rose/fell] to [val]% year-on-year in the [month] quarter.** Trimmed mean inflation, the RBA's preferred core measure, was [val]%.
 
-[Interpretation relative to the RBA's 2-3% target band. Note that Australian CPI is quarterly, not monthly.]
+[Interpretation relative to the RBA's 2-3% target band. If both are within the band: "Both headline and underlying inflation are within the RBA's target band." If trimmed mean is above band: "Underlying inflation remains above the RBA's 2-3% target."]
 
-*Note: The RBA targets 2-3% CPI inflation over the medium term. This is a wider target band than the UK (2%), US (2% PCE), or Euro area (2% HICP).*
+The Wage Price Index grew [val]% year-on-year in [quarter]. [Interpretation: are wages growing faster or slower than inflation? Is real wage growth positive?]
+
+*Note: Australian CPI is published quarterly (not monthly), with a ~4-week lag after the quarter end. Trimmed mean CPI strips out the most volatile items and is the RBA's primary gauge of underlying inflation. The 2-3% target band is wider than the UK (2%), US (2% PCE), or Euro area (2% HICP).*
 ```
 
 **Financial conditions:**
 ```markdown
 ## Financial Conditions
 
-**The RBA cash rate stands at [val]%, [unchanged since / following the [month] decision to [cut/raise] by [X]bp].** [1-2 sentences on rate outlook.]
+**The RBA cash rate stands at [val]%, [unchanged since / following the [month] decision to [cut/raise] by [X]bp].** [1-2 sentences on rate outlook and market pricing.]
 
-[If Brent crude data available: "Brent crude is at A$[val]/bbl, [relevant for terms of trade as Australia is a net energy exporter]."]
+The Australian dollar is at US$[val], [up/down] from US$[val] [period ago]. [Interpretation: AUD movements affect import prices and the competitiveness of exports. A weaker AUD supports commodity exporters but adds to imported inflation.]
+
+[If iron ore data available: "Iron ore at US$[val]/t is [above/below] the ~US$100/t level that roughly balances the terms of trade for budget forecasting purposes."]
+
+[If Brent crude data available: "Brent crude at A$[val]/bbl. Australia is a net energy exporter (LNG, coal), so higher oil/gas prices tend to support the terms of trade."]
 ```
 
 **Outlook and risks:** Use the traffic-light system from Section D1.
@@ -1265,13 +1365,13 @@ brent_aud: [val]
 ```markdown
 **Australia Macro Snapshot, [Month Year]**
 
-- GDP **[val]% q/q** in [quarter]
-- Unemployment **[val]%**, CPI **[val]%** (RBA target: 2-3%)
-- RBA cash rate **[val]%**
-- Brent crude **A$[val]/bbl**
+- GDP **[val]% q/q** in [quarter], retail sales **[val]%** m/m
+- Unemployment **[val]%**, participation **[val]%**, WPI **[val]%** y/y
+- CPI **[val]%**, trimmed mean **[val]%** (RBA target: 2-3%)
+- RBA cash rate **[val]%**, AUD/USD **[val]**
+- Iron ore **US$[val]/t**, building approvals **[val]k**
 
-*Data from FRED and OECD (via fred and readoecd R packages). Powered by econstack.*
-*Note: Limited indicator coverage via free APIs. See RBA and ABS for comprehensive data.*
+*Data from ABS (via readabs), RBA (via readrba), and FRED. Powered by econstack.*
 ```
 
 ---
@@ -1296,17 +1396,26 @@ Include this table in the "Outlook and Risks" section for ALL countries. It prov
 Signal key: GREEN = improving or on target | AMBER = mixed signals, watch | RED = deteriorating or off target
 ```
 
-**Assessment rules:**
+**Assessment rules (quantitative thresholds):**
 
-- **GREEN:** Indicator moving toward or at the central bank's target/comfort zone. GDP above trend. Inflation within 0.5pp of target. Unemployment stable or falling. Financial conditions orderly.
-- **AMBER:** Mixed signals. GDP positive but decelerating. Inflation falling but still >1pp above target. Labour market loosening gradually.
-- **RED:** Clear deterioration. GDP contracting or near-zero. Inflation >2pp above target and sticky. Unemployment rising sharply. Financial conditions tightening abruptly.
+| Dimension | GREEN | AMBER | RED |
+|-----------|-------|-------|-----|
+| Growth | GDP q/q > 0.3% (UK/EU/AU) or annualized > 1.5% (US) | GDP 0-0.3% q/q or decelerating | GDP negative or near-zero for 2+ quarters |
+| Inflation | Within 0.5pp of target | 0.5-1.5pp from target, moving in right direction | >1.5pp from target and sticky or moving wrong way |
+| Labour market | Unemployment stable or falling, below NAIRU estimate | Unemployment rising <0.5pp in 3 months | Unemployment rising >0.5pp in 3 months |
+| Financial conditions | Yield spreads stable, credit flowing, exchange rate orderly | Spreads widening moderately, credit slowing | HY spread >500bp, yield curve deeply inverted, credit contraction |
+| External/trade | Trade balance improving or stable, commodity prices supportive | Trade deficit widening, mixed commodity signals | Terms of trade shock, major trading partner recession |
 
-**Country-specific calibration:**
-- UK: 2% CPI target, ~3.5% target-consistent wage growth
-- US: 2% PCE target, maximum employment (~4% historically considered full)
-- Euro area: 2% HICP symmetric target
-- Australia: 2-3% CPI target band (wider than others)
+**Country-specific targets:**
+
+| Country | Inflation target | Trend growth (approx) | NAIRU estimate | Key rate |
+|---------|-----------------|----------------------|----------------|----------|
+| UK | 2% CPI | ~1.5% | ~4.5% | Bank Rate |
+| US | 2% PCE | ~2.0% | ~4.0% | Fed funds |
+| Euro area | 2% HICP (symmetric) | ~1.0% | ~6.5% | ECB deposit |
+| Australia | 2-3% CPI band | ~2.5% | ~4.5% | RBA cash |
+
+Target-consistent wage growth: inflation target + trend productivity growth. UK ~3.5%, US ~3.5%, EU ~3.0%, AU ~3.5-4.5%.
 
 After the traffic-light table, include the existing upside/downside risk format:
 

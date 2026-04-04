@@ -218,7 +218,7 @@ These are indicative estimates using simplified effective rates. Actual tax reve
 Additionality (load scenarios from `uk/additionality.json`, or use built-in defaults):
 ```
 Standard:      deadweight=20%, displacement=25%, leakage=10%, substitution=0%  (net factor: 0.54)
-Conservative:  deadweight=35%, displacement=40%, leakage=20%, substitution=5%  (net factor: 0.285)
+Conservative:  deadweight=35%, displacement=40%, leakage=20%, substitution=5%  (net factor: 0.296)
 Optimistic:    deadweight=10%, displacement=10%, leakage=5%,  substitution=0%  (net factor: 0.769)
 
 factor = (1 - deadweight) * (1 - displacement) * (1 - leakage) * (1 - substitution)

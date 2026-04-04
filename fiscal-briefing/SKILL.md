@@ -42,6 +42,7 @@ Generate a narrative briefing on public finances for the UK, US, or Australia. C
 **Options:**
 - `--country <code>` : Country. `uk` (default), `us`, `au`
 - `--full` : Skip menu, generate all sections
+- `--dsa` : Add a debt sustainability analysis section using the `debtkit` R package (projections, stress tests, fan chart description)
 - `--client "Name"` : Add "Prepared for"
 - `--format pdf` : Branded PDF
 
@@ -734,6 +735,84 @@ The latest Budget ([month year]) / MYEFO ([month year]) projects:
 - Budget projects [surplus/deficit] of A$[val]bn in [year]-[year+1]
 
 *Data from ABS GFS (via readabs) and Budget papers. Powered by econstack.*
+```
+
+---
+
+### DSA Section (only if `--dsa` is specified)
+
+**If `--dsa` is specified**, run a debt sustainability analysis using the `debtkit` R package and append the results as an additional section after the narrative.
+
+```bash
+Rscript -e '
+  library(debtkit); library(jsonlite)
+
+  # Set up the projection based on the country
+  # UK: use PSND data, ~100% debt/GDP, primary balance from PSNB minus interest
+  # US: use debt held by public, ~100% debt/GDP
+  # AU: use net debt, ~25-30% debt/GDP
+
+  tryCatch({
+    # Base case projection (10 years)
+    proj <- dk_project(
+      debt_gdp = [current_debt_to_gdp],
+      primary_balance_gdp = [current_primary_balance_to_gdp],
+      interest_rate = [current_effective_interest_rate],
+      growth_rate = [assumed_gdp_growth],
+      years = 10
+    )
+
+    # Stress tests (IMF-style)
+    stress <- dk_stress_test(
+      debt_gdp = [current_debt_to_gdp],
+      primary_balance_gdp = [current_primary_balance_to_gdp],
+      interest_rate = [current_effective_interest_rate],
+      growth_rate = [assumed_gdp_growth]
+    )
+
+    cat(toJSON(list(projection = proj, stress = stress), auto_unbox=TRUE, pretty=TRUE))
+  }, error = function(e) {
+    cat(paste0("DSA ERROR: ", e$message))
+  })
+'
+```
+
+**Fill the bracketed values from the fiscal data already fetched:**
+- `current_debt_to_gdp`: From the dashboard data (PSND for UK, GFDEGDQ188S for US, ABS net debt for AU)
+- `current_primary_balance_to_gdp`: Deficit minus interest payments, divided by GDP
+- `current_effective_interest_rate`: Interest payments divided by debt stock
+- `assumed_gdp_growth`: Latest GDP growth from the macro briefing or OBR/CBO/Budget forecasts
+
+**If debtkit is not installed**, tell the user: "DSA requires the debtkit R package. Install with: install.packages('debtkit')" and skip.
+
+**DSA narrative template:**
+```markdown
+## Debt Sustainability Analysis
+
+**Under baseline assumptions, [country] debt-to-GDP is projected to [rise to / stabilise at / fall to] [val]% by [year+10].**
+
+### Baseline Projection
+
+| Year | Debt/GDP | Primary balance | Interest/GDP | Growth |
+|------|----------|----------------|-------------|--------|
+| [Year] | [val]% | [val]% | [val]% | [val]% |
+| [Year+3] | [val]% | [val]% | [val]% | [val]% |
+| [Year+5] | [val]% | [val]% | [val]% | [val]% |
+| [Year+10] | [val]% | [val]% | [val]% | [val]% |
+
+### Stress Tests
+
+| Scenario | Debt/GDP at year 5 | Debt/GDP at year 10 |
+|----------|-------------------|---------------------|
+| Baseline | [val]% | [val]% |
+| Interest rate +200bp | [val]% | [val]% |
+| Growth -1pp | [val]% | [val]% |
+| Primary balance worsens 1% GDP | [val]% | [val]% |
+| Combined shock | [val]% | [val]% |
+
+[2-3 sentences interpreting: Is the debt path sustainable? What shock would push it onto an unsustainable trajectory? How much fiscal consolidation would be needed to stabilise debt/GDP?]
+
+*Analysis computed using the debtkit R package (dk_project, dk_stress_test). Assumptions: [list key assumptions]. This is a mechanical projection, not a forecast.*
 ```
 
 ---
