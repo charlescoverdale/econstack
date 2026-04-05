@@ -1096,6 +1096,13 @@ After saving all files, invoke the `/econ-audit` skill on the generated markdown
 - Never use em dashes.
 - Never attribute econstack to any individual.
 - Every section stands alone.
+- **Table and figure formatting (universal across all econstack outputs):**
+  - **Numbering**: Every table is "Table 1: [short description]", every figure/chart is "Figure 1: [short description]". Numbering restarts at 1 for each report. The caption goes above the table/figure.
+  - **Source note**: Below every table and figure: "Source: [Author/Publisher] ([year])." If multiple sources: "Sources: [Source 1]; [Source 2]."
+  - **Notes line**: Below the source, if needed: "Notes: [caveats, e.g. 'estimated from available data', '2024 figures', 'real prices']."
+  - **Minimal formatting (low ink-to-data ratio)**: No heavy borders or gridlines. Thin rule under the header row only. No shading on data cells (light grey alternating rows permitted in Excel/HTML only). Right-align all numbers. Left-align all text. Bold totals rows only. No decorative elements.
+  - **Number formatting**: Currency with comma separators and 1 decimal place for millions (e.g. "GBP 45.2m"), whole numbers for counts (e.g. "1,250 enterprises"), percentages to 1 decimal place (e.g. "3.5%").
+  - **Consistency**: The same metric must use the same unit and precision throughout the report. Do not switch between "GBP m" and "GBP bn" for the same order of magnitude.
 - **Always cite sources.** Every data point must have an inline citation (Author/Publisher, year) and appear in the references section. This is a research output: credibility depends entirely on sourcing.
 - **Never invent data.** If a data point cannot be found via search, say so explicitly in the report and note it as a gap. Do not estimate without clearly labelling the estimate, its basis, and its uncertainty.
 - **Always note data vintage with tiered thresholds.** Market data ages at different rates. State the year for every metric. Flag staleness using these thresholds:

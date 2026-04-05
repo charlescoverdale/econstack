@@ -569,6 +569,13 @@ The audit draws on these sources. Cite them when flagging issues:
 
 - Never use em dashes.
 - Never attribute econstack to any individual.
+- **Table and figure formatting (universal across all econstack outputs):**
+  - **Numbering**: Every table is "Table 1: [short description]", every figure/chart is "Figure 1: [short description]". Numbering restarts at 1 for each report. The caption goes above the table/figure.
+  - **Source note**: Below every table and figure: "Source: [Author/Publisher] ([year])." If multiple sources: "Sources: [Source 1]; [Source 2]."
+  - **Notes line**: Below the source, if needed: "Notes: [caveats]."
+  - **Minimal formatting (low ink-to-data ratio)**: No heavy borders or gridlines. Thin rule under the header row only. Right-align all numbers. Left-align all text. Bold totals rows only. No decorative elements.
+  - **Number formatting**: Currency with comma separators and 1 decimal place for millions, percentages to 1 decimal place.
+  - **Consistency**: The same metric must use the same unit and precision throughout the report.
 - Every issue must cite a specific source (framework document, academic paper, or empirical finding).
 - RED issues must include a concrete fix instruction, not just "this is wrong."
 - AMBER issues must include a specific suggestion, not just "consider reviewing."
