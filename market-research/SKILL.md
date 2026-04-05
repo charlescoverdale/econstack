@@ -189,6 +189,8 @@ If A: adapt headings, language register, and structure to match the selected gov
 
 **Search strategy:** For each topic area below, run 2-3 targeted web searches. Prefer official/government sources over commercial reports. If a data point cannot be found, note it as a gap in the report rather than guessing.
 
+**Seasonal adjustment:** When pulling time series data (prices, employment, output), ensure all series use consistent seasonal adjustment. Do not mix seasonally adjusted (SA) and non-seasonally adjusted (NSA) data in the same table or comparison. If only NSA data is available, note this and compare year-on-year rather than quarter-on-quarter to remove seasonal effects. This is particularly important for PPI/CPI sub-indices and employment data where seasonal patterns are strong.
+
 **2a. Market sizing and growth**
 
 Search for:
@@ -423,6 +425,30 @@ Rate each force Low / Medium / High and justify with specific evidence from Step
 [2-paragraph interpretation: what the structure means for pricing, innovation, and consumer outcomes]
 ```
 
+### Step 3b: Internal consistency checks
+
+Before presenting results, verify internal consistency:
+
+**Market size triangulation:** Cross-check market size from at least two independent sources where possible:
+- Source 1: Top-down (ONS ABS sector turnover, Eurostat SBS)
+- Source 2: Bottom-up (sum of top firms' revenues from filings + estimated tail)
+- If the two estimates diverge by more than 20%, note the discrepancy and explain the likely reason (different market boundaries, different definitions, timing differences).
+
+**Player shares vs HHI reconciliation:** Verify that the HHI computed from the key players table is consistent with the HHI stated in the market structure section:
+```
+HHI_check = sum of (share_i)^2 for all firms in the key players table
+            + estimated contribution from the tail (assume equal shares among remaining firms)
+```
+If HHI_check and the stated HHI differ by more than 200 points, investigate and reconcile.
+
+**CR4 reconciliation:** Verify that CR4 = sum of top 4 firms' shares from the key players table.
+
+**Segmentation reconciliation:** Verify that market segment shares sum to approximately 100% (within rounding tolerance).
+
+**Trade balance check:** If trade flows are reported, verify that imports + domestic production - exports approximates domestic consumption (within data availability).
+
+If any cross-check fails, flag it in the methodology note and explain the discrepancy.
+
 ### Step 4: Show dashboard and ask what the user needs
 
 Display a headline dashboard after data gathering is complete:
@@ -458,6 +484,7 @@ Options:
 
 Options:
 - Market overview and sizing (market value, growth, employment, enterprises)
+- Market segmentation (by customer type, product/service, distribution channel, price tier, geography)
 - Key players (top firms, market shares, recent entrants/exits)
 - M&A activity (recent transactions, merger decisions, consolidation trends)
 - Market structure (HHI, CR4, monopoly/oligopoly assessment, contestability)
@@ -467,6 +494,7 @@ Options:
 - Supply chain and value chain (inputs, structure, risks, domestic vs imported)
 - Demand drivers and demographics (population, income, behavioural shifts, macro sensitivity)
 - Industry history and lifecycle (milestones, structural changes, lifecycle stage)
+- Outlook and key risks (growth scenarios, key trends, risk register)
 - Cross-market comparison (if multiple geographies selected)
 - Financial benchmarks (cost structure, margins, profitability by sub-sector)
 
@@ -526,6 +554,49 @@ The JSON contains all structured data: market sizing, growth rates, player list 
 [If forecast data available:] Growth is forecast at [X]% per year over the next [X] years ([source, year]), driven by [key drivers].
 
 [If no forecast available:] No publicly available growth forecasts were identified for this specific market. Based on the historical trend and current demand drivers, [qualitative outlook].
+```
+
+**Market segmentation:**
+```markdown
+## Market Segmentation
+
+**The [industry] market can be segmented into [X] key segments, with [largest segment] accounting for approximately [X]% of total market value.**
+
+**By product/service:**
+
+| Segment | Est. market share | Growth trend | Key players |
+|---------|------------------|-------------|-------------|
+| [Segment 1, e.g. discount] | ~[X]% | [Growing / Stable / Declining] | [top 2-3 firms] |
+| [Segment 2, e.g. mid-range] | ~[X]% | [trend] | [top firms] |
+| [Segment 3, e.g. premium] | ~[X]% | [trend] | [top firms] |
+| [Segment 4, e.g. online-only] | ~[X]% | [trend] | [top firms] |
+
+**By customer type:**
+
+| Customer segment | Est. share of demand | Key characteristics |
+|-----------------|---------------------|-------------------|
+| [e.g. B2C consumers] | ~[X]% | [key buying behaviour] |
+| [e.g. B2B / corporate] | ~[X]% | [key buying behaviour] |
+| [e.g. Public sector] | ~[X]% | [key buying behaviour] |
+
+**By distribution channel (if applicable):**
+
+| Channel | Est. share | Trend | Notes |
+|---------|-----------|-------|-------|
+| [e.g. Physical retail] | ~[X]% | [trend] | [key fact] |
+| [e.g. Online / e-commerce] | ~[X]% | [trend] | [key fact] |
+| [e.g. Wholesale / trade] | ~[X]% | [trend] | [key fact] |
+
+**By geography (if sub-national variation is significant):**
+
+| Region | Est. share | Key characteristic |
+|--------|-----------|-------------------|
+| [e.g. London/South East] | ~[X]% | [key fact] |
+| [e.g. Midlands/North] | ~[X]% | [key fact] |
+
+[2-3 paragraphs: which segments are growing fastest, where competitive dynamics differ across segments, where the most profitable niches are. Note any segments that cross-cut the SIC boundary (e.g. online grocery spans retail and logistics).]
+
+*Segmentation estimates are [from regulator data / industry reports / analyst judgment]. Source: [source].*
 ```
 
 **Key players:**
@@ -618,7 +689,25 @@ The JSON contains all structured data: market sizing, growth rates, player list 
 
 **Overall industry attractiveness:** [Attractive / Moderately attractive / Unattractive]
 
+*Note: Five Forces ratings reflect the analyst's judgment based on the evidence presented in this report. Different analysts may reach different assessments given the same data. Ratings should be reviewed as market conditions change.*
+
 [2-3 paragraphs: which forces are most powerful and why, how they interact, how they are evolving over time. What does this mean for profitability in the sector?]
+```
+
+**PESTLE analysis (macro-environment):**
+```markdown
+## Macro-Environment (PESTLE)
+
+| Factor | Key developments | Impact on market | Direction |
+|--------|-----------------|-----------------|-----------|
+| **Political** | [e.g. government industrial strategy, trade policy, political stability] | [impact] | [Positive / Neutral / Negative] |
+| **Economic** | [e.g. GDP growth, interest rates, exchange rates, input cost inflation] | [impact] | [direction] |
+| **Social** | [e.g. demographic shifts, consumer preferences, urbanisation, health trends] | [impact] | [direction] |
+| **Technological** | [e.g. AI/automation, digitisation, new materials, platform disruption] | [impact] | [direction] |
+| **Legal** | [e.g. sector-specific legislation, employment law, IP protection, data protection] | [impact] | [direction] |
+| **Environmental** | [e.g. climate regulation, net zero targets, resource scarcity, ESG requirements] | [impact] | [direction] |
+
+[2 paragraphs: which macro-environment factors are most consequential for this market, and how they interact with the competitive dynamics identified in the Five Forces analysis]
 ```
 
 **Pricing and price trends:**
@@ -753,6 +842,41 @@ Raw materials   ->   Manufacturing    ->     Distribution/Retail
 [2-3 paragraphs: how the industry arrived at its current stage, what defines this stage, and what the stage implies for competitive strategy and investment]
 ```
 
+**Outlook and key risks:**
+```markdown
+## Outlook and Key Risks
+
+**The [industry] market is expected to [grow at X% / consolidate further / face disruption from X] over the next 3-5 years.**
+
+**Growth outlook:**
+
+| Scenario | Growth forecast | Key assumption |
+|----------|----------------|---------------|
+| Base case | [X]% p.a. | [key assumption: e.g. current trends continue] |
+| Bull case | [X]% p.a. | [key driver: e.g. regulatory tailwind, new technology adoption] |
+| Bear case | [X]% p.a. | [key risk: e.g. recession, regulatory tightening, input cost shock] |
+
+*[If formal forecasts available, cite source. If not: "No publicly available growth forecasts were identified. These scenarios reflect the analyst's assessment based on the evidence in this report."]*
+
+**Key trends shaping the market:**
+1. [Trend 1]: [description and expected impact]
+2. [Trend 2]: [description and expected impact]
+3. [Trend 3]: [description and expected impact]
+
+**Key risks:**
+
+| Risk | Likelihood | Impact | Timeframe |
+|------|-----------|--------|-----------|
+| [Risk 1: e.g. regulatory change] | [Low/Med/High] | [Low/Med/High] | [Near-term / Medium-term / Long-term] |
+| [Risk 2: e.g. input cost inflation] | [rating] | [rating] | [timeframe] |
+| [Risk 3: e.g. technological disruption] | [rating] | [rating] | [timeframe] |
+| [Risk 4: e.g. trade policy change] | [rating] | [rating] | [timeframe] |
+
+[2-3 paragraphs: synthesis of the outlook, pulling together demand drivers, regulatory pipeline, M&A trends, supply chain risks, and competitive dynamics into a coherent forward-looking assessment. State whether the market is at an inflection point or on a stable trajectory.]
+```
+
+Also add "Outlook and key risks" to the multiSelect section picker.
+
 **Cross-market comparison (if multiple geographies):**
 ```markdown
 ## Cross-Market Comparison
@@ -793,7 +917,17 @@ Raw materials   ->   Manufacturing    ->     Distribution/Retail
 | Operating margin | [X]% | [low]-[high]% | [source] |
 | ROCE | [X]% | [low]-[high]% | [source] |
 
-[1-2 paragraphs: what the cost structure tells us about the industry (capital-intensive vs labour-intensive, fixed vs variable cost base), how profitability compares to other sectors]
+**Profitability vs cost of capital (market power indicator):**
+
+| Metric | Sector average | Competitive benchmark | Gap | Interpretation |
+|--------|---------------|---------------------|-----|---------------|
+| ROCE | [X]% | WACC estimate: [X]% | [+/-X]pp | [Excess returns / Normal returns / Below-cost returns] |
+
+If ROCE persistently exceeds the estimated WACC by more than 3-5 percentage points over a sustained period (3+ years), this is evidence of market power or structural advantage. The CMA uses this comparison in its market studies and merger assessments. If ROCE is at or below WACC, the market is generating normal competitive returns.
+
+*WACC estimate: [source, e.g. "based on sector equity beta from Damodaran, risk-free rate from gilt yields, debt premium from sector averages"]. This is an approximation; formal WACC estimation requires firm-specific data.*
+
+[1-2 paragraphs: what the cost structure tells us about the industry (capital-intensive vs labour-intensive, fixed vs variable cost base), how profitability compares to the competitive benchmark and other sectors]
 ```
 
 **References:**
@@ -964,7 +1098,11 @@ After saving all files, invoke the `/econ-audit` skill on the generated markdown
 - Every section stands alone.
 - **Always cite sources.** Every data point must have an inline citation (Author/Publisher, year) and appear in the references section. This is a research output: credibility depends entirely on sourcing.
 - **Never invent data.** If a data point cannot be found via search, say so explicitly in the report and note it as a gap. Do not estimate without clearly labelling the estimate, its basis, and its uncertainty.
-- **Always note data vintage.** Market data ages fast. State the year for every metric. If data is more than 2 years old, flag it: "Note: this figure is from [year] and may not reflect current conditions."
+- **Always note data vintage with tiered thresholds.** Market data ages at different rates. State the year for every metric. Flag staleness using these thresholds:
+  - **Fast-moving data** (prices, market shares, M&A, regulatory actions): flag if older than **12 months**
+  - **Structural data** (HHI, enterprise counts, employment, industry structure): flag if older than **2 years**
+  - **Slow-moving features** (barriers to entry, lifecycle stage, value chain structure): flag if older than **3-5 years**
+  - Format: "Note: this figure is from [year]. [For fast-moving data >12 months: 'More recent data should be sought before relying on this for decision-making.']"
 - **Market definition matters.** Confirm the SIC/NAICS classification with the user. An incorrectly defined market renders the entire analysis misleading (Porter, 1980). Too broad captures irrelevant competitors; too narrow misses substitutes.
 - **HHI and CR4 are estimates unless exact shares are available.** Always state whether concentration metrics are exact (from regulator data) or approximate (estimated from available revenue data). Show the calculation or estimation method.
 - **Distinguish facts from analysis.** Data tables are facts. Five Forces ratings are analytical judgments. Label them accordingly. Use "estimated", "approximately", or "the evidence suggests" for judgment-based assessments.

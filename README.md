@@ -133,6 +133,23 @@ Outputs to Markdown, HTML, Word, PowerPoint, or PDF. **Options:** `--country`, `
 
 ---
 
+### `/market-research`
+
+Industry and market analysis for any sector or product. Combines official statistics (ONS, BLS, Eurostat), regulatory data (CMA, FTC, EC), company filings, trade data (HMRC, UN Comtrade, Comext), and trade sources into a structured, source-cited research report. Covers market sizing, market segmentation, key players, M&A activity, pricing trends, market structure (HHI, CR4, contestability), Porter's Five Forces, PESTLE macro-environment, regulatory environment, supply chains, trade flows, demand drivers, industry history, and outlook with scenario analysis.
+
+Supports UK, US, EU, Australia, and global scope. Multiple geographies can be combined for cross-market comparison (e.g. `--geo uk,us`). Adapts writing style to the client and audience (GOV.UK, European Commission, academic, board, public). Lets you specify preferred data sources or bring your own data. All data points are source-cited with full references.
+
+```
+/market-research "UK grocery retail"
+/market-research semiconductors --geo global --exec
+/market-research "residential mortgages" --geo uk,us --format word,pdf
+/market-research "UK childcare" --focus regulation --depth quick
+```
+
+**Options:** `--geo`, `--sic`, `--depth`, `--full`, `--focus`, `--exec`, `--client`, `--audit`, `--format`
+
+---
+
 ### `/io-report` (UK, more countries coming soon)
 
 Quantitative economic impact assessment for 391 UK local authorities. Input an investment amount or jobs number in a specific sector and location, and the skill builds regional input-output tables from the latest ONS economic data, computes direct and indirect (supply chain) multipliers, and estimates the net additional impact on output, employment, GVA, and tax revenue.
@@ -158,23 +175,6 @@ Economic snapshot for any of the 391 UK local authorities. Covers demographics, 
 ```
 
 **Options:** `--compare`, `--focus`, `--full`, `--exec`, `--format`
-
----
-
-### `/market-research`
-
-Industry and market analysis for any sector or product. Combines official statistics (ONS, BLS, Eurostat), regulatory data (CMA, FTC, EC), company filings, trade data (HMRC, UN Comtrade, Comext), and trade sources into a structured, source-cited research report. Covers market sizing, key players, M&A activity, pricing trends, market structure (HHI, CR4, contestability), Porter's Five Forces, regulatory environment, supply chains, trade flows, demand drivers, and industry history.
-
-Supports UK, US, EU, Australia, and global scope. Multiple geographies can be combined for cross-market comparison (e.g. `--geo uk,us`). Lets you specify preferred data sources or bring your own data. All data points are source-cited with full references.
-
-```
-/market-research "UK grocery retail"
-/market-research semiconductors --geo global --exec
-/market-research "residential mortgages" --geo uk,us --format word,pdf
-/market-research "UK childcare" --focus regulation --depth quick
-```
-
-**Options:** `--geo`, `--sic`, `--depth`, `--full`, `--focus`, `--exec`, `--client`, `--audit`, `--format`
 
 ---
 
