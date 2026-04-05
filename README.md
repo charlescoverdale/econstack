@@ -2,7 +2,7 @@
 
 ![Version](https://img.shields.io/badge/version-0.3.0-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
-![Skills](https://img.shields.io/badge/skills-7-orange)
+![Skills](https://img.shields.io/badge/skills-8-orange)
 ![Parameters](https://img.shields.io/badge/parameters-42_files-purple)
 ![Frameworks](https://img.shields.io/badge/frameworks-8_countries-red)
 
@@ -161,6 +161,23 @@ Economic snapshot for any of the 391 UK local authorities. Covers demographics, 
 
 ---
 
+### `/market-research`
+
+Industry and market analysis for any sector or product. Combines official statistics (ONS, BLS, Eurostat), regulatory data (CMA, FTC, EC), company filings, trade data (HMRC, UN Comtrade, Comext), and trade sources into a structured, source-cited research report. Covers market sizing, key players, M&A activity, pricing trends, market structure (HHI, CR4, contestability), Porter's Five Forces, regulatory environment, supply chains, trade flows, demand drivers, and industry history.
+
+Supports UK, US, EU, Australia, and global scope. Multiple geographies can be combined for cross-market comparison (e.g. `--geo uk,us`). Lets you specify preferred data sources or bring your own data. All data points are source-cited with full references.
+
+```
+/market-research "UK grocery retail"
+/market-research semiconductors --geo global --exec
+/market-research "residential mortgages" --geo uk,us --format word,pdf
+/market-research "UK childcare" --focus regulation --depth quick
+```
+
+**Options:** `--geo`, `--sic`, `--depth`, `--full`, `--focus`, `--exec`, `--client`, `--audit`, `--format`
+
+---
+
 ### `/econ-audit`
 
 Think of it as a senior partner and an economics professor going through your work and poking holes in it. Full methodology audit of any output from the skills above, or any economic analysis you point it at. Runs 120+ checks across 16 categories and produces a RAG (red, amber, green) rating on how your methods and assumptions compare to best practice. Agnostic to region or asset class: it draws on government guidance (Green Book 2026, Aqua Book, OMB A-4, EC CBA Guide) and published academic literature (Flyvbjerg, Moretti, Flegg) to assess numerical consistency, discount rates, additionality, multiplier plausibility, double counting, framing, Five Case Model completeness, distributional analysis, Aqua Book RIGOUR compliance, and strategic misrepresentation patterns.
@@ -197,8 +214,8 @@ boe    -> Bank of England         IO impact calculator            /macro-briefin
 hmrc   -> HMRC trade              Compare regions tool            /fiscal-briefing (UK, US, AU)
 obr    -> OBR fiscal              Embeddable charts               /io-report (UK)
 fred   -> US FRED data            Country benchmarking            /la-profile (UK)
-readecb -> ECB data                                               /econ-audit
-readoecd -> OECD data
+readecb -> ECB data                                               /market-research (UK, US, EU, AU, global)
+readoecd -> OECD data                                             /econ-audit
 
 R packages (analytical)           macrowithr.com
 ========================          ==============

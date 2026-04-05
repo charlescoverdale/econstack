@@ -1,0 +1,979 @@
+---
+name: market-research
+description: Industry and market research. Market sizing, structure, competition, regulation, supply chains, pricing, M&A. Porter's Five Forces, HHI/CR4, lifecycle analysis. Interactive, multi-country.
+allowed-tools:
+  - Bash
+  - Read
+  - Write
+  - Glob
+  - Grep
+  - AskUserQuestion
+  - Skill
+  - WebSearch
+  - WebFetch
+---
+
+<!-- preamble: update check -->
+Before starting, run this silently. If it outputs UPDATE_AVAILABLE, tell the user:
+"A new version of econstack is available. Run `cd ~/.claude/skills/econstack && git pull` to update."
+Then continue with the skill normally.
+
+```bash
+~/.claude/skills/econstack/bin/econstack-update-check 2>/dev/null || true
+```
+
+# /market-research: Industry and Market Analysis
+
+Produce a structured, source-cited market research report for any industry or product. Covers market sizing, key players, M&A activity, pricing trends, market structure analysis (HHI, CR4, contestability), Porter's Five Forces, regulatory environment, supply chains, demand drivers, and industry history. Supports multiple geographies and cross-market comparison.
+
+**This skill is research-intensive.** It actively searches for data using WebSearch and WebFetch, combining official statistics, regulatory publications, company filings, and trade sources. Unlike computation-based skills (CBA, IO), credibility depends entirely on sourcing. Every data point is cited.
+
+**This skill is interactive.** It confirms the market definition with you, shows a headline dashboard, then asks which sections you need and what format to export.
+
+## Arguments
+
+```
+/market-research <industry or product> [options]
+```
+
+**Examples:**
+```
+/market-research UK grocery retail
+/market-research "electric vehicle batteries" --geo global
+/market-research "UK residential mortgages" --geo uk --full --format word,pdf
+/market-research semiconductors --geo us,eu,asia --exec
+/market-research "UK childcare" --focus regulation --depth quick
+```
+
+**Options:**
+- `--geo <scope>` : Geographic focus. `uk` (default), `us`, `eu`, `au`, `global`, or comma-separated (e.g. `uk,eu`). Also accepts specific regions/countries (e.g. `southeast-asia`, `germany`, `california`).
+- `--sic <code>` : Override industry classification with a specific UK SIC 2007 or US NAICS code
+- `--depth quick|standard|deep` : Analysis depth. `quick` (headline stats and key findings only), `standard` (default, full report), `deep` (comprehensive with sub-sector breakdowns, extended value chain, and financial benchmarks)
+- `--full` : Skip interactive menus, generate all sections
+- `--focus <area>` : Emphasise a specific area: `competition`, `regulation`, `pricing`, `supply-chain`, `ma`, `entry`
+- `--client "Name"` : Add "Prepared for"
+- `--format <type>` : Output format(s): `markdown`, `html`, `word`, `pptx`, `pdf`, or `all`. Comma-separate for multiple. Default: markdown only
+- `--exec` : Generate a McKinsey-style executive summary deck (7 slides with action titles)
+- `--audit` : After generating, run `/econ-audit` on the output
+
+## Instructions
+
+### Step 1: Parse and classify the market
+
+Parse the user's input to identify:
+- **Industry/product**: What market are we researching?
+- **Geographic scope**: From `--geo` flag or inferred from the user's description (e.g. "UK grocery" implies `--geo uk`)
+- **SIC/NAICS classification**: Auto-detect from the description or use `--sic` override
+
+**Industry classification:**
+
+Map the user's description to the most appropriate SIC 2007 code (for UK/EU) or NAICS code (for US). Use the 4-digit level as the default granularity. Common mappings:
+
+| User description | SIC 2007 | NAICS | Sector |
+|-----------------|----------|-------|--------|
+| Grocery retail | 47.11 | 445110 | Retail trade |
+| Construction | 41-43 | 236-238 | Construction |
+| Pharmaceuticals | 21.10 | 325411 | Manufacturing |
+| Banking | 64.19 | 522110 | Financial services |
+| Telecoms | 61 | 517 | Information and communication |
+| Energy (electricity) | 35.1 | 2211 | Utilities |
+
+If the description is ambiguous, search for the SIC/NAICS code using WebSearch.
+
+Ask the user to confirm using AskUserQuestion:
+
+**Question:** "I've classified this as SIC [code]: [description]. Is that right?"
+
+Options:
+- A) **Yes, that's correct**
+- B) **Broader** (go up one SIC level, e.g. from 47.11 "Retail sale in non-specialised stores" to 47 "Retail trade")
+- C) **Narrower** (specify a sub-sector, e.g. from 47.11 to "discount grocery" or "online grocery")
+- D) **Different industry** (I'll specify)
+
+The classification matters because it determines which statistical series to pull. Getting the market definition wrong renders the entire analysis misleading.
+
+**Geographic routing:**
+
+| Geo scope | Primary data sources | Currency | Competition regulator | Sector regulators |
+|-----------|---------------------|----------|----------------------|-------------------|
+| `uk` | ONS Annual Business Survey, Companies House, CMA, BoE | GBP | CMA | FCA (finance), Ofcom (telecoms/media), Ofgem (energy), Ofwat (water), ORR (rail), CAA (aviation), Monitor/NHS (health) |
+| `us` | BLS, Census Bureau, FRED, SEC EDGAR, FTC/DOJ | USD | FTC + DOJ Antitrust Division | FCC (telecoms), FERC (energy), FDA (pharma/food), SEC (finance), FAA (aviation) |
+| `eu` | Eurostat SBS, ECB, EC DG Competition | EUR | EC DG Competition + national NCAs | EBA (banking), ESMA (markets), ACER (energy), BEREC (telecoms) |
+| `au` | ABS, ACCC, RBA | AUD | ACCC | APRA (finance), ACMA (telecoms), AER (energy) |
+| `global` | All of the above + World Bank, OECD, WTO, UNCTAD | USD (default) | Multiple | Multiple |
+
+If `--geo` includes multiple regions (e.g. `uk,us`), produce a comparative analysis: one section per region plus a cross-market comparison section at the end.
+
+If a specific sub-national region is requested (e.g. `southeast-england`, `california`), use national data sources but filter or contextualise for the region where possible. Note where data is only available at the national level.
+
+**Trade data sources (for markets with significant import/export activity):**
+
+| Geo scope | Trade data source | Coverage |
+|-----------|------------------|----------|
+| `uk` | HMRC Overseas Trade Statistics (via `hmrc` R package), ONS UK Trade | Bilateral goods trade by commodity (HS/CN codes), services trade |
+| `us` | Census Bureau USA Trade Online, BLS import/export price indices, USITC DataWeb | Bilateral goods trade by HS code, tariff data |
+| `eu` | Eurostat Comext, EU TARIC (tariff database) | Intra-EU and extra-EU trade by CN code |
+| `au` | ABS International Trade, DFAT trade statistics | Bilateral trade by HS code |
+| `global` | UN Comtrade, WTO Statistics, UNCTAD TRAINS (tariffs) | Global bilateral trade by HS code, tariff and non-tariff measures |
+
+Trade data is particularly important for manufacturing, agriculture, commodities, and any market with significant cross-border flows. Use trade data to assess import penetration, export dependency, and the geographic structure of supply chains.
+
+**User data preferences:**
+
+After confirming the industry classification and geography, ask the user about their data preferences using AskUserQuestion:
+
+**Question:** "Do you have preferred data sources or datasets you'd like me to prioritise?"
+
+Options:
+- A) **Use defaults** (I'll use the standard sources for this geography and sector)
+- B) **I have specific sources** (I'll tell you which datasets or publications to prioritise)
+- C) **I have my own data** (I'll provide data files or links to supplement the research)
+
+If B: Ask the user to list their preferred sources. Examples: "Use CMA market study X as the primary source", "Prioritise HMRC trade data over ONS ABS", "Include UN Comtrade for global trade flows", "Use Ofgem's latest price cap model".
+
+If C: Ask the user to provide file paths or URLs. Read the files and incorporate the data alongside publicly sourced data. Clearly label which data came from the user's own sources vs public sources.
+
+Store the user's preferences and apply them throughout the data gathering phase. If the user specifies a source, check it first before searching more broadly.
+
+### Step 1c: Client, audience, and publication style
+
+Ask the user about the intended audience and any publication requirements using AskUserQuestion:
+
+**Question 1:** "Who is this report for?"
+
+Options:
+- A) **Internal use** (my own analysis, no formal publication requirements)
+- B) **Government department** (e.g. DESNZ, HM Treasury, BEIS, EC DG, USDA)
+- C) **Industry association or trade body**
+- D) **Academic or research audience**
+- E) **Board or investment committee** (corporate or fund)
+- F) **Other** (I'll specify)
+
+**Question 2:** "What is the intended audience?"
+
+Options:
+- A) **Policy makers** (ministers, senior officials, parliamentary committees)
+- B) **Technical economists or analysts** (comfortable with HHI, elasticities, regression output)
+- C) **General public or non-specialist** (plain language, minimal jargon)
+- D) **Industry practitioners** (knows the sector but may not be economists)
+
+Store the client and audience. These affect the writing style and format:
+
+**Publication style routing:**
+
+| Client/Audience | Writing style | Format implications |
+|----------------|--------------|-------------------|
+| **UK Government (GOV.UK)** | GOV.UK style: plain English mandatory, sentences under 25 words, active voice, address reader as "you", no jargon without explanation, front-load key information. No block capitals. Gender-neutral language. H2 headings (H1 is page title). See: [GOV.UK content design guidance](https://www.gov.uk/guidance/content-design/writing-for-gov-uk) | If Word/PDF: use GOV.UK Research report template structure if available. DESNZ reports follow the [DESNZ M&E framework](https://www.gov.uk/government/publications/desnz-monitoring-and-evaluation-framework) conventions. |
+| **European Commission** | EU Interinstitutional Style Guide: clear, simple, accessible language. Spell out acronyms on first use. Use "Member State" (capitalised). Dates in DD.MM.YYYY or DD Month YYYY format. References to EU legislation use official citation format. See: [EU Style Guide](https://style-guide.europa.eu/en/) and [EC English Style Guide](https://commission.europa.eu/system/files/2023-11/styleguide_english_dgt_en.pdf) | EU publications use standard EC report templates. Structure: Executive Summary, Introduction, Methodology, Findings, Conclusions and Recommendations. Include "This document" disclaimer. |
+| **Australian Government** | Australian Government Style Manual: plain language, inclusive, accessible. Similar to GOV.UK. See: [Style Manual](https://www.stylemanual.gov.au/) | |
+| **Academic/Research** | Formal academic style: third person, passive voice acceptable, full literature review with proper citations (Harvard or APA), technical terminology without simplification. | Include literature review section. Full reference list in academic format. |
+| **Board/Investment committee** | Concise, insight-led. Action titles on every section. Lead with "so what?" not methodology. Numbers prominent. Risk-focused. | --exec flag recommended. Limit to 10-15 pages for written report. |
+| **Industry/Trade body** | Accessible but can assume sector knowledge. Define economic terms but not industry terms. | Include glossary of economic terms only. |
+| **General public** | Plainest possible language. No assumed economic knowledge. Explain HHI, market share, and all technical concepts. Use analogies. | Include glossary. Consider infographic-style presentation. |
+
+Apply the appropriate style throughout the report. The default (internal use, technical audience) is the standard econstack style: bold lead sentences, structured tables, technical terminology with definitions on first use.
+
+If the user selects a government department, ask a follow-up:
+
+**Question 3 (if government):** "Do you want me to follow the publication template for this department?"
+
+Options:
+- A) **Yes, match their publication style** (I'll follow GOV.UK / EC / AU style conventions)
+- B) **No, use standard econstack format** (I'll use our default professional format)
+
+If A: adapt headings, language register, and structure to match the selected government's publication conventions. For GOV.UK: plain English, front-loaded headings, no jargon. For EC: formal register, EU terminology, standard EC report structure.
+
+### Step 2: Data gathering
+
+**This is the core of the skill.** Use WebSearch and WebFetch systematically to build the evidence base. For each data point, record: the value, the source (publication name), the date/year, and the URL. These feed the references section.
+
+**Search strategy:** For each topic area below, run 2-3 targeted web searches. Prefer official/government sources over commercial reports. If a data point cannot be found, note it as a gap in the report rather than guessing.
+
+**2a. Market sizing and growth**
+
+Search for:
+- Total market revenue or value (latest available year)
+- Number of enterprises in the sector
+- Total employment in the sector
+- Historical growth rate (5-year CAGR)
+- Forecast growth rate (if available from public sources: OBR, CBO, EC forecasts, or credible trade bodies)
+
+Primary sources by geography:
+
+| Data | UK source | US source | EU source | AU source |
+|------|-----------|-----------|-----------|-----------|
+| Revenue/turnover by SIC | ONS Annual Business Survey | Census Bureau Economic Census / Annual Survey of Manufactures | Eurostat Structural Business Statistics | ABS Australian Industry |
+| Enterprise count | ONS UK Business: Activity, Size and Location | Census Bureau County Business Patterns | Eurostat SBS | ABS Counts of Australian Businesses |
+| Employment | ONS Business Register and Employment Survey | BLS Quarterly Census of Employment and Wages | Eurostat SBS | ABS Labour Force |
+| Growth forecasts | OBR Economic and Fiscal Outlook, sector bodies | CBO Budget and Economic Outlook, BLS projections | EC Economic Forecast | RBA Statement on Monetary Policy |
+
+If the market is niche or cross-cuts SIC boundaries (e.g. "electric vehicle charging"), note this and triangulate from multiple sources. State the estimation method.
+
+**2b. Key players**
+
+Search for:
+- Largest firms by revenue or market share (top 5-10)
+- Market share estimates for the top 3-5 players
+- Recent entrants (last 3 years): who entered, what they offer, how they entered (organic, acquisition, adjacent expansion)
+- Notable exits or failures (last 5 years): who left, why (bankruptcy, strategic exit, regulatory pressure)
+
+Sources:
+- UK: Companies House filings (annual reports), CMA merger case documents, trade press
+- US: SEC EDGAR (10-K filings), FTC merger reviews, trade press
+- EU: EC DG Competition merger decisions, national filings
+- All: Trade body publications, industry ranking lists (e.g. Deloitte Global Powers of Retailing)
+
+Present as a table:
+
+```markdown
+| Rank | Company | Estimated market share | Revenue ([currency]) | Notes |
+|------|---------|----------------------|---------------------|-------|
+| 1 | [Name] | ~[X]% | [val] | [key fact] |
+| 2 | [Name] | ~[X]% | [val] | [key fact] |
+```
+
+If exact market shares are not publicly available, state this and provide estimates with ranges. Note the source of any estimate.
+
+**2c. M&A activity**
+
+Search for:
+- Major transactions in the last 3 years (acquirer, target, deal value if disclosed, strategic rationale)
+- CMA/FTC/EC merger decisions affecting the sector (cleared, cleared with conditions, blocked)
+- Trend assessment: is the market consolidating or fragmenting?
+
+Present as a table:
+
+```markdown
+| Date | Acquirer | Target | Value | Regulator decision | Rationale |
+|------|----------|--------|-------|-------------------|-----------|
+| [date] | [name] | [name] | [val] | [Cleared / Conditions / Blocked / Pending] | [1-line] |
+```
+
+Sources: CMA merger case database (gov.uk/cma-cases), FTC merger enforcement actions, EC DG Competition merger decisions, trade press.
+
+**2d. Pricing and price trends**
+
+Search for:
+- Relevant price indices: Producer Price Index (PPI) for the sector, CPI sub-component for consumer-facing markets
+- Price trend over 5 years (real and nominal)
+- Key price drivers (input costs, regulation, demand, technology, exchange rates)
+- Price comparison across geographies (if multi-geo)
+
+Sources:
+- UK: ONS PPI and CPI detailed indices, Ofgem/Ofwat/Ofcom price determinations for regulated sectors
+- US: BLS PPI by NAICS, BLS CPI detailed tables
+- EU: Eurostat HICP detailed indices, Eurostat PPI
+- Regulated sectors: use the relevant regulator's price review/determination documents
+
+**2e. Market structure**
+
+Compute or estimate:
+- **CR4** (combined market share of top 4 firms)
+- **HHI** (Herfindahl-Hirschman Index: sum of squared market shares)
+- Classification using standard thresholds:
+
+| HHI | CR4 | Classification |
+|-----|-----|---------------|
+| < 1,000 | < 40% | Low concentration (competitive) |
+| 1,000-1,800 | 40-60% | Moderate concentration |
+| > 1,800 | > 60% | High concentration (oligopolistic) |
+| > 5,000 | > 80% | Very high concentration (near-monopoly) |
+
+Also assess:
+- **Buyer-side structure**: Is there monopsony or oligopsony power? (e.g. supermarkets as buyers of agricultural produce, NHS as buyer of pharmaceuticals)
+- **Two-sided markets**: Does the market have platform dynamics? (e.g. payment cards, app stores, online marketplaces)
+
+Sources: CMA market studies are the gold standard for UK market structure data. The CMA publishes detailed market share estimates in its market study reports and merger decisions. For the US, FTC merger analyses and DOJ merger guidelines (2023 revision) provide HHI thresholds.
+
+If exact shares are unavailable, estimate HHI from available data and clearly label it as an estimate:
+```
+HHI (estimated) = sum of (market_share_i)^2 for known firms + assumed tail
+```
+
+**2f. Contestability and barriers to entry**
+
+Assess:
+- **Sunk costs**: How much irrecoverable investment is needed to enter? (Low / Medium / High)
+- **Economies of scale**: Do incumbents have significant cost advantages? (Low / Medium / High)
+- **Regulatory barriers**: Licensing requirements, planning permission, safety certification
+- **Brand/reputation barriers**: How important is brand loyalty?
+- **Network effects**: Does the product become more valuable with more users?
+- **Switching costs**: How costly is it for customers to change supplier?
+- **Access to distribution**: Are distribution channels controlled by incumbents?
+- **IP and patents**: Are there patent thickets or key IP barriers?
+
+Rate overall contestability: High (easy to enter, low sunk costs) / Medium / Low (significant barriers, high sunk costs).
+
+Implications: "A market with high concentration but high contestability may still behave competitively because the threat of entry disciplines incumbents (Baumol, 1982)."
+
+**2g. Regulatory environment**
+
+Search for:
+- **Key regulations** currently governing the sector (with legislation names and dates)
+- **Recent regulatory changes** (last 3 years): new rules, deregulation, enforcement actions
+- **Upcoming regulatory pipeline**: known consultations, proposed legislation, scheduled reviews
+- **Relevant regulator(s)**: name, current priorities, recent reports or market studies
+- **Competition enforcement**: recent CMA/FTC/EC cases in the sector (not just mergers, also conduct investigations, market studies)
+
+For regulated industries (energy, water, telecoms, finance, transport), check the sector regulator's website for:
+- Current price control/determination
+- Recent market reviews
+- Enforcement actions
+- Forward work programme
+
+**2h. Supply chain and value chain**
+
+Map the value chain:
+
+```
+[Upstream: raw materials / inputs]
+  -> [Midstream: manufacturing / processing]
+    -> [Downstream: distribution / retail / end user]
+```
+
+For each stage, identify:
+- Key players and concentration
+- Domestic vs imported share
+- Key input costs and their trends
+- Supply chain risks (single-source dependencies, geopolitical exposure, logistics bottlenecks)
+
+Sources: ONS input-output analytical tables (UK), BEA input-output tables (US), HMRC Overseas Trade Statistics (UK imports/exports by HS code, via `hmrc` R package), Census Bureau USA Trade Online (US), Eurostat Comext (EU), UN Comtrade (global bilateral trade).
+
+For `--depth deep`: extend the value chain analysis to include support activities (Porter's value chain: procurement, technology development, HR, infrastructure).
+
+**2i. Demand drivers and demographics**
+
+Identify the key factors driving demand:
+- **Population**: total, growth rate, age structure (ONS/Census projections)
+- **Income and spending**: household income trends, consumer spending on the category (ONS Family Spending, BLS Consumer Expenditure Survey)
+- **Urbanisation**: urban vs rural demand differences
+- **Technology adoption**: e-commerce penetration, digital transformation
+- **Behavioural shifts**: sustainability preferences, health consciousness, remote working
+- **Macroeconomic sensitivity**: is demand cyclical (rises/falls with GDP) or defensive (stable regardless)? Estimate income elasticity if data allows.
+
+For `--geo global` or multi-geo: compare demand drivers across markets. What's different about the UK vs US vs EU market for this product?
+
+**2j. Industry history and lifecycle**
+
+Research:
+- **Key milestones** in the last 20-30 years (privatisation, deregulation, major technological shifts, landmark mergers, crises)
+- **Structural changes**: how has the industry's structure evolved? (e.g. fragmented cottage industry -> consolidated oligopoly)
+- **Industry lifecycle stage**: Introduction / Growth / Shakeout / Maturity / Decline
+
+| Stage | Characteristics | Implications |
+|-------|----------------|-------------|
+| Introduction | Few firms, low revenue, high R&D, no established market | High risk, high potential, unclear market definition |
+| Growth | Rapid revenue growth, new entrants, rising competition | Scaling, market positioning, customer acquisition |
+| Shakeout | Slowing growth, weaker firms exit, consolidation begins | M&A activity, efficiency focus, margin pressure |
+| Maturity | Stable revenue, high competition, product differentiation | Cost discipline, market share defence, dividends |
+| Decline | Falling revenue, exits, potential disruption from substitutes | Strategic exit, niche focus, or reinvention |
+
+Classify the market and explain the evidence for the classification.
+
+**2k. Financial benchmarks (if `--depth deep`)**
+
+If available from public filings or industry reports:
+- Average cost structure (% of revenue: COGS, labour, rent, marketing, admin, profit margin)
+- Profitability: operating margin range for the sector
+- Return on capital employed
+- Working capital characteristics (inventory days, receivable days, payable days)
+
+Source: Companies House filings (UK), SEC EDGAR 10-K filings (US), Eurostat SBS cost structure data.
+
+### Step 3: Analysis frameworks
+
+Apply structured analytical frameworks to the gathered data:
+
+**Porter's Five Forces:**
+
+Present as a structured table:
+
+```markdown
+## Porter's Five Forces
+
+| Force | Rating | Key evidence |
+|-------|--------|-------------|
+| **Threat of new entrants** | [Low/Medium/High] | [2-3 bullets: barriers to entry, recent entry activity, capital requirements] |
+| **Threat of substitutes** | [Low/Medium/High] | [2-3 bullets: alternative products/services, switching costs, price-performance of substitutes] |
+| **Bargaining power of buyers** | [Low/Medium/High] | [2-3 bullets: buyer concentration, price sensitivity, ability to backward-integrate] |
+| **Bargaining power of suppliers** | [Low/Medium/High] | [2-3 bullets: supplier concentration, input specificity, switching costs] |
+| **Rivalry among existing firms** | [Low/Medium/High] | [2-3 bullets: number of competitors, differentiation, growth rate, exit barriers] |
+
+**Overall industry attractiveness:** [Attractive / Moderately attractive / Unattractive]
+
+[2-paragraph interpretation: which forces are most powerful, what they mean for profitability, and how they are evolving]
+```
+
+Rate each force Low / Medium / High and justify with specific evidence from Step 2.
+
+**Market structure summary:**
+
+```markdown
+## Market Structure
+
+| Metric | Value | Interpretation |
+|--------|-------|---------------|
+| CR4 | [X]% | [Classification] |
+| HHI | ~[X] | [Classification] |
+| Number of firms | [X] | [Context] |
+| Market type | [Perfect competition / Monopolistic competition / Oligopoly / Monopoly] | [Justification] |
+| Buyer-side power | [Competitive / Oligopsony / Monopsony] | [Evidence] |
+| Contestability | [High / Medium / Low] | [Key barriers] |
+
+[2-paragraph interpretation: what the structure means for pricing, innovation, and consumer outcomes]
+```
+
+### Step 4: Show dashboard and ask what the user needs
+
+Display a headline dashboard after data gathering is complete:
+
+```
+MARKET RESEARCH: [Industry], [Geography]
+================================================
+SIC/NAICS:        [code]: [description]
+Market size:      [currency][X]bn ([year])
+Growth (5yr):     [X]% CAGR
+Employment:       [X] ([year])
+Enterprises:      [X] ([year])
+Concentration:    HHI ~[X] / CR4 ~[X]% ([classification])
+Lifecycle stage:  [stage]
+Key regulator:    [name]
+Top player:       [name] (~[X]% share)
+Recent M&A:       [X] major deals in last 3 years
+```
+
+If any key metrics could not be found, show "N/A (data not publicly available)" rather than omitting the row.
+
+**If `--full` was NOT specified**, ask using AskUserQuestion:
+
+**Question:** "What output do you need?"
+
+Options:
+- A) **Full market research report** (all sections)
+- B) **Pick sections** (choose what you need)
+- C) **Dashboard only** (just the headline numbers above)
+- D) **Data only** (structured JSON)
+
+**If user picks B** (multiSelect: true):
+
+Options:
+- Market overview and sizing (market value, growth, employment, enterprises)
+- Key players (top firms, market shares, recent entrants/exits)
+- M&A activity (recent transactions, merger decisions, consolidation trends)
+- Market structure (HHI, CR4, monopoly/oligopoly assessment, contestability)
+- Porter's Five Forces (structured competitive analysis)
+- Pricing and price trends (price indices, input costs, price drivers)
+- Regulatory environment (current regulations, recent/upcoming changes, regulator priorities)
+- Supply chain and value chain (inputs, structure, risks, domestic vs imported)
+- Demand drivers and demographics (population, income, behavioural shifts, macro sensitivity)
+- Industry history and lifecycle (milestones, structural changes, lifecycle stage)
+- Cross-market comparison (if multiple geographies selected)
+- Financial benchmarks (cost structure, margins, profitability by sub-sector)
+
+**If `--full` was specified**, skip the question and generate all sections.
+
+**If `--focus` was specified**, generate all sections but expand the focused area with additional depth and sub-sections.
+
+### Step 5: Generate output
+
+**Always include the KEY NUMBERS block at the very top of any markdown output:**
+
+```markdown
+<!-- KEY NUMBERS
+type: market-research
+industry: [name]
+sic: [code]
+geo: [scope]
+market_size_bn: [val]
+market_size_currency: [GBP/USD/EUR/AUD]
+market_size_year: [year]
+growth_5yr_cagr_pct: [val]
+employment: [val]
+enterprises: [val]
+hhi: [val]
+cr4_pct: [val]
+structure: [competitive/moderately concentrated/highly concentrated/near-monopoly]
+lifecycle: [introduction/growth/shakeout/maturity/decline]
+top_player: [name]
+top_player_share_pct: [val]
+five_forces_attractiveness: [attractive/moderate/unattractive]
+date: [date]
+-->
+```
+
+**Always save a companion JSON file** alongside the markdown: `market-research-data-{industry-slug}-{geo}-{date}.json`
+
+The JSON contains all structured data: market sizing, growth rates, player list with shares, HHI, CR4, Five Forces ratings (each force with rating and evidence), price index data, M&A transaction list, regulatory timeline, supply chain map, demand drivers, and lifecycle assessment.
+
+#### Section templates
+
+**Market overview and sizing:**
+```markdown
+## Market Overview
+
+**The [geography] [industry] market is worth [currency][X]bn ([year]), employing [X] people across [X] enterprises.**
+
+| Metric | Value | Year | Source |
+|--------|-------|------|--------|
+| Market size (revenue) | [currency][X]bn | [year] | [source] |
+| 5-year CAGR | [X]% | [start]-[end] | [source] |
+| Employment | [X] | [year] | [source] |
+| Number of enterprises | [X] | [year] | [source] |
+| Average enterprise size | [X] employees | [year] | Calculated |
+
+[2-3 paragraphs: market context, recent trajectory, key drivers of growth/decline. Compare to overall economy growth rate. Note if the market is growing faster or slower than GDP.]
+
+[If forecast data available:] Growth is forecast at [X]% per year over the next [X] years ([source, year]), driven by [key drivers].
+
+[If no forecast available:] No publicly available growth forecasts were identified for this specific market. Based on the historical trend and current demand drivers, [qualitative outlook].
+```
+
+**Key players:**
+```markdown
+## Key Players
+
+**The market is led by [top firm] with an estimated [X]% share, followed by [second firm] ([X]%) and [third firm] ([X]%).**
+
+| Rank | Company | Est. market share | Revenue ([currency]) | Employees | Key strengths |
+|------|---------|------------------|---------------------|-----------|---------------|
+| 1 | [Name] | ~[X]% | [val] | [val] | [1-line] |
+| 2 | [Name] | ~[X]% | [val] | [val] | [1-line] |
+| 3 | [Name] | ~[X]% | [val] | [val] | [1-line] |
+| 4 | [Name] | ~[X]% | [val] | [val] | [1-line] |
+| 5 | [Name] | ~[X]% | [val] | [val] | [1-line] |
+
+*Market shares are [exact, from CMA/regulator data | estimated from available revenue data]. Source: [source].*
+
+**Recent entrants (last 3 years):**
+- [Name] ([year]): [how they entered, what they offer]
+- [Name] ([year]): [how they entered, what they offer]
+
+**Notable exits (last 5 years):**
+- [Name] ([year]): [reason for exit: bankruptcy, strategic withdrawal, acquisition]
+- [Name] ([year]): [reason]
+
+[1-2 paragraphs: competitive dynamics, whether the player landscape is stable or shifting, any disruptive entrants]
+```
+
+**M&A activity:**
+```markdown
+## M&A Activity
+
+**The market has seen [X] major transactions in the last 3 years, [suggesting consolidation / with no clear consolidation trend / suggesting fragmentation].**
+
+| Date | Acquirer | Target | Value ([currency]) | Regulatory outcome | Strategic rationale |
+|------|----------|--------|------|-------------------|-------------------|
+| [date] | [name] | [name] | [val] | [Cleared / Conditions / Blocked / N/A] | [1-line] |
+| [date] | [name] | [name] | [val] | [outcome] | [1-line] |
+
+[2-3 paragraphs: M&A trend analysis. Is the market consolidating? What is driving deal activity (scale economies, vertical integration, geographic expansion, technology acquisition)? Any blocked or conditional deals that signal regulatory concern about concentration?]
+```
+
+**Market structure:**
+```markdown
+## Market Structure
+
+**This is a [competitive / moderately concentrated / highly concentrated / near-monopoly] market, with an estimated HHI of [X] and CR4 of [X]%.**
+
+| Metric | Value | Classification | Source |
+|--------|-------|---------------|--------|
+| CR4 (top 4 firms' combined share) | [X]% | [Competitive / Moderate / Highly concentrated] | [source] |
+| HHI (Herfindahl-Hirschman Index) | ~[X] | [< 1,000 competitive / 1,000-1,800 moderate / > 1,800 concentrated] | [estimated from / source] |
+| Number of significant competitors | [X] | | [source] |
+| Market type | [Perfect competition / Monopolistic competition / Oligopoly / Tight oligopoly / Monopoly] | | Assessment |
+
+**Buyer-side analysis:**
+
+| Metric | Assessment | Evidence |
+|--------|-----------|---------|
+| Buyer concentration | [Competitive / Oligopsony / Monopsony] | [evidence] |
+| Buyer power | [Low / Medium / High] | [evidence] |
+
+**Contestability:**
+
+| Factor | Assessment | Evidence |
+|--------|-----------|---------|
+| Sunk costs | [Low / Medium / High] | [evidence] |
+| Economies of scale | [Low / Medium / High] | [evidence] |
+| Regulatory barriers | [Low / Medium / High] | [evidence] |
+| Brand/reputation barriers | [Low / Medium / High] | [evidence] |
+| Network effects | [None / Weak / Strong] | [evidence] |
+| Switching costs | [Low / Medium / High] | [evidence] |
+| Overall contestability | [High / Medium / Low] | |
+
+[2-3 paragraphs: what the structure means for pricing, innovation, and consumer outcomes. Is the market behaving competitively despite concentration (high contestability)? Or is concentration leading to market power (high prices, low innovation)?]
+```
+
+**Porter's Five Forces:**
+```markdown
+## Porter's Five Forces
+
+| Force | Rating | Key evidence |
+|-------|--------|-------------|
+| **Threat of new entrants** | [Low / Medium / High] | [bullet 1] [bullet 2] [bullet 3] |
+| **Threat of substitutes** | [Low / Medium / High] | [bullet 1] [bullet 2] |
+| **Bargaining power of buyers** | [Low / Medium / High] | [bullet 1] [bullet 2] [bullet 3] |
+| **Bargaining power of suppliers** | [Low / Medium / High] | [bullet 1] [bullet 2] |
+| **Rivalry among existing firms** | [Low / Medium / High] | [bullet 1] [bullet 2] [bullet 3] |
+
+**Overall industry attractiveness:** [Attractive / Moderately attractive / Unattractive]
+
+[2-3 paragraphs: which forces are most powerful and why, how they interact, how they are evolving over time. What does this mean for profitability in the sector?]
+```
+
+**Pricing and price trends:**
+```markdown
+## Pricing and Price Trends
+
+**Prices in this market have [risen / fallen / remained stable] by [X]% in real terms over the last 5 years, driven primarily by [key driver].**
+
+| Price metric | Latest value | 5-year change | Source |
+|-------------|-------------|---------------|--------|
+| [Relevant PPI / CPI sub-index] | [index value] | [+/-X]% (nominal) / [+/-X]% (real) | [source] |
+| [Key input price, e.g. raw materials] | [val] | [+/-X]% | [source] |
+| [Key output price, e.g. average selling price] | [val] | [+/-X]% | [source] |
+
+**Price drivers:**
+- [Driver 1]: [explanation of how it affects prices]
+- [Driver 2]: [explanation]
+- [Driver 3]: [explanation]
+
+[2-3 paragraphs: price dynamics, pass-through from input costs, regulatory price controls if applicable, price competition intensity]
+
+[For regulated sectors: detail the price control mechanism (e.g. Ofgem price cap methodology, Ofwat PR24, CPI-X) and its impact on pricing]
+```
+
+**Regulatory environment:**
+```markdown
+## Regulatory Environment
+
+**The [industry] is regulated by [regulator(s)], with [key recent change] being the most significant regulatory development in the last 3 years.**
+
+**Key regulations:**
+
+| Regulation | Year | Impact | Status |
+|-----------|------|--------|--------|
+| [Name of Act/Regulation] | [year] | [1-line impact] | In force |
+| [Name] | [year] | [1-line] | In force |
+
+**Recent regulatory changes (last 3 years):**
+- [Change 1] ([year]): [impact on the market]
+- [Change 2] ([year]): [impact]
+
+**Upcoming regulatory pipeline:**
+- [Upcoming change 1] (expected [year]): [anticipated impact]
+- [Upcoming change 2] (expected [year]): [anticipated impact]
+
+**Competition enforcement:**
+- [CMA/FTC/EC case 1] ([year]): [outcome and market impact]
+- [Case 2] ([year]): [outcome]
+
+[2-3 paragraphs: how regulation shapes the market, whether the trend is toward more or less regulation, key regulatory risks for market participants]
+```
+
+**Supply chain and value chain:**
+```markdown
+## Supply Chain and Value Chain
+
+**The value chain runs from [upstream description] through [midstream] to [downstream], with [key characteristic, e.g. "significant import dependency at the raw materials stage"].**
+
+```
+Value Chain:
+[Upstream]           [Midstream]             [Downstream]
+Raw materials   ->   Manufacturing    ->     Distribution/Retail
+[key players]        [key players]           [key players]
+[dom/import %]       [dom/import %]          [dom/import %]
+```
+
+**Key inputs and supply risks:**
+
+| Input | Source | Domestic/Imported | Concentration | Key risk |
+|-------|--------|------------------|---------------|----------|
+| [Input 1] | [countries/firms] | [X]% dom / [X]% imported | [Low/Med/High] | [risk] |
+| [Input 2] | [countries/firms] | [X]% dom / [X]% imported | [Low/Med/High] | [risk] |
+
+**Trade flows (if applicable):**
+
+| Flow | Value ([currency]) | Key partners | Trend (5yr) | Source |
+|------|-------------------|-------------|-------------|--------|
+| Imports | [val] | [top 3 countries] | [+/-X]% | [HMRC/Census/Comext/Comtrade] |
+| Exports | [val] | [top 3 countries] | [+/-X]% | [source] |
+| Trade balance | [val] | | | Calculated |
+| Import penetration | [X]% of domestic demand | | [rising/falling] | Calculated |
+
+[If significant tariff or non-tariff barriers exist, note them here with source (TARIC, USITC, WTO).]
+
+[2-3 paragraphs: supply chain structure, vulnerabilities, recent disruptions, domestic vs import dependency, geopolitical risks, trade policy exposure]
+```
+
+**Demand drivers and demographics:**
+```markdown
+## Demand Drivers and Demographics
+
+**Demand for [product/service] is [growing / stable / declining], driven primarily by [top driver].**
+
+| Driver | Direction | Magnitude | Evidence |
+|--------|-----------|-----------|---------|
+| Population [growth/ageing] | [positive/negative] for demand | [quantified if possible] | [source] |
+| Income growth | [positive] | [X]% real income growth ([period]) | [source] |
+| [Technology/behavioural shift] | [direction] | [magnitude] | [source] |
+| [Regulatory driver] | [direction] | [magnitude] | [source] |
+
+**Macro sensitivity:** This market is [cyclical / defensive / counter-cyclical]. [Evidence: correlation with GDP, performance during recessions, income elasticity estimate if available].
+
+[2-3 paragraphs: how demand is evolving, which demographic or behavioural trends matter most, outlook for demand growth]
+```
+
+**Industry history and lifecycle:**
+```markdown
+## Industry History and Lifecycle
+
+**The [industry] is in the [stage] stage of its lifecycle, having [key historical transition, e.g. "consolidated from a fragmented market following deregulation in the 1990s"].**
+
+**Key milestones:**
+
+| Year | Event | Impact |
+|------|-------|--------|
+| [year] | [event] | [1-line impact] |
+| [year] | [event] | [1-line impact] |
+| [year] | [event] | [1-line impact] |
+
+**Lifecycle assessment:**
+
+| Indicator | Evidence | Implication |
+|-----------|---------|-------------|
+| Revenue growth | [trend] | [consistent with which stage?] |
+| New entrant activity | [trend] | [consistent with which stage?] |
+| M&A/consolidation | [trend] | [consistent with which stage?] |
+| Innovation intensity | [trend] | [consistent with which stage?] |
+| Profit margins | [trend] | [consistent with which stage?] |
+
+**Current stage: [Introduction / Growth / Shakeout / Maturity / Decline]**
+
+[2-3 paragraphs: how the industry arrived at its current stage, what defines this stage, and what the stage implies for competitive strategy and investment]
+```
+
+**Cross-market comparison (if multiple geographies):**
+```markdown
+## Cross-Market Comparison
+
+**Comparing the [industry] across [geographies]: [1-line key finding, e.g. "the US market is 4x the size of the UK but less concentrated"].**
+
+| Metric | [Geo 1] | [Geo 2] | [Geo 3] |
+|--------|---------|---------|---------|
+| Market size | [val] | [val] | [val] |
+| Growth (5yr CAGR) | [X]% | [X]% | [X]% |
+| CR4 | [X]% | [X]% | [X]% |
+| HHI | ~[X] | ~[X] | ~[X] |
+| Regulator | [name] | [name] | [name] |
+| Key player | [name] | [name] | [name] |
+| Lifecycle stage | [stage] | [stage] | [stage] |
+
+[2-3 paragraphs: what explains the differences, regulatory divergence, cultural factors, market maturity differences, implications for cross-border strategy]
+```
+
+**Financial benchmarks (if `--depth deep`):**
+```markdown
+## Financial Benchmarks
+
+**Typical firms in this sector operate with [X]% gross margins and [X]% operating margins.**
+
+| Cost category | % of revenue | Source |
+|--------------|-------------|--------|
+| Cost of goods sold | [X]% | [source] |
+| Labour costs | [X]% | [source] |
+| Rent / property | [X]% | [source] |
+| Marketing / sales | [X]% | [source] |
+| Administration | [X]% | [source] |
+| **Operating profit** | **[X]%** | [source] |
+
+| Profitability metric | Sector average | Range | Source |
+|---------------------|---------------|-------|--------|
+| Gross margin | [X]% | [low]-[high]% | [source] |
+| Operating margin | [X]% | [low]-[high]% | [source] |
+| ROCE | [X]% | [low]-[high]% | [source] |
+
+[1-2 paragraphs: what the cost structure tells us about the industry (capital-intensive vs labour-intensive, fixed vs variable cost base), how profitability compares to other sectors]
+```
+
+**References:**
+```markdown
+## References
+
+### Official statistics
+- [Author/Publisher] ([year]). "[Title]." [URL] (accessed [date]).
+- [...]
+
+### Regulatory publications
+- [Regulator] ([year]). "[Title]." [URL] (accessed [date]).
+- [...]
+
+### Company filings
+- [Company] ([year]). "[Filing type: Annual Report / 10-K]." [Source: Companies House / SEC EDGAR]. [URL if available].
+- [...]
+
+### Trade and industry sources
+- [Organisation] ([year]). "[Title]." [URL] (accessed [date]).
+- [...]
+
+### Academic sources
+- [Author(s)] ([year]). "[Title]." [Journal/Publisher].
+- [...]
+```
+
+Every source cited inline in the report must appear in this list. Group by type for clarity.
+
+**Methodology note:**
+```markdown
+**Methodology:** Industry and market analysis combining official statistics ([sources used]), regulatory data ([regulators consulted]), and company filings. Market structure metrics (HHI, CR4) are [exact, from regulator data / estimated from available revenue data]. Porter's Five Forces ratings reflect the analyst's judgment based on the evidence presented. All figures are for [geographic scope] unless otherwise stated. Data vintage: [latest year of data used]. Analysis date: [date]. SIC/NAICS classification: [code]: [description].
+```
+
+### Step 6: Format export
+
+**Markdown** always generated. Save as `market-research-{industry-slug}-{geo}-{date}.md`. Always save `market-research-data-{industry-slug}-{geo}-{date}.json`.
+
+**If `--format` was NOT specified on the command line**, ask using AskUserQuestion:
+
+**Question:** "What file formats do you need?"
+
+Options (multiSelect: true):
+- Markdown (.md) : Default, always included. Plain text you can paste anywhere
+- HTML : Self-contained branded page with navy styling
+- Word (.docx) : Formatted document for editing in Microsoft Word
+- PowerPoint (.pptx) : Slide deck with dashboard, key players, Five Forces, and structure
+- PDF : Branded consulting-quality PDF via Quarto
+
+Markdown is always generated regardless of selection.
+
+**If `--format` was specified**, skip the format question. If `--format all`, expand to all formats.
+
+**If `--full` was specified** (without `--format`), skip all questions and generate markdown only. If `--full` was specified WITH `--format`, skip content questions but generate the specified format(s).
+
+**Word (.docx)** (if selected):
+Invoke the `/docx` skill. Navy headings (#003078), formatted tables, title page with industry name, geography, date, and "Prepared for: [client]" if specified. Save as `market-research-{industry-slug}-{geo}-{date}.docx`.
+
+**PowerPoint (.pptx)** (if selected):
+Invoke the `/pptx` skill. Slides:
+1. Title: "[Industry] Market Analysis", geography, date
+2. Market overview dashboard (size, growth, employment, concentration, lifecycle)
+3. Key players table (top 5 with shares)
+4. Porter's Five Forces summary (5-row table with ratings)
+5. Market structure (HHI, CR4, classification, contestability)
+6. Pricing trends (price index, key drivers)
+7. Regulatory landscape (key regulations, upcoming changes)
+8. Supply chain overview (value chain diagram, key risks)
+9. Methodology and sources
+Use navy (#003078) as the accent colour. If `--client` was specified, include "Prepared for: [client]" on the title slide.
+Save as `market-research-{industry-slug}-{geo}-{date}.pptx`.
+
+**Executive summary deck** (if `--exec` specified):
+
+Invoke the `/pptx` skill to create a McKinsey-style executive summary deck. Every slide follows the **action title + evidence** pattern: a 2-line strapline stating the conclusion (a complete sentence, NOT a topic label), then 3-4 dot points proving it.
+
+Formatting: Action title 24-28pt bold navy (#003078). Body 14-16pt, one key number bolded per bullet. Footer 10pt light grey with source + date. Clean white background, no decorative elements. Slide numbers bottom-right. Charts in navy/grey/light blue palette.
+
+**Slide 1: Title**
+- "[Industry] Market Analysis" (large, navy)
+- Geography, date, "Prepared for: [client]" if specified
+
+**Slide 2: Market headline**
+- Action title: "[Industry] is a [currency][X]bn market [growing at X% / in decline] in [geography]"
+- Evidence:
+  - Market size: **[currency][X]bn** ([year])
+  - Growth: **[X]%** CAGR over 5 years
+  - Employment: **[X]** across **[X]** enterprises
+  - Lifecycle stage: **[stage]**
+
+**Slide 3: Who dominates**
+- Action title: "The market is [highly concentrated / fragmented], with [top firm] holding ~[X]% share"
+- Evidence:
+  - CR4: **[X]%** / HHI: **~[X]** ([classification])
+  - Top players: [name] ([X]%), [name] ([X]%), [name] ([X]%)
+  - Recent M&A: **[X] deals** in last 3 years ([consolidating / stable / fragmenting])
+  - [Key competitive dynamic in 1 line]
+
+**Slide 4: Competitive dynamics**
+- Action title: "[Key Five Forces insight, e.g. 'High barriers to entry protect incumbents, but growing buyer power is compressing margins']"
+- Evidence: 1 bullet per force:
+  - New entrants: **[Rating]** ([1-line reason])
+  - Substitutes: **[Rating]** ([1-line reason])
+  - Buyer power: **[Rating]** ([1-line reason])
+  - Supplier power: **[Rating]** ([1-line reason])
+  - Rivalry: **[Rating]** ([1-line reason])
+
+**Slide 5: Pricing and profitability**
+- Action title: "Prices have [risen/fallen] [X]% in real terms over 5 years, driven by [key driver]"
+- Evidence:
+  - Price trend: **[+/-X]%** real over 5 years ([source])
+  - Key price driver: [explanation]
+  - [If available]: Operating margins: **[X]%** (sector average)
+  - [Cost pressure or margin trend]
+
+**Slide 6: Regulatory and supply chain risks**
+- Action title: "[Key regulatory or supply chain risk, e.g. 'Upcoming regulation will reshape competitive dynamics by 2028']"
+- Evidence:
+  - Key regulatory change: [description] (expected [year])
+  - Regulator priority: [current focus area]
+  - Supply chain risk: [top risk, e.g. import dependency, single-source]
+  - [Geopolitical or structural risk if applicable]
+
+**Slide 7: Outlook**
+- Action title: "The [industry] market is expected to [grow / consolidate / face disruption] over the next 5 years"
+- Evidence:
+  - [Growth/decline projection or qualitative outlook]
+  - Key trend 1: [description]
+  - Key trend 2: [description]
+  - Key risk or opportunity: [description]
+- Footer: "Full report: market-research-{industry-slug}-{geo}-{date}.md"
+
+Save as `market-exec-{industry-slug}-{geo}-{date}.pptx`.
+
+**PDF** (if selected):
+Render the markdown through the EconStack template:
+```bash
+ECONSTACK_DIR="$HOME/.claude/skills/econstack"
+"$ECONSTACK_DIR/scripts/render-report.sh" market-research-{industry-slug}-{geo}-{date}.md \
+  --title "Market Research" \
+  --subtitle "[Industry], [Geography]" \
+  [--client "{client name}" if specified]
+```
+If Quarto is not installed, tell the user: "PDF rendering requires Quarto (https://quarto.org). The markdown report has been saved."
+
+### Step 7: Save and present
+
+Tell the user what was generated, listing only the files that were actually produced:
+```
+Files saved:
+  market-research-{slug}-{geo}-{date}.md        (report / selected sections)
+  market-research-data-{slug}-{geo}-{date}.json  (structured data)
+  market-research-{slug}-{geo}-{date}.html       (if HTML selected)
+  market-research-{slug}-{geo}-{date}.docx       (if Word selected)
+  market-research-{slug}-{geo}-{date}.pptx       (if PowerPoint selected)
+  market-exec-{slug}-{geo}-{date}.pptx           (if --exec selected)
+  market-research-{slug}-{geo}-{date}.pdf         (if PDF selected)
+```
+
+**If `--audit` was specified:**
+After saving all files, invoke the `/econ-audit` skill on the generated markdown file:
+  /econ-audit market-research-{industry-slug}-{geo}-{date}.md
+
+## Important Rules
+
+- Never use em dashes.
+- Never attribute econstack to any individual.
+- Every section stands alone.
+- **Always cite sources.** Every data point must have an inline citation (Author/Publisher, year) and appear in the references section. This is a research output: credibility depends entirely on sourcing.
+- **Never invent data.** If a data point cannot be found via search, say so explicitly in the report and note it as a gap. Do not estimate without clearly labelling the estimate, its basis, and its uncertainty.
+- **Always note data vintage.** Market data ages fast. State the year for every metric. If data is more than 2 years old, flag it: "Note: this figure is from [year] and may not reflect current conditions."
+- **Market definition matters.** Confirm the SIC/NAICS classification with the user. An incorrectly defined market renders the entire analysis misleading (Porter, 1980). Too broad captures irrelevant competitors; too narrow misses substitutes.
+- **HHI and CR4 are estimates unless exact shares are available.** Always state whether concentration metrics are exact (from regulator data) or approximate (estimated from available revenue data). Show the calculation or estimation method.
+- **Distinguish facts from analysis.** Data tables are facts. Five Forces ratings are analytical judgments. Label them accordingly. Use "estimated", "approximately", or "the evidence suggests" for judgment-based assessments.
+- **For regulated industries, check the regulator's website first.** CMA market studies, Ofcom market reviews, Ofgem price cap decisions, FCA market studies, ACCC market inquiries: these contain the best publicly available market structure data.
+- **Geographic scope must be stated clearly.** "The UK grocery market" is not "the European grocery market". Do not mix geographies within a section. Cross-market comparisons go in the dedicated comparison section.
+- **M&A data decays quickly.** Always search for the most recent transactions. State the search date.
+- **Be honest about limitations.** Private markets have limited public data. Niche markets may lack official statistics. State what data is and is not available. A gap acknowledged is more credible than a gap papered over.
+- **Prefer official/government sources.** ONS, BLS, Eurostat, CMA, FTC, SEC over trade press or commercial reports. When using non-official sources, note the source type.
+- **Do not reproduce copyrighted content.** Summarise findings in your own words. Short quotations (under 15 words) in quotation marks are acceptable.
+- **The companion JSON must include the full structured data set** (market sizing, player list, M&A list, Five Forces ratings, price data, regulatory timeline, supply chain map, demand drivers, lifecycle assessment) so that downstream tools can process it.
+- When generating Word, PowerPoint, or PDF, invoke the corresponding skill (`/docx`, `/pptx`, or render script). Pass the markdown content and the companion JSON data.
+- Markdown is always generated, even when other formats are selected.
