@@ -103,6 +103,14 @@ If `--from <file.json>` is specified, read and parse the JSON file. The expected
 {
   "project": "Project name",
   "framework": "uk",
+  "perspective": "social | investor | fiscal | local",
+  "referent_group": "All UK residents",
+  "stakeholder_groups": [
+    { "name": "Central government", "in_referent_group": true },
+    { "name": "Local residents", "in_referent_group": true },
+    { "name": "Transport users", "in_referent_group": true },
+    { "name": "Foreign contractors", "in_referent_group": false }
+  ],
   "stage": "obc",
   "sector": "transport",
   "appraisal_period": 60,
@@ -114,7 +122,7 @@ If `--from <file.json>` is specified, read and parse the JSON file. The expected
     {
       "name": "Do Nothing",
       "description": "Counterfactual description",
-      "costs": { "annual_m": 2 }
+      "costs": { "annual_m": 2, "cost_bearer": "central government" }
     },
     {
       "name": "Option name",
@@ -123,16 +131,19 @@ If `--from <file.json>` is specified, read and parse the JSON file. The expected
         "capex_total_m": 50,
         "capex_years": 2,
         "capex_phasing": "even | scurve | frontloaded",
+        "capex_bearer": "central government",
         "opex_annual_m": 1,
         "opex_start_year": 2,
-        "renewals": [{ "year": 25, "cost_m": 15, "description": "Deck resurfacing" }],
+        "opex_bearer": "central government",
+        "renewals": [{ "year": 25, "cost_m": 15, "description": "Deck resurfacing", "cost_bearer": "central government" }],
         "residual_pct": 10
       },
       "benefits": {
         "annual_m": 5,
         "start_year": 3,
         "growth_rate": 0.01,
-        "ramp_up_years": 3
+        "ramp_up_years": 3,
+        "benefit_recipient": "transport users"
       }
     }
   ],
@@ -144,6 +155,8 @@ If `--from <file.json>` is specified, read and parse the JSON file. The expected
 ```
 
 Null values use framework defaults. Validate all required fields (project, framework, options with at least 2 entries). If any required field is missing, list the missing fields and stop.
+
+If `perspective` is provided, use it (skip the interactive perspective question in Step 1b). If omitted, default to `"social"`. If `referent_group` is provided, use it. If omitted, default based on perspective and framework (e.g. "All UK residents" for UK social CBA). If `stakeholder_groups` is provided, use it to classify cost bearers and benefit recipients as referent or non-referent. If omitted, treat all stakeholders as within the referent group.
 
 If `--from schema` is specified, print the schema above and stop.
 
@@ -272,6 +285,80 @@ For each option, ask for: name and one-line description.
 
 **For Do Nothing:** Ask "Does the Do Nothing option have any costs? (e.g., ongoing deterioration costs, emergency repairs, growing congestion costs, decommissioning)." If yes, capture Do Nothing costs. Many infrastructure projects have a non-zero counterfactual where doing nothing incurs increasing costs over time.
 
+### Step 1b: Standing and perspective
+
+This step establishes **whose costs and benefits are being counted**. Every CBA must be conducted from a defined perspective, with a clearly identified referent group. Without this, the analysis risks summing benefits to one group against costs borne by another, producing a misleading result. This follows the Campbell & Brown multiple account framework.
+
+**If `--from` JSON import mode:** Skip these questions. Use the `perspective`, `referent_group`, and `stakeholder_groups` fields from the JSON (with defaults as described in the schema section above).
+
+**Question 1:** Ask using AskUserQuestion:
+
+"What perspective should this CBA take?"
+
+Options:
+- A) **Social/public** (default for public sector appraisals): Net benefits to society as a whole. Includes externalities, uses shadow prices where markets are distorted. Transfers (taxes, subsidies) net to zero. This is the standard Green Book perspective.
+- B) **Investor/private**: Net benefits to the investing entity only. Uses market prices. Captures cash flows in and out of the entity. Taxes and subsidies are real costs/revenues to the entity.
+- C) **Government fiscal**: Net impact on public finances. Counts changes in tax revenues, public spending, and transfer payments. Useful alongside a social CBA to show the Exchequer impact.
+- D) **Local/regional**: Net benefits to a defined geographic area. Benefits and costs that leak outside the area boundary are tracked separately.
+
+Default to A (social/public) for UK Green Book, EU, World Bank, and ADB frameworks. Default to B (investor) if the user described a private-sector project.
+
+**Question 2:** Ask using AskUserQuestion (options depend on perspective chosen):
+
+"Who is the referent group? (Whose costs and benefits should this analysis count?)"
+
+If social/public perspective:
+- A) **All [country] residents** (default). The standard for national-level public investment appraisal.
+- B) **Regional population** (e.g. all residents of a specific region, devolved nation, or state). Appropriate for sub-national appraisals.
+- C) **Custom** (I'll describe the group)
+
+If investor/private perspective:
+- A) **The investing entity** (default). Net cash flows to the organisation making the investment.
+- B) **Equity holders** (returns to shareholders/owners after debt service)
+- C) **Custom** (I'll describe the group)
+
+If government fiscal perspective:
+- A) **Central government / HM Treasury** (default for UK). Changes in Exchequer receipts and spending.
+- B) **Local authority** (changes in council tax, business rates, grants, spending)
+- C) **All levels of government** (central + local + devolved)
+- D) **Custom** (I'll describe)
+
+If local/regional perspective:
+- Ask: "What is the geographic boundary for this analysis?" (e.g. local authority name, LEP area, combined authority, region)
+- All residents and businesses within the boundary are the referent group.
+
+Store the `perspective` and `referent_group` for use throughout the analysis.
+
+**Stakeholder groups:**
+
+Ask: "Who are the main stakeholder groups affected by this project?"
+
+Suggest defaults based on the project type and sector:
+- Infrastructure/transport: central government (funder), local authority, transport users, local residents, construction sector, private operators
+- Health: NHS/health authority (funder), patients, carers, wider public (health externalities)
+- Housing: DLUHC/Homes England (funder), local authority, homebuyers/tenants, existing residents, developers
+- Policy/regulatory: government (regulator), regulated businesses, consumers, third parties
+
+For each stakeholder group, ask: "Is [group] within your referent group?" Default to yes for groups that match the referent group definition (e.g. all UK-resident groups are "yes" for a national social CBA). Default to no for foreign entities (foreign contractors, overseas suppliers).
+
+Store the stakeholder groups and their referent/non-referent classification. These are used in Step 2 to tag costs and benefits, and in Step 6 to produce the multiple-account table.
+
+**Display the standing summary:**
+
+```
+STANDING AND PERSPECTIVE
+========================
+Perspective:    [Social/Investor/Fiscal/Local]
+Referent group: [Description]
+
+Stakeholder groups:
+  [Group 1]              In referent group
+  [Group 2]              In referent group
+  [Group 3]              Outside referent group
+
+Costs and benefits will be tagged to these groups in the next step.
+```
+
 ### Step 2: Cost and benefit entry
 
 Ask using AskUserQuestion:
@@ -287,19 +374,22 @@ Options:
 
 For each option (except Do Nothing, unless Do Nothing has costs), ask:
 
-**Costs:**
+**Costs (tag each item to a stakeholder group from Step 1b):**
 - Total capital cost (£, one-off or phased over how many years?)
+- "Who bears the capital cost?" Default to the funder identified in Step 1b (e.g. central government for public projects, the investing entity for private). Let the user override. If costs are split between funders (e.g. 60% central government grant, 40% local authority match), capture the split.
 - Capital phasing profile: "How should capital costs be spread over the construction period?"
   - A) **Even spread** (equal annual amounts)
   - B) **S-curve** (slow start, peak in middle years, tail off). This is more realistic for construction projects. Apply a bell-curve distribution: ~10% in first year, ramping to ~25-30% in peak years, tapering to ~10% in final year.
   - C) **Front-loaded** (most spend in early years)
   - D) **Custom** (I'll specify the annual split)
 - Annual operating cost (£/year, starting from which year?)
-- Any major renewal/replacement costs at specific years? (e.g., "bridge deck resurfacing at year 15 costing £20m, bearing replacement at year 30 costing £40m"). These are lumpy whole-life costs that differ from routine annual opex. If yes, capture each renewal event: year, cost, description.
+- "Who bears the operating costs?" Default to the entity responsible for ongoing operations (may differ from the capital funder).
+- Any major renewal/replacement costs at specific years? (e.g., "bridge deck resurfacing at year 15 costing £20m, bearing replacement at year 30 costing £40m"). These are lumpy whole-life costs that differ from routine annual opex. If yes, capture each renewal event: year, cost, description, and cost bearer.
 - Any residual/terminal value at end of appraisal period?
 
-**Benefits:**
+**Benefits (tag each item to a stakeholder group from Step 1b):**
 - Annual benefit (£/year, at full maturity)
+- "Who receives this benefit?" Default based on sector (e.g. "transport users" for transport, "patients" for health). Let the user override. If benefits are split across groups, capture the split (e.g. 70% to direct users, 30% to wider public through reduced congestion).
 - Benefit ramp-up: "How quickly do benefits reach full value after construction?"
   - A) **Immediate** (full benefits from year 1 of operation)
   - B) **Linear ramp-up over [X] years** (e.g., 25% in year 1, 50% in year 2, 75% in year 3, 100% in year 4). Default: 3 years for infrastructure, 1 year for policy.
@@ -326,6 +416,20 @@ If carbon impacts exist, ask for estimated annual tonnes of CO2e (positive = emi
 Carbon benefits/costs are included as a separate line item in the benefit/cost tables, not subject to additionality adjustments (they are global externalities, not local economic activity).
 
 **OECD carbon benchmark context:** When writing the carbon section of the report, load `oecd/carbon-benchmarks.json` and note how the carbon price used in the appraisal compares to the OECD benchmarks. For example: "The carbon value of [X]/tCO2 used in this appraisal is [above/below] the OECD net-zero pathway benchmark of EUR 120/tCO2 by 2030." This gives international context regardless of which national framework is selected.
+
+**Perspective consistency checks (run after all costs and benefits are entered):**
+
+After the user has entered all cost and benefit items, check for consistency with the perspective chosen in Step 1b:
+
+- If perspective is **investor/private** and the user entered externalities (carbon savings, air quality improvements, noise reduction, wider economic benefits, health externalities): warn "You've included externalities ([list items]), but the perspective is investor/private. Externalities are impacts on third parties and are typically excluded from private appraisals. They belong in a social CBA. Remove these from the investor analysis? (I can run a parallel social CBA that includes them.)"
+
+- If perspective is **social/public** and the user entered only private cash flows (revenues, direct costs) with no wider benefits or externalities: note "This analysis is from a social/public perspective, but the benefits entered are all private cash flows. A social CBA should also consider externalities (environmental, health, congestion, safety) and wider economic impacts. Are there non-market benefits to add?"
+
+- If perspective is **social/public** and the user included taxes, subsidies, or grants as costs or benefits: warn "Taxes, subsidies, and grants are transfer payments between parties within the referent group. In a social CBA, they net to zero and should be excluded from the efficiency analysis. (They are relevant in a fiscal or investor perspective.) Remove transfers from the social analysis?"
+
+- If perspective is **local/regional** and the user tagged benefits to groups outside the geographic boundary: note "[X]% of total benefits accrue to groups outside the [area] boundary. These will appear in the efficiency NPV but not the referent group NPV. This is expected for local appraisals but worth highlighting to decision-makers."
+
+- If perspective is **government fiscal** and the user included consumer surplus or user benefits: warn "Consumer surplus and user benefits are relevant to a social CBA but not to a fiscal analysis, which tracks impacts on public finances only. Remove non-fiscal items?"
 
 **If B (year-by-year):**
 
@@ -377,15 +481,16 @@ For benefits, ask sector-specific questions:
   - "What is the main benefit to users? (time saved, money saved, improved quality?)"
   - "How many people benefit per year?"
   - "Can you estimate the value per person per year? (If not, I'll note it as non-monetised.)"
+  - "Which stakeholder group receives this benefit?" (Refer to the groups defined in Step 1b. If a benefit accrues to multiple groups, ask for the approximate split.)
 
 If the user gives a range for any value, use the midpoint for the central estimate and the bounds for sensitivity analysis (low = lower bound, high = upper bound). This is more useful than asking for a single point estimate.
 
-Then structure the responses into the standard benefit categories:
-- Direct user benefits (time savings, cost savings, revenue)
-- Wider economic benefits (employment, GVA, agglomeration)
-- Environmental benefits (carbon, air quality, noise)
-- Social benefits (health, safety, wellbeing)
-- Non-monetised benefits (describe qualitatively with direction and magnitude)
+Then structure the responses into the standard benefit categories, tagging each to a stakeholder group:
+- Direct user benefits (time savings, cost savings, revenue) -> tag to direct users (e.g. transport users, patients)
+- Wider economic benefits (employment, GVA, agglomeration) -> tag to wider economy / local residents
+- Environmental benefits (carbon, air quality, noise) -> tag to wider public / global (carbon)
+- Social benefits (health, safety, wellbeing) -> tag to affected communities
+- Non-monetised benefits (describe qualitatively with direction and magnitude) -> tag to relevant group
 
 **Transport benefit monetisation (if sector is Transport):**
 
@@ -635,6 +740,45 @@ For non-UK frameworks, use NPV as the primary metric and note that
 VfM categories are a UK-specific convention.
 ```
 
+**Referent group analysis (Campbell-Brown identity check):**
+
+Using the stakeholder tags from Step 2 and the referent/non-referent classification from Step 1b, compute three NPV figures for each option:
+
+```
+For each cost/benefit item tagged to a stakeholder group:
+  If stakeholder is in referent group:
+    Add to referent_group_costs or referent_group_benefits
+  Else:
+    Add to non_referent_costs or non_referent_benefits
+
+Efficiency_NPV = PV_all_benefits - PV_all_costs
+Referent_Group_NPV = PV_referent_benefits - PV_referent_costs
+Non_Referent_NPV = PV_non_referent_benefits - PV_non_referent_costs
+
+Identity check: Efficiency_NPV = Referent_Group_NPV + Non_Referent_NPV
+(This must hold by construction. If it does not, there is a tagging error.)
+```
+
+**Interpretation guidance:**
+
+- If Referent_Group_NPV is positive: the project delivers net benefits to the group the decision-maker represents.
+- If Efficiency_NPV is positive but Referent_Group_NPV is negative: the project creates value overall, but the referent group is a net loser. This is common when benefits leak outside the referent group boundary (e.g. a local project whose benefits accrue nationally, or a public project that generates private profits for non-resident firms).
+- If Non_Referent_NPV is large relative to Efficiency_NPV: flag this. It means a significant share of project value accrues to parties outside the referent group. The decision-maker should understand where the value goes.
+
+For social CBAs with a national referent group, non-referent flows are typically small (foreign contractors, imported materials, returns to overseas investors). If non-referent flows exceed 10% of Efficiency NPV, flag for review.
+
+For local/regional CBAs, non-referent flows are often substantial (tax revenues to central government, benefits to commuters from outside the area, profits to national firms). The gap between Efficiency NPV and Referent Group NPV is the key insight for local decision-makers.
+
+**Computation-stage perspective warnings:**
+
+After computing the referent group analysis, check:
+
+- If Efficiency NPV > 0 but Referent Group NPV < 0: flag prominently. "The project creates net value overall (Efficiency NPV: [val]), but the referent group ([description]) is a net loser (Referent Group NPV: [val]). Most of the value accrues to parties outside the referent group. The decision-maker should consider whether this distribution is acceptable, or whether cost/benefit sharing arrangements (e.g. developer contributions, tax sharing, benefit capture mechanisms) could improve the position of the referent group."
+
+- If Referent Group NPV > 0 but one or more stakeholder groups within the referent group are significant net losers: note "While the referent group benefits overall, [group name] bears [X]% of costs but receives only [Y]% of benefits. Compensation or mitigation measures may be needed for political or equity reasons."
+
+- If perspective is fiscal and the project shows positive social NPV but negative fiscal NPV: note "This project delivers social value but costs the Exchequer more than it returns in tax/spending savings. This is typical for public goods (the social benefit justifies the fiscal cost)."
+
 **Incremental analysis (if 3+ options):**
 ```
 In addition to comparing each option vs Do Nothing, compute the
@@ -767,12 +911,18 @@ Present alongside unweighted NPV:
 ```
 CBA RESULTS ([Framework])
 ==========================
+Perspective:    [Social/Investor/Fiscal/Local]
+Referent group: [Description]
+
                     Do Nothing    Do Minimum    Preferred
 PV Costs (£m):     [val]         [val]         [val]
 PV Benefits (£m):  [val]         [val]         [val]
 NPV (£m):          0             [val]         [val]
 BCR:               -             [val]         [val]
 VfM:               -             [val]         [val]
+
+Referent Group NPV (£m):  0     [val]         [val]
+Non-Referent NPV (£m):    0     [val]         [val]
 
 Incremental (Do Min -> Preferred):
   Incremental NPV: [val]    Incremental BCR: [val]
@@ -815,6 +965,7 @@ Options:
 - Incremental analysis (if 3+ options: is the extra spend from Do Min to Preferred worth it?)
 - Switching values (what % change breaks the case)
 - Sensitivity analysis (optimistic/central/pessimistic)
+- Stakeholder analysis (multiple account table: referent group vs non-referent group breakdown by stakeholder)
 - Distributional analysis (who bears costs, who receives benefits; welfare weights if applied)
 - Place-based context (levelling up, IMD ranking, local priorities; UK only)
 - Monte Carlo / probabilistic analysis (probability distribution of NPV outcomes)
@@ -851,9 +1002,12 @@ Markdown is always generated regardless of selection. If the user selects nothin
 ```markdown
 <!-- KEY NUMBERS
 framework: [framework name]
+perspective: [social/investor/fiscal/local]
+referent_group: [description]
 project: [project name]
 preferred_option: [option name]
 npv_m: [val]
+referent_group_npv_m: [val]
 bcr: [val]
 vfm: [category]
 pv_costs_m: [val]
@@ -1036,17 +1190,41 @@ This section presents the financial (cash flow) case for the investing entity, s
 [Note: A negative financial NPV is common for public infrastructure. It means the project requires public subsidy to be financially viable, which is the rationale for public investment. The economic case (positive societal NPV) provides the justification.]
 ```
 
-**Distributional analysis (if weights applied or requested):**
+**Stakeholder analysis and distributional analysis:**
 ```markdown
-## Distributional Analysis
+## Stakeholder Analysis (Multiple Account Framework)
+
+**Perspective:** [Social/Investor/Fiscal/Local]
+**Referent group:** [Description, e.g. "All UK residents"]
+
+### Multiple account table
+
+| Stakeholder group | In referent group? | PV Costs ([currency]m) | PV Benefits ([currency]m) | Net position ([currency]m) |
+|-------------------|-------------------|----------------------|--------------------------|--------------------------|
+| [Group 1, e.g., central government] | Yes | [val] | [val] | [val] |
+| [Group 2, e.g., local residents] | Yes | [val] | [val] | [val] |
+| [Group 3, e.g., transport users] | Yes | [val] | [val] | [val] |
+| [Group 4, e.g., private operator] | Yes | [val] | [val] | [val] |
+| [Group 5, e.g., foreign contractors] | No | [val] | [val] | [val] |
+| **Referent group total** | | **[val]** | **[val]** | **[val]** |
+| **Non-referent group total** | | **[val]** | **[val]** | **[val]** |
+| **Efficiency total (all groups)** | | **[val]** | **[val]** | **[val]** |
+
+Identity check: Referent group NPV ([val]) + Non-referent group NPV ([val]) = Efficiency NPV ([val]).
+
+[Interpretation:
+- Which groups are net contributors (bear more costs than they receive in benefits) and which are net beneficiaries.
+- If Referent Group NPV differs from Efficiency NPV, explain where the value leaks to (e.g. "Foreign contractors capture [X]% of project value through construction contracts").
+- For local/regional CBAs: "Of the total efficiency gain, [X]% accrues within the [area] boundary."
+- If any group within the referent group is a significant net loser, flag this as a potential political or equity concern even if the aggregate referent group NPV is positive.]
 
 ### Who bears the costs and who receives the benefits
 
 | Group | Share of costs | Share of benefits | Net position |
 |-------|---------------|------------------|-------------|
-| [Group 1, e.g., taxpayers] | [X]% | [X]% | Net [contributor/beneficiary] |
-| [Group 2, e.g., local residents] | [X]% | [X]% | Net [contributor/beneficiary] |
-| [Group 3, e.g., transport users] | [X]% | [X]% | Net [contributor/beneficiary] |
+| [Group 1] | [X]% | [X]% | Net [contributor/beneficiary] |
+| [Group 2] | [X]% | [X]% | Net [contributor/beneficiary] |
+| [Group 3] | [X]% | [X]% | Net [contributor/beneficiary] |
 
 [If welfare weights applied:]
 
@@ -1062,10 +1240,10 @@ Using Green Book welfare weights (elasticity of marginal utility = 1.3):
 
 | Metric | Unweighted | Distributionally weighted |
 |--------|-----------|--------------------------|
-| NPV (£m) | [val] | [val] |
+| NPV ([currency]m) | [val] | [val] |
 | BCR | [val] | [val] |
 
-[Interpretation: "Distributional weighting [increases/decreases] the NPV by £[val]m, reflecting that benefits accrue disproportionately to [lower/higher]-income groups."]
+[Interpretation: "Distributional weighting [increases/decreases] the NPV by [currency][val]m, reflecting that benefits accrue disproportionately to [lower/higher]-income groups."]
 ```
 
 **Place-based context (UK Green Book only, if applicable):**
@@ -1193,6 +1371,8 @@ For UK Green Book:
 - HM Treasury (2014). "Additionality Guide", 4th edition.
 - DLUHC (2025). "The Appraisal Guide", 3rd edition.
 - DESNZ (2024). "Valuation of greenhouse gas emissions: for policy appraisal and evaluation."
+- Campbell, H.F. and Brown, R.P.C. (2016). "Cost-Benefit Analysis: Financial and Economic Appraisal Using Spreadsheets", 2nd edition. Routledge.
+- Campbell, H.F. and Brown, R.P.C. (2016). "Cost-Benefit Analysis: Financial and Economic Appraisal Using Spreadsheets", 2nd edition. Routledge.
 - Boardman, A.E. et al. (2018). "Cost-Benefit Analysis: Concepts and Practice", 5th edition. Cambridge University Press.
 ```
 
@@ -1203,6 +1383,7 @@ For EU Cohesion Policy:
 - European Commission (2014). "Guide to Cost-Benefit Analysis of Investment Projects." DG Regional and Urban Policy.
 - European Commission (2021). "Economic Appraisal Vademecum 2021-2027."
 - European Investment Bank (2023). "The Economic Appraisal of Investment Projects at the EIB", 2nd edition.
+- Campbell, H.F. and Brown, R.P.C. (2016). "Cost-Benefit Analysis: Financial and Economic Appraisal Using Spreadsheets", 2nd edition. Routledge.
 - Boardman, A.E. et al. (2018). "Cost-Benefit Analysis: Concepts and Practice", 5th edition.
 ```
 
@@ -1213,14 +1394,15 @@ For US OMB:
 - Office of Management and Budget (2023). "Circular A-4: Regulatory Analysis." Revised November 2023.
 - Office of Management and Budget (2023). "Circular A-94: Guidelines and Discount Rates for Benefit-Cost Analysis of Federal Programs." Revised November 2023.
 - EPA (2023). "Report on the Social Cost of Greenhouse Gases."
+- Campbell, H.F. and Brown, R.P.C. (2016). "Cost-Benefit Analysis: Financial and Economic Appraisal Using Spreadsheets", 2nd edition. Routledge.
 - Boardman, A.E. et al. (2018). "Cost-Benefit Analysis: Concepts and Practice", 5th edition.
 ```
 
-For other frameworks, include the framework's primary guidance document plus Boardman et al. (2018) as a general reference.
+For other frameworks, include the framework's primary guidance document plus Campbell & Brown (2016) and Boardman et al. (2018) as general references.
 
 **Slide summary:**
 ```markdown
-**[Project Name] — Value for Money Summary**
+**[Project Name]: Value for Money Summary**
 
 - **Preferred option:** [name]
 - **NPV: £[val]m** | **BCR: [val]** | **VfM: [category]**
@@ -1351,6 +1533,9 @@ This produces an audit scorecard alongside the report, catching any methodology 
 - Never use em dashes.
 - Never attribute econstack to any individual.
 - Every section stands alone.
+- **Always establish perspective and referent group before entering costs and benefits.** A CBA without a defined perspective is methodologically incomplete. The perspective determines what counts as a cost or benefit (e.g. taxes are a cost in an investor CBA but a transfer in a social CBA). The referent group determines whose NPV matters to the decision-maker.
+- **Always produce the multiple-account table.** Every CBA output must include the stakeholder-level breakdown showing referent vs non-referent group flows. This is the core output that prevents the error of summing everyone's benefits against one group's costs.
+- **Verify the Campbell-Brown identity.** Referent Group NPV + Non-Referent Group NPV must equal Efficiency NPV. If it does not, there is a stakeholder tagging error.
 - **Discount rate must use the correct schedule for the selected framework.** For UK Green Book, do not apply 3.5% flat beyond year 30. For flat-rate frameworks, use the correct rate. This is the most common CBA error.
 - **Optimism bias must not be zero** for UK Green Book infrastructure projects unless the user explicitly overrides with justification. Flag it if they set it to 0. For non-UK frameworks, optimism bias is typically 0% (handled through sensitivity instead); do not apply it unless the user requests it.
 - **Always ask about project stage** for UK Green Book infrastructure appraisals. SOC/OBC/FBC determines the optimism bias rate. Using SOC rates at FBC stage overstates costs; using FBC rates at SOC stage understates risk.

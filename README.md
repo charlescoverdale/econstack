@@ -52,7 +52,9 @@ If you have a similar CBA or business case for a comparable asset that you like 
 
 Whether you've finalised the exact location, scale, and beneficiary groups or you're still at the back-of-envelope stage, the skill adapts. It follows standard business case logic: establishing a baseline (what happens without the project), developing options, and ensuring all benefit calculations are marginal compared to that baseline. It helps you think through scenario development and options selection before jumping to the numbers.
 
-It then works through costs using the latest government guidelines and market benchmarks, provides defensible estimates, and lets you override anything. The output is a structured CBA model and associated documentation that's 80% done: correct discounting, optimism bias, sensitivity analysis, switching values, and Monte Carlo. Ready for a business case submission, client report, or internal appraisal. You edit from there.
+Every analysis starts by establishing who the decision-maker represents (the referent group) and what perspective to take (social, investor, fiscal, or local). This follows the Campbell & Brown multiple account framework: costs and benefits are tagged to stakeholder groups, disaggregated into referent and non-referent flows, and verified with the identity check (Referent Group NPV + Non-Referent NPV = Efficiency NPV). The result is a CBA where you can see exactly whose costs are being weighed against whose benefits.
+
+It then works through costs using the latest government guidelines and market benchmarks, provides defensible estimates, and lets you override anything. The output is a structured CBA model and associated documentation that's 80% done: correct discounting, optimism bias, sensitivity analysis, switching values, Monte Carlo, and a full stakeholder-level multiple account table. Ready for a business case submission, client report, or internal appraisal. You edit from there.
 
 ```
 /cost-benefit
