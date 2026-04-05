@@ -40,6 +40,8 @@ No npm, no API keys, no configuration. Claude Code discovers skills in `~/.claud
 
 Install econstack in Claude Code and start talking to it about your analysis. Describe your project and the skill integrates with whatever you're building, whether that's a report, a model, a slide deck, or a policy brief. Generate a full analysis or just the sections you need, then export to Markdown, HTML, Word, PowerPoint, PDF, or Excel.
 
+Every skill supports `--exec` to generate a McKinsey/BCG-style executive summary deck: 5-8 slides with action titles (a sentence stating the insight, not a topic label), 3-4 evidence bullets per slide, and optional charts. The kind of deck you'd present to a board, minister, or investment committee. Separate from the standard data-heavy PPTX output.
+
 ---
 
 ## Skills
@@ -60,6 +62,7 @@ It then works through costs using the latest government guidelines and market be
 /cost-benefit
 /cost-benefit --framework us
 /cost-benefit --from assumptions.json --full --format xlsx,pdf
+/cost-benefit --exec                          # McKinsey-style exec summary deck
 ```
 
 8 frameworks (UK Green Book, US OMB A-4, EU Cohesion, Australia, World Bank, NZ CBAx, EIB, ADB). 39 audited parameter files with source citations and staleness detection.
@@ -74,7 +77,7 @@ It then works through costs using the latest government guidelines and market be
 | VTTS | TAG Data Book | DOT wage-% | | ATAP formula | | |
 | Optimism bias | 6 types x 3 stages | | | | | |
 
-**Options:** `--framework`, `--from`, `--full`, `--audit`, `--format`
+**Options:** `--framework`, `--from`, `--full`, `--exec`, `--audit`, `--format`
 
 ---
 
@@ -95,7 +98,7 @@ Outputs to Markdown, HTML, Excel (IB-style workbook with cover page, RAG dashboa
 /vfm-eval --full --format xlsx,pdf
 ```
 
-**Options:** `--mode`, `--framework`, `--full`, `--client`, `--audit`, `--format`
+**Options:** `--mode`, `--framework`, `--full`, `--exec`, `--client`, `--audit`, `--format`
 
 ---
 
@@ -111,7 +114,7 @@ Up-to-date macroeconomic reports for the UK, US, Euro area, and Australia. Tell 
 /macro-briefing --international     # Add 30-country comparison tables
 ```
 
-Traffic-light macro assessment (GREEN/AMBER/RED) with quantitative thresholds. Outputs to Markdown, HTML, Word, PowerPoint, or PDF. **Options:** `--country`, `--full`, `--focus`, `--international`, `--format`
+Traffic-light macro assessment (GREEN/AMBER/RED) with quantitative thresholds. Outputs to Markdown, HTML, Word, PowerPoint, or PDF. **Options:** `--country`, `--full`, `--focus`, `--international`, `--exec`, `--format`
 
 ---
 
@@ -126,7 +129,7 @@ Up-to-date public finances reports for the UK, US, and Australia. Pulls live dat
 /fiscal-briefing --dsa              # Add debt sustainability analysis via debtkit
 ```
 
-Outputs to Markdown, HTML, Word, PowerPoint, or PDF. **Options:** `--country`, `--full`, `--dsa`, `--format`
+Outputs to Markdown, HTML, Word, PowerPoint, or PDF. **Options:** `--country`, `--full`, `--dsa`, `--exec`, `--format`
 
 ---
 
@@ -141,7 +144,7 @@ Allows you to choose between Type I and Type II multipliers, adjust for addition
 /io-report 500 jobs in Construction in Glasgow --type2
 ```
 
-**Options:** `--type2`, `--conservative`/`--optimistic`, `--audit`, `--format`
+**Options:** `--type2`, `--conservative`/`--optimistic`, `--exec`, `--audit`, `--format`
 
 ---
 
@@ -154,7 +157,7 @@ Economic snapshot for any of the 391 UK local authorities. Covers demographics, 
 /la-profile Leeds --compare Birmingham
 ```
 
-**Options:** `--compare`, `--focus`, `--full`, `--format`
+**Options:** `--compare`, `--focus`, `--full`, `--exec`, `--format`
 
 ---
 
@@ -171,7 +174,7 @@ When it finds issues, it gives you a structured step-by-step plan to fix them an
 /econ-audit . --fix
 ```
 
-Letter grade A-F, with auto-fix option. **Options:** `--strict`, `--fix`, `--format`
+Letter grade A-F, with auto-fix option. **Options:** `--strict`, `--fix`, `--exec`, `--format`
 
 ---
 

@@ -47,6 +47,7 @@ The companion to `/cost-benefit`. Where `/cost-benefit` asks "should we do this?
 - `--framework <type>` : `3e` (UK Magenta Book, default), `4e` (FCDO international development), `au` (Australian ANAO 4Es with ethics), `us` (US GAO/OMB standards), `eu` (EC Better Regulation 5 criteria), `wb` (World Bank IEG 6-point rating), `dac` (OECD DAC 6 criteria), `nz` (NZ Living Standards Framework)
 - `--full` : Skip interactive menus, generate all sections
 - `--client "Name"` : Add "Prepared for"
+- `--exec` : Generate a McKinsey-style executive summary deck (7 slides with action titles). Can be combined with `--format pptx` for both decks.
 - `--audit` : After generating, automatically run `/econ-audit` on the output
 - `--format <type>` : Output format(s): `markdown`, `html`, `xlsx`, `word`, `pptx`, `pdf`, or `all`. Comma-separate for multiple. Default: markdown only
 
@@ -1029,6 +1030,59 @@ Invoke the `/docx` skill. Navy headings, formatted tables with RAG colours, titl
 **PowerPoint (.pptx)** (if selected):
 Invoke the `/pptx` skill. Slides: (1) Title with programme name, (2) Logic model, (3) 3E dashboard with RAG, (4) Effectiveness (BCR + evidence level), (5) Fiscal return (if computed), (6) Recommendations. Save as `vfm-eval-{slug}-{date}.pptx`.
 
+**Executive summary deck** (if `--exec` specified):
+
+Invoke the `/pptx` skill to create a McKinsey-style executive summary deck. Every slide follows the **action title + evidence** pattern: a 2-line strapline stating the conclusion, then 3-4 dot points or a chart proving it.
+
+Formatting: Action title 24-28pt bold navy (#003078). Body 14-16pt, one key number bolded per bullet. Footer 10pt light grey with methodology note + date. Clean white background, no decorative elements. Slide numbers bottom-right. Charts in navy/grey/light blue palette.
+
+**Slide 1: Title**
+- Programme name (large, navy), "Value for Money Evaluation", framework, date, "Prepared for: [client]" if specified
+
+**Slide 2: Headline verdict**
+- Action title: "[Programme] delivered [High/Medium/Low] value for money" (or "Evidence for value for money is [insufficient/mixed]")
+- Evidence:
+  - **BCR: [val]** ([VfM category])
+  - Evidence quality: **[Maryland SMS level]** ([description])
+  - [If RPSC computed]: Return on public sector cost: **[val]**
+  - [1-line overall assessment]
+
+**Slide 3: What was delivered**
+- Action title: "[Programme] reached [X] beneficiaries and delivered [key outcome]"
+- Evidence: Simplified logic model as 4 bullets (inputs, activities, outputs, outcomes)
+- Or: key output metrics (e.g. "500 people into employment", "2,000 training completions")
+
+**Slide 4: Economy and efficiency**
+- Action title: "Costs were [X]% [above/below] benchmark for comparable programmes" (or "Costs are in line with comparators")
+- Evidence:
+  - Unit cost: **[currency][val]** per [outcome] vs benchmark of **[currency][val]**
+  - Total programme cost: **[currency][val]m** over [X] years
+  - [If GMCA unit cost data available]: Compared against [N] similar programmes
+  - [Assessment of economy/efficiency]
+
+**Slide 5: Effectiveness**
+- Action title: "For every [currency]1 spent, [currency][BCR] in benefits were generated"
+- Evidence:
+  - BCR: **[val]** (PV benefits [currency][val]m / PV costs [currency][val]m)
+  - Evidence grade: **[Maryland level]** ([what this means in plain language])
+  - Key outcome: [primary outcome metric and magnitude]
+  - [If counterfactual available]: Compared to [counterfactual method] control group
+
+**Slide 6: Fiscal return**
+- Action title: "Every [currency]1 of public spend generated [currency][X] in fiscal savings" (or "The programme has a [positive/negative] fiscal return over [X] years")
+- Evidence:
+  - Discounted fiscal return: **[currency][val]m**
+  - Fiscal payback period: **[X] years**
+  - Top fiscal saving categories (2-3 bullets)
+  - [If persistence modelled]: Benefits decay to zero over [X] years
+
+**Slide 7: Recommendations**
+- Action title: "Recommend [continuing/scaling/modifying/discontinuing] the programme"
+- Evidence: 3-4 actionable recommendations, each as 1 bullet
+- Footer: "Full evaluation report: vfm-eval-{slug}-{date}.md"
+
+Save as `vfm-exec-{slug}-{date}.pptx`.
+
 **PDF** (if selected):
 ```bash
 ECONSTACK_DIR="$HOME/.claude/skills/econstack"
@@ -1222,7 +1276,7 @@ Key assumptions were tested per Green Book and Magenta Book requirements:
 
 **Slide summary:**
 ```markdown
-**[Programme Name] — Value for Money Evaluation**
+**[Programme Name]: Value for Money Evaluation**
 
 - Total cost: **GBP [val]** over [period]
 - Delivered **[val] [outputs]** ([val]% of target)

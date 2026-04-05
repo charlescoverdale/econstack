@@ -49,6 +49,7 @@ Generate professional economic profile content for any UK local authority. Cover
 - `--focus housing` : Emphasise housing and affordability
 - `--focus business` : Emphasise business activity and industry structure
 - `--client "Name"` : Add "Prepared for: [Name]" on outputs
+- `--exec` : Generate a McKinsey-style executive summary deck (6 slides with action titles). Can be combined with `--format pptx` for both decks.
 - `--format <type>` : Output format(s): `markdown`, `html`, `word`, `pptx`, `pdf`, or `all`. Comma-separate for multiple. Default: markdown only
 
 ## Instructions
@@ -113,7 +114,7 @@ If the LA slug is not found exactly:
 Present the key numbers:
 
 ```
-[LA NAME] — Economic Profile
+[LA NAME]: Economic Profile
 =============================
 Country:           [England/Scotland/Wales]
 Population:        [val] ([year])
@@ -230,7 +231,7 @@ Compare to the LA's own country average (England/Scotland/Wales). Do not just co
 
 **Slide summary:**
 ```markdown
-**[LA Name] — Economic Snapshot**
+**[LA Name]: Economic Snapshot**
 
 - Population **[val]**, [growing/stable/declining] ([X]% over 5 years)
 - **[val] workplace jobs**, dominated by [top 2 sectors]
@@ -404,6 +405,60 @@ Invoke the `/docx` skill. Navy headings, formatted tables, title page with LA na
 
 **PowerPoint (.pptx)** (if selected):
 Invoke the `/pptx` skill. Slides: (1) Title with LA name, (2) Key stats dashboard, (3) Employment/industry, (4) Earnings/housing, (5) Deprivation/benchmarks. Save as `la-profile-{slug}-{date}.pptx`.
+
+**Executive summary deck** (if `--exec` specified):
+
+Invoke the `/pptx` skill to create a McKinsey-style executive summary deck. Every slide follows the **action title + evidence** pattern: a 2-line strapline stating the conclusion (a complete sentence, NOT a topic label), then 3-4 dot points proving it.
+
+Formatting: Action title 24-28pt bold navy (#003078). Body 14-16pt, one key number bolded per bullet. Footer 10pt light grey with data source + vintage date. Clean white background, no decorative elements. Slide numbers bottom-right.
+
+**Slide 1: Title**
+- "[LA name] Economic Profile" (large, navy)
+- Date, "Prepared for: [client]" if specified
+
+**Slide 2: At a glance**
+- Action title: "[LA name] is a [brief characterisation: e.g. 'mid-sized city economy with above-average deprivation and a strong manufacturing base']"
+- Evidence:
+  - Population: **[X]** ([growth/decline] vs 10 years ago)
+  - Median earnings: **[currency][X]/week** ([X]% [above/below] [country] average)
+  - Employment rate: **[X]%** ([country] avg: [X]%)
+  - GVA per head: **[currency][X]** ([X]% of [country] average)
+
+**Slide 3: Labour market**
+- Action title: "[LA name] has [higher/lower] employment than the [country] average, with [key characteristic]"
+- Evidence:
+  - Employment rate: **[X]%** (vs **[X]%** nationally)
+  - Claimant count: **[X]%** (vs **[X]%**)
+  - Economic inactivity: **[X]%** ([key driver if notable])
+  - [Key trend: e.g. "Employment growth outpacing national average" or "Persistent joblessness in [area]"]
+
+**Slide 4: Industry and skills**
+- Action title: "The local economy is [concentrated in / diversified across] [top sectors]"
+- Evidence:
+  - Top sector: **[name]** ([X]% of employment, [above/below] national share)
+  - Second sector: **[name]** ([X]%)
+  - NVQ4+ qualification rate: **[X]%** (vs **[X]%** nationally)
+  - [Key skills gap or specialisation]
+- Optional: horizontal bar chart of sector employment shares vs national
+
+**Slide 5: Housing and earnings**
+- Action title: "[Affordability is stretched / Housing is relatively affordable] with a price-to-earnings ratio of [X]"
+- Evidence:
+  - Median house price: **[currency][X]**
+  - Affordability ratio: **[X]** (vs **[X]** nationally)
+  - Median weekly earnings: **[currency][X]** ([X]% of national)
+  - [Key trend: e.g. "Prices rising faster than earnings" or "Relatively affordable for the region"]
+
+**Slide 6: Deprivation and opportunity**
+- Action title: "[LA name] ranks [X] of [N] on the IMD, placing it in the [most/least deprived quartile]"
+- Evidence:
+  - IMD rank: **[X]** of [N] (1 = most deprived)
+  - Worst dimensions: [2-3 deprivation domains with rankings]
+  - [If comparison LA]: Compared to [comparator]: [key differences]
+  - [Opportunity: e.g. "Levelling Up Category [X] area" or "Growth corridor with new infrastructure investment"]
+- Footer: "Full profile: la-profile-{slug}-{date}.md"
+
+Save as `la-exec-{slug}-{date}.pptx`.
 
 **PDF** (if selected):
 ```bash

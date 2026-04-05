@@ -45,6 +45,7 @@ Generate a narrative briefing on public finances for the UK, US, or Australia. C
 - `--full` : Skip menu, generate all sections
 - `--dsa` : Add a debt sustainability analysis section using the `debtkit` R package (projections, stress tests, fan chart description)
 - `--client "Name"` : Add "Prepared for"
+- `--exec` : Generate a McKinsey-style executive summary deck (6 slides with action titles). Can be combined with `--format pptx` for both decks.
 - `--format <type>` : Output format(s): `markdown`, `html`, `word`, `pptx`, `pdf`, or `all`. Comma-separate for multiple. Default: markdown only
 
 ## Country Routing
@@ -864,6 +865,59 @@ Invoke the `/docx` skill. Navy headings, formatted tables, title page. Save as `
 
 **PowerPoint (.pptx)** (if selected):
 Invoke the `/pptx` skill. Slides: (1) Title, (2) Dashboard, (3) Receipts table, (4) Expenditure table, (5) Debt/outlook, (6) Methodology. Save as `fiscal-briefing-{country}-{date}.pptx`.
+
+**Executive summary deck** (if `--exec` specified):
+
+Invoke the `/pptx` skill to create a McKinsey-style executive summary deck. Every slide follows the **action title + evidence** pattern: a 2-line strapline stating the conclusion (a complete sentence, NOT a topic label), then 3-4 dot points proving it.
+
+Formatting: Action title 24-28pt bold navy (#003078). Body 14-16pt, one key number bolded per bullet. Footer 10pt light grey with data source + vintage date. Clean white background, no decorative elements. Slide numbers bottom-right.
+
+**Slide 1: Title**
+- "[Country] Public Finances Briefing" (large, navy)
+- [Month Year], "Prepared for: [client]" if specified
+
+**Slide 2: Headline**
+- Action title: "Public finances are [improving/deteriorating/stable], with borrowing at [currency][X]bn ([X]% of GDP)"
+- Evidence:
+  - [Deficit measure]: **[currency][X]bn** ([X]% of GDP)
+  - [Debt measure]: **[currency][X]bn** ([X]% of GDP)
+  - Trend: [improving/deteriorating] vs [previous year / forecast]
+  - [Key driver: e.g. "Higher-than-expected tax receipts offset spending pressures"]
+
+**Slide 3: Receipts**
+- Action title: "Tax receipts are [above/below/in line with] forecast, driven by [top category]"
+- Evidence:
+  - Total receipts: **[currency][X]bn** ([X]% of GDP)
+  - Income tax: **[currency][X]bn** ([+/-X]% YoY)
+  - [Second largest]: **[currency][X]bn**
+  - [Key trend or surprise]
+- Optional: horizontal bar chart of receipts by category
+
+**Slide 4: Spending**
+- Action title: "Spending is [rising/falling/stable] at [currency][X]bn, with [department/category] driving [growth/pressure]"
+- Evidence:
+  - Total spending: **[currency][X]bn** ([X]% of GDP)
+  - [Largest category]: **[currency][X]bn**
+  - Debt interest: **[currency][X]bn** ([key context])
+  - [Key trend or pressure point]
+
+**Slide 5: Debt and sustainability**
+- Action title: "Debt is [X]% of GDP and [rising/falling/stable], [on/off track] against fiscal rules"
+- Evidence:
+  - Debt: **[currency][X]bn** (**[X]%** of GDP)
+  - Trajectory: [rising/falling] over the forecast period
+  - [If DSA available]: Debt projected to [peak/stabilise] at [X]% by [year]
+  - Fiscal rule status: [met/at risk/breached]
+
+**Slide 6: Fiscal rules and outlook**
+- Action title: "[Fiscal rule] headroom is [currency][X]bn, [leaving room / creating pressure] for [policy context]"
+- Evidence:
+  - [Rule 1]: [status, headroom]
+  - [Rule 2]: [status]
+  - Key risks: [2-3 bullets on downside scenarios]
+- Footer: "Full briefing: fiscal-briefing-{country}-{date}.md"
+
+Save as `fiscal-exec-{country}-{date}.pptx`.
 
 **PDF** (if selected):
 ```bash

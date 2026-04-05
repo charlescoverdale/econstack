@@ -49,6 +49,7 @@ Generate professional economic impact assessment content for an investment or jo
 - `--client "Name"` : Add "Prepared for: [Name]" on outputs
 - `--full` : Skip the interactive menu, generate the complete report
 - `--format <type>` : Output format(s): `markdown`, `html`, `word`, `pptx`, `pdf`, or `all`. Comma-separate for multiple (e.g. `--format word,pdf`). Default: markdown only
+- `--exec` : Generate a McKinsey-style executive summary deck (6 slides with action titles). Can be combined with `--format pptx` for both decks.
 - `--audit` : After generating the report, automatically run `/econ-audit` on the output
 
 ## Instructions
@@ -611,6 +612,59 @@ Invoke the `/pptx` skill to create a slide deck. Instruct it to create these sli
 5. Methodology slide: one-paragraph methodology summary and key caveats
 Use navy (#003078) as the accent colour. If `--client` was specified, include "Prepared for: [client]" on the title slide.
 Save as `io-report-{slug}-{date}.pptx`.
+
+**Executive summary deck** (if `--exec` specified):
+
+Invoke the `/pptx` skill to create a McKinsey-style executive summary deck. Every slide follows the **action title + evidence** pattern: a 2-line strapline stating the conclusion (a complete sentence, NOT a topic label), then 3-4 dot points proving it.
+
+Formatting: Action title 24-28pt bold navy (#003078). Body 14-16pt, one key number bolded per bullet. Footer 10pt light grey with methodology note + date. Clean white background, no decorative elements. Slide numbers bottom-right.
+
+**Slide 1: Title**
+- "Economic Impact Assessment" (large, navy)
+- [Investment/project description], [area], date, "Prepared for: [client]" if specified
+
+**Slide 2: Headline impact**
+- Action title: "This investment supports [X] jobs and [currency][X]m GVA in [area]"
+- Evidence:
+  - Total employment impact: **[X] jobs** (direct + indirect + induced)
+  - Total GVA impact: **[currency][X]m**
+  - Total output impact: **[currency][X]m**
+  - Tax revenue generated: **[currency][X]m**
+- Optional: simple KPI grid (4 boxes with the headline numbers)
+
+**Slide 3: Direct vs indirect**
+- Action title: "For every direct job, [X] additional jobs are supported in the supply chain"
+- Evidence:
+  - Direct: **[X] jobs** / **[currency][X]m** GVA
+  - Indirect (supply chain): **[X] jobs** / **[currency][X]m** GVA
+  - [If Type II]: Induced (spending): **[X] jobs** / **[currency][X]m** GVA
+  - Multiplier: **[val]** ([Type I/II])
+
+**Slide 4: Tax and fiscal return**
+- Action title: "The investment generates [currency][X]m in additional tax revenue over [X] years"
+- Evidence:
+  - Income tax and NICs: **[currency][X]m**
+  - Business rates: **[currency][X]m**
+  - VAT and other: **[currency][X]m**
+  - [If temporal profile computed]: Peak impact in year [X], fading over [X] years
+
+**Slide 5: Sensitivity**
+- Action title: "Under conservative assumptions, the impact is [X] jobs and [currency][X]m GVA"
+- Evidence:
+  - Conservative: **[X] jobs**, **[currency][X]m** GVA (high additionality adjustments)
+  - Central: **[X] jobs**, **[currency][X]m** GVA
+  - Optimistic: **[X] jobs**, **[currency][X]m** GVA (low adjustments)
+  - Key sensitivity: [which assumption matters most]
+
+**Slide 6: Context and caveats**
+- Action title: "[Area]'s [sector] multiplier of [val] is [above/below/in line with] comparable areas"
+- Evidence:
+  - Benchmark comparison (2-3 comparable areas with multipliers)
+  - Key caveat: IO models assume fixed coefficients and no supply constraints
+  - [Any area-specific context: e.g. labour market tightness, sector concentration]
+- Footer: "Full impact report: io-report-{slug}-{date}.md"
+
+Save as `io-exec-{slug}-{date}.pptx`.
 
 **PDF** (if selected):
 Render the markdown through the EconStack template:

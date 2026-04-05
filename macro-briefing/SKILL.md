@@ -49,6 +49,7 @@ Generate a professional macroeconomic briefing for the UK, US, Euro area, or Aus
 - `--focus <area>` : Emphasise a specific area (output, labour, prices, monetary, fiscal, trade, housing)
 - `--international` : Include international comparison tables (30 economies)
 - `--client "Name"` : Add "Prepared for" on outputs
+- `--exec` : Generate a McKinsey-style executive summary deck (6 slides with action titles). Can be combined with `--format pptx` for both decks.
 - `--format <type>` : Output format(s): `markdown`, `html`, `word`, `pptx`, `pdf`, or `all`. Comma-separate for multiple (e.g. `--format word,pdf`). Default: markdown only
 
 ## Country Routing
@@ -1467,6 +1468,62 @@ Invoke the `/docx` skill. Pass the markdown content. Navy headings, formatted ta
 
 **PowerPoint (.pptx)** (if selected):
 Invoke the `/pptx` skill. Create slides: (1) Title, (2) Dashboard table, (3) Key sections as selected, (4) Traffic-light assessment, (5) Data sources. Navy accent. Save as `macro-briefing-{country}-{date}.pptx`.
+
+**Executive summary deck** (if `--exec` specified):
+
+Invoke the `/pptx` skill to create a McKinsey-style executive summary deck. Every slide follows the **action title + evidence** pattern: a 2-line strapline stating the conclusion (a complete sentence, NOT a topic label), then 3-4 dot points proving it.
+
+Formatting: Action title 24-28pt bold navy (#003078). Body 14-16pt, one key number bolded per bullet. Footer 10pt light grey with data source + vintage date. Clean white background, no decorative elements. Slide numbers bottom-right. Charts in navy/grey/light blue palette.
+
+**Slide 1: Title**
+- "[Country] Macroeconomic Outlook" (large, navy)
+- [Month Year], "Prepared for: [client]" if specified
+
+**Slide 2: Traffic light dashboard**
+- Action title: "The [country] economy is [expanding steadily / slowing / in recession / showing mixed signals]"
+- Evidence: 6-8 key indicators in a compact GREEN/AMBER/RED grid
+  - GDP growth: **[X]%** [traffic light]
+  - Inflation: **[X]%** [traffic light]
+  - Unemployment: **[X]%** [traffic light]
+  - Wage growth: **[X]%** [traffic light]
+  - Policy rate: **[X]%** [traffic light]
+  - [1-2 more as relevant]
+
+**Slide 3: Growth and inflation**
+- Action title: "GDP growth is [accelerating/decelerating/stable] at [X]%, with inflation [above/at/below] target at [X]%"
+- Evidence:
+  - GDP: **[X]%** ([quarterly/annual], [latest period])
+  - Inflation (CPI): **[X]%** ([latest month])
+  - Core inflation: **[X]%**
+  - [Key driver: e.g. "Growth driven by services/consumption/exports"]
+- Optional: simple line chart suggestion (GDP + inflation trends)
+
+**Slide 4: Labour market**
+- Action title: "[Labour market] is [tight/loosening/stable] with unemployment at [X]%"
+- Evidence:
+  - Employment rate: **[X]%** ([vs pre-pandemic/historical average])
+  - Unemployment: **[X]%**
+  - Wage growth (nominal): **[X]%**, real: **[X]%**
+  - [Key trend: e.g. "Vacancies falling but employment resilient"]
+
+**Slide 5: Monetary policy**
+- Action title: "[Central bank] is [holding rates / expected to cut / tightening further] at [X]%"
+- Evidence:
+  - Current policy rate: **[X]%**
+  - Last decision: [date, action]
+  - Market expectations: [next move, timing]
+  - [Key consideration: e.g. "Inflation persistence vs growth slowdown"]
+
+**Slide 6: Outlook and risks**
+- Action title: "Key risks are [1-line summary of top risk]"
+- Evidence: 3-4 bullets, each a risk or turning point
+  - [Risk 1 with direction and magnitude]
+  - [Risk 2]
+  - [Risk 3]
+  - [Optional: upcoming data releases or policy decisions to watch]
+- Footer: "Full briefing: macro-briefing-{country}-{date}.md"
+
+Save as `macro-exec-{country}-{date}.pptx`.
 
 **PDF** (if selected):
 ```bash

@@ -47,6 +47,7 @@ The skill handles the computation and structure. You provide the substance (what
 - `--client "Name"` : Add "Prepared for"
 - `--format <type>` : Output format(s): `markdown`, `xlsx`, `word`, `pptx`, `pdf`, or `all`. Comma-separate for multiple (e.g. `--format xlsx,word`). Default: markdown only
 - `--from <file.json>` : Import all inputs from a JSON file. Skips all interactive questions. Use `--from schema` to print the expected JSON schema.
+- `--exec` : Generate a McKinsey-style executive summary deck (5-8 slides with action titles). Can be combined with `--format pptx` to get both the data deck and the narrative deck.
 - `--audit` : After generating the report, automatically run `/econ-audit` on the output
 
 **Supported frameworks:**
@@ -1498,6 +1499,84 @@ Invoke the `/pptx` skill to create a slide deck. Instruct it to create these sli
 8. Methodology slide: one-paragraph methodology summary and key caveats
 Use navy (#003078) as the accent colour. If `--client` was specified, include "Prepared for: [client]" on the title slide.
 Save as `cba-{project-slug}-{date}.pptx`.
+
+**Executive summary deck** (if `--exec` specified):
+
+Invoke the `/pptx` skill to create a McKinsey-style executive summary deck. This is a separate file from the standard PPTX. Every slide follows the **action title + evidence** pattern: a 2-line strapline at the top stating the conclusion (not a topic label), then 3-4 dot points or a chart proving it.
+
+**Formatting rules for all exec summary slides:**
+- Action title: 2 lines max, bold, 24-28pt, navy (#003078). Must be a complete sentence stating an insight, NOT a topic label. "This project delivers high value for money" not "Value for Money Results".
+- Subtitle/strapline: 16pt, dark grey (#333333), directly below title
+- Body: 3-4 bullet points, 14-16pt. One key number bolded per point.
+- Charts: simple (bar, waterfall, tornado), max one per slide, navy (#003078) / grey (#666666) / light blue (#4472C4) palette
+- Footer on every slide: 10pt, light grey, methodology one-liner + date + "Source: [framework]"
+- No decorative elements, no gradients, no clip art. Clean white background.
+- Slide numbers bottom-right
+
+**Slide 1: Title**
+- Project name (large, navy)
+- "Cost-Benefit Analysis" subtitle
+- Framework, date, "Prepared for: [client]" if specified
+- Perspective and referent group in small text
+
+**Slide 2: The ask**
+- Action title: "This appraisal evaluates [X] options for [1-line project description]"
+- Evidence: 1 bullet per option (name + 1-line description)
+- Note the counterfactual: "The Do Nothing scenario assumes [description]"
+- If perspective is not social/public, note: "Analysis from [perspective] perspective, counting impacts on [referent group]"
+
+**Slide 3: Headline verdict**
+- Action title: "[Preferred option] delivers [VfM category] value for money" (or "does not deliver positive value for money" if NPV < 0)
+- Evidence:
+  - **NPV: [currency][val]m** under central assumptions
+  - **BCR: [val]** ([VfM category])
+  - Benefits could fall **[switching value]%** before the case turns negative (or "Benefits would need to rise [X]% to break even" if NPV < 0)
+  - Referent Group NPV: [val] (if materially different from Efficiency NPV, explain in 1 line)
+
+**Slide 4: Who pays, who benefits**
+- Action title: "[Primary cost-bearer] funds the project; [primary beneficiary group] captures most of the value" (or whatever the multiple-account table reveals)
+- Evidence: Simplified 3-4 row version of the multiple-account table:
+  - [Group 1]: net [contributor/beneficiary] by [currency][val]m
+  - [Group 2]: net [contributor/beneficiary] by [currency][val]m
+  - [Group 3 if outside referent group]: captures [currency][val]m (outside referent group)
+- If Referent Group NPV differs significantly from Efficiency NPV, explain in 1 bullet
+
+**Slide 5: Cost breakdown**
+- Action title: "Total costs of [currency][val]m are [front-loaded / spread over X years / concentrated in years X-Y]"
+- Evidence:
+  - Capital: [currency][val]m (including [X]% optimism bias)
+  - Operating: [currency][val]m over [X] years
+  - [If renewals]: Major renewal at year [X]: [currency][val]m
+- Optional: simple stacked bar chart showing cost phasing over time
+
+**Slide 6: Benefit breakdown**
+- Action title: "Benefits of [currency][val]m are driven by [top benefit category]"
+- Evidence:
+  - [Top category]: [currency][val]m PV ([X]% of total)
+  - [Second category]: [currency][val]m PV
+  - [Third category]: [currency][val]m PV
+  - Non-monetised: [1-line description of key non-monetised benefits]
+- Optional: horizontal bar chart of benefit categories
+
+**Slide 7: How robust is the case?**
+- Action title: "The case is robust: benefits could fall [X]% before NPV turns negative" (or "The case is sensitive to assumptions: a [X]% change in [key variable] would reverse the conclusion")
+- Evidence:
+  - Pessimistic scenario: NPV [currency][val]m, BCR [val]
+  - Central scenario: NPV [currency][val]m, BCR [val]
+  - Optimistic scenario: NPV [currency][val]m, BCR [val]
+  - [If Monte Carlo was run]: Probability of positive NPV: [X]%
+- Optional: tornado chart showing switching values for top 3 variables
+
+**Slide 8: Risks and next steps**
+- Action title: "Recommend proceeding to [next stage] subject to [key condition]" (or "Further analysis needed before proceeding" if case is marginal)
+- Evidence:
+  - Top 3 risks (1 bullet each: risk + mitigation)
+  - 2-3 recommended next steps
+- Footer: "Full CBA report: cba-{slug}-{date}.md"
+
+Save as `cba-exec-{project-slug}-{date}.pptx`.
+
+If `--exec` is combined with `--format pptx`, generate both files (the standard data deck AND the exec summary deck).
 
 **PDF** (if selected):
 Render the markdown through the EconStack template:

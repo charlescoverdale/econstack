@@ -47,6 +47,7 @@ This is the "second pair of eyes" that catches errors a reviewer would flag. It 
 - `--fix` : Auto-fix issues where possible, skipping the interactive fix question. Only fixes RED issues by default (numerical inconsistencies, formula errors, missing caveats). Does NOT change methodology choices (discount rate, additionality assumptions, framework selection). Does NOT delete content. All fixes are shown to the user before being applied. If `--strict` is also specified, AMBER issues are fixed too.
 - `--json` : Output the audit as structured JSON
 - `--framework <name>` : Override framework detection (uk, eu, us, wb, au, nz)
+- `--exec` : Generate a McKinsey-style executive summary deck (5 slides with action titles). Can be combined with `--format pptx` for both decks.
 - `--format <type>` : Output format(s): `markdown`, `html`, `word`, `pptx`, `pdf`, or `all`. Comma-separate for multiple (e.g. `--format html,pdf`). Default: markdown only
 
 ## Instructions
@@ -457,6 +458,52 @@ Invoke the `/pptx` skill to create a summary slide deck:
 6. Methodology slide: brief note on audit checklist and sources
 Use red (#CC0000) for RED issue headers, amber (#CC8800) for AMBER, green (#006100) for pass indicators.
 Save as `audit-{source-filename}-{date}.pptx`.
+
+**Executive summary deck** (if `--exec` specified):
+
+Invoke the `/pptx` skill to create a McKinsey-style executive summary deck. Every slide follows the **action title + evidence** pattern: a 2-line strapline stating the conclusion (a complete sentence, NOT a topic label), then 3-4 dot points proving it.
+
+Formatting: Action title 24-28pt bold navy (#003078). Body 14-16pt, one key number bolded per bullet. Use red (#CC0000) for RED issue text, amber (#CC8800) for AMBER, green (#006100) for pass indicators. Footer 10pt light grey. Clean white background. Slide numbers bottom-right.
+
+**Slide 1: Title**
+- "Economic Audit" (large, navy)
+- Source filename, date, "Prepared for: [client]" if specified
+
+**Slide 2: Overall grade**
+- Action title: "This analysis scores [A/B/C/D/F]: [1-line plain-language interpretation]"
+  - e.g. "This analysis scores B+: methodologically sound with minor gaps in sensitivity analysis"
+  - e.g. "This analysis scores D: critical errors in discounting and missing additionality adjustments"
+- Evidence:
+  - Overall grade: **[letter]** ([score]/100)
+  - RED issues: **[N]** critical
+  - AMBER issues: **[N]** areas for improvement
+  - GREEN: **[N]** categories passed
+- Optional: compact RAG grid of all 16 audit categories
+
+**Slide 3: Red issues**
+- Action title: "[N] critical issues found that undermine the analysis" (or "No critical issues found" if N=0)
+- Evidence: Top 3 RED issues, each as 1 bullet:
+  - [Issue 1]: [1-line description + impact]
+  - [Issue 2]: [1-line description + impact]
+  - [Issue 3]: [1-line description + impact]
+- If N=0, replace with a summary of what was checked and passed
+
+**Slide 4: Amber issues**
+- Action title: "[N] areas for improvement would strengthen the analysis"
+- Evidence: Top 3 AMBER issues, each as 1 bullet:
+  - [Issue 1]: [1-line description + recommendation]
+  - [Issue 2]: [1-line description + recommendation]
+  - [Issue 3]: [1-line description + recommendation]
+
+**Slide 5: Recommended fixes**
+- Action title: "Addressing [N] issues would raise the grade to [target letter]"
+- Evidence: Prioritised action list (3-5 items):
+  - [Fix 1]: [action + expected grade impact]
+  - [Fix 2]: [action + expected grade impact]
+  - [Fix 3]: [action + expected grade impact]
+- Footer: "Full audit report: audit-{source-filename}-{date}.md"
+
+Save as `audit-exec-{source-filename}-{date}.pptx`.
 
 **PDF** (if selected):
 Render the markdown through the EconStack template:
