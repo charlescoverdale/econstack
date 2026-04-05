@@ -808,13 +808,103 @@ IMPORTANT: Interpret these correctly based on the sign of NPV:
     "Costs would need to fall by [X]% for NPV to reach zero"
 ```
 
-**Sensitivity analysis:**
+**Sensitivity analysis (framework-specific):**
+
+Sensitivity analysis is mandatory for all frameworks. The depth and type depends on the framework.
+
+**1. Scenario sensitivity (all frameworks):**
+
 Run three scenarios:
 - **Optimistic:** benefits +20%, costs -20%
 - **Central:** as computed
 - **Pessimistic:** benefits -20%, costs +20%
 
-Compute NPV and BCR for each.
+Compute NPV and BCR for each. Present as a table.
+
+**2. Per-variable sensitivity / tornado analysis (all frameworks):**
+
+For each of the top 5 cost and benefit items (by PV magnitude), compute NPV with that single variable at +/-20% while holding all other variables at their central values. This identifies which assumptions the conclusion is most sensitive to.
+
+```
+For each key variable V in [capex, opex, main_benefit_1, main_benefit_2, growth_rate, ...]:
+  NPV_high = compute NPV with V at +20%, all else central
+  NPV_low  = compute NPV with V at -20%, all else central
+  range    = NPV_high - NPV_low
+```
+
+Present as a tornado table, sorted by range (widest first):
+
+```markdown
+| Variable | -20% NPV ([currency]m) | Central NPV | +20% NPV ([currency]m) | Range | NPV still positive? |
+|----------|----------------------|-------------|----------------------|-------|---------------------|
+| [Var with widest range] | [val] | [val] | [val] | [val] | [Yes/No at -20%] |
+| [Second widest] | [val] | [val] | [val] | [val] | [Yes/No] |
+| [Third] | [val] | [val] | [val] | [val] | [Yes/No] |
+```
+
+Interpretation: "The conclusion is most sensitive to [top variable]. A 20% [increase/decrease] in [variable] alone would [change/not change] the VfM assessment."
+
+**3. Discount rate sensitivity (framework-specific):**
+
+| Framework | Required discount rate tests |
+|-----------|---------------------------|
+| UK Green Book | Central (3.5% declining). Also test: health-specific (1.5% for health outcomes), flat 3.5% (to show impact of declining schedule), and if appraisal period > 30 years, show impact of rate step-down at year 31 |
+| US OMB A-4 | Central (2% revised declining). Also test: legacy 3% and legacy 7% (required for backward compatibility with pre-2023 A-4) |
+| Australia (OIA) | **Three rates mandatory**: 4%, 7% (central), 10%. Present all three in a comparison table. |
+| EU Cohesion | Central (3% or 5%). Also test: the alternative rate (if 3% central, show 5% sensitivity, and vice versa) |
+| World Bank | Central (typically 6% ERR). Also test: 3% and 10% |
+| NZ CBAx | Central (2% or 8%). Also test: the alternative rate |
+| EIB | Central (3.5-5%). Also test: 2% lower bound and 6% upper bound |
+| ADB | Central (9-12%). Also test: 6% and 15% |
+
+Present as a comparison table:
+
+```markdown
+| Discount rate | PV Costs ([currency]m) | PV Benefits ([currency]m) | NPV ([currency]m) | BCR |
+|--------------|----------------------|--------------------------|-------------------|-----|
+| [Low rate]% | [val] | [val] | [val] | [val] |
+| **[Central rate]%** | **[val]** | **[val]** | **[val]** | **[val]** |
+| [High rate]% | [val] | [val] | [val] | [val] |
+
+[Interpretation: "The project delivers positive NPV at all tested discount rates" or "The project is sensitive to the discount rate: NPV turns negative at rates above [X]%"]
+```
+
+For Australia specifically: the OIA CBA guide requires all three rates (4%, 7%, 10%) to be presented with equal prominence, not as "central with sensitivity". The 7% rate is the default but the decision-maker should see all three.
+
+**4. Named scenario analysis (recommended for UK Green Book, optional elsewhere):**
+
+The Green Book Supplementary Guidance on Uncertainty recommends testing specific risk scenarios, not just blanket percentage changes. If the project has identifiable risk events, construct 2-3 named scenarios:
+
+```markdown
+| Scenario | Description | Key assumption changes | NPV ([currency]m) | BCR |
+|----------|------------|----------------------|-------------------|-----|
+| **Central** | Base case | As modelled | [val] | [val] |
+| **Delayed construction** | 2-year construction delay | +2 years to benefit start, +10% capex | [val] | [val] |
+| **Low demand** | Demand 30% below forecast | Benefits -30%, growth rate halved | [val] | [val] |
+| **High input costs** | Material cost inflation | Capex +25%, opex +15% | [val] | [val] |
+```
+
+Tailor scenarios to the project type:
+- Transport: low demand, construction delay, induced traffic (disbenefit)
+- Health: lower clinical effectiveness, slower adoption
+- Housing: house price fall, reduced demand
+- Energy: technology cost change, carbon price scenario
+- Policy/regulatory: lower compliance rate, higher admin costs
+
+**5. Break-even analysis by variable (recommended for Australian and all frameworks):**
+
+For each key variable, compute the exact value at which NPV = 0:
+
+```markdown
+| Variable | Central value | Break-even value | Change required | Plausibility |
+|----------|-------------|-----------------|-----------------|-------------|
+| Annual benefit | [currency][val]m | [currency][val]m | -[X]% | [Plausible / Implausible] |
+| Capital cost | [currency][val]m | [currency][val]m | +[X]% | [Plausible / Implausible] |
+| Benefit growth rate | [X]% | [X]% | [direction + magnitude] | [Plausible / Implausible] |
+| Discount rate | [X]% | [X]% | +[X]pp | [Plausible / Implausible] |
+```
+
+This extends switching values (which give aggregate percentages) to show the specific break-even point for each variable individually. The "Plausibility" column helps decision-makers assess whether the break-even point is within the range of realistic outcomes.
 
 **Probabilistic sensitivity / Monte Carlo (optional, offer for large projects):**
 
@@ -1125,13 +1215,64 @@ If NPV < 0:
 ```markdown
 ## Sensitivity Analysis
 
-| Scenario | Benefits | Costs | NPV (£m) | BCR |
-|----------|----------|-------|----------|-----|
-| Pessimistic (-20% benefits, +20% costs) | [val] | [val] | [val] | [val] |
-| **Central** | **[val]** | **[val]** | **[val]** | **[val]** |
-| Optimistic (+20% benefits, -20% costs) | [val] | [val] | [val] | [val] |
+### Scenario sensitivity
+
+| Scenario | PV Benefits ([currency]m) | PV Costs ([currency]m) | NPV ([currency]m) | BCR | VfM still positive? |
+|----------|--------------------------|----------------------|-------------------|-----|---------------------|
+| Pessimistic (-20% benefits, +20% costs) | [val] | [val] | [val] | [val] | [Yes/No] |
+| **Central** | **[val]** | **[val]** | **[val]** | **[val]** | **Yes/No** |
+| Optimistic (+20% benefits, -20% costs) | [val] | [val] | [val] | [val] | [Yes/No] |
 
 [Interpretation: does the option still represent positive VfM under pessimistic assumptions?]
+
+### Per-variable sensitivity (tornado analysis)
+
+Each variable tested independently at +/-20%, all others held at central values. Sorted by impact (widest range first).
+
+| Variable | -20% NPV ([currency]m) | Central NPV | +20% NPV ([currency]m) | Range | NPV positive at worst? |
+|----------|----------------------|-------------|----------------------|-------|----------------------|
+| [Most sensitive variable] | [val] | [val] | [val] | [val] | [Yes/No] |
+| [Second most sensitive] | [val] | [val] | [val] | [val] | [Yes/No] |
+| [Third] | [val] | [val] | [val] | [val] | [Yes/No] |
+| [Fourth] | [val] | [val] | [val] | [val] | [Yes/No] |
+| [Fifth] | [val] | [val] | [val] | [val] | [Yes/No] |
+
+The conclusion is most sensitive to **[top variable]**. [Interpretation of what this means for the robustness of the case.]
+
+### Discount rate sensitivity
+
+| Discount rate | PV Costs ([currency]m) | PV Benefits ([currency]m) | NPV ([currency]m) | BCR |
+|--------------|----------------------|--------------------------|-------------------|-----|
+| [Low rate]% | [val] | [val] | [val] | [val] |
+| **[Central rate]% (framework default)** | **[val]** | **[val]** | **[val]** | **[val]** |
+| [High rate]% | [val] | [val] | [val] | [val] |
+
+[For UK: "NPV at 3.5% declining (Green Book default): [val]. At flat 3.5% (without declining schedule): [val]. The declining schedule [increases/has minimal effect on] NPV for this [X]-year appraisal."]
+[For AU: "The Australian Government requires presentation at 4%, 7% (central), and 10%. The project delivers positive NPV at [all three / 4% and 7% only / 7% only]."]
+[For US: "NPV at revised A-4 rate (2% declining): [val]. At legacy 3%: [val]. At legacy 7%: [val]."]
+
+### Break-even analysis by variable
+
+| Variable | Central value | Break-even value (NPV=0) | Change required | Plausibility |
+|----------|-------------|--------------------------|-----------------|-------------|
+| [Benefit 1] | [currency][val]m/yr | [currency][val]m/yr | -[X]% | [Plausible / Unlikely / Implausible] |
+| [Capital cost] | [currency][val]m | [currency][val]m | +[X]% | [Plausible / Unlikely / Implausible] |
+| [Benefit growth rate] | [X]% p.a. | [X]% p.a. | [change] | [Plausibility] |
+| [Discount rate] | [X]% | [X]% | +[X]pp | [Plausibility] |
+| [Appraisal period] | [X] years | [X] years | -[X] years | [Plausibility] |
+
+[Interpretation: "The most plausible route to a negative NPV is [variable]. The break-even point of [value] would require [real-world interpretation, e.g. 'demand 35% below the central forecast, which exceeds the worst outcome observed in comparable projects']."]
+
+### Named scenario analysis
+
+| Scenario | Description | Key changes vs central | NPV ([currency]m) | BCR |
+|----------|------------|----------------------|-------------------|-----|
+| **Central** | Base case | As modelled | [val] | [val] |
+| **[Scenario 1]** | [e.g. "Construction delay"] | [e.g. "+2yr delay, +10% capex"] | [val] | [val] |
+| **[Scenario 2]** | [e.g. "Low demand"] | [e.g. "Benefits -30%"] | [val] | [val] |
+| **[Scenario 3]** | [e.g. "High input costs"] | [e.g. "Capex +25%, opex +15%"] | [val] | [val] |
+
+[Interpretation: "Under [X] of [Y] scenarios tested, the project still delivers positive NPV. The case is [robust / sensitive to specific risks / marginal]."]
 ```
 
 **Incremental analysis (if 3+ options):**
