@@ -24,7 +24,7 @@ Then continue with the skill normally.
 
 Structured multi-criteria analysis for options appraisal. Supports two levels of rigour:
 
-- **MCA** (default): flexible scoring scale, multiple weighting methods, suitable for most decisions
+- **MCA** (default): flexible scoring scale, multiple weighting methods, suitable for most decisions. Note: the Green Book recommends against simple weighting-and-scoring for formal government appraisals, citing lack of transparency and objectivity. For government business cases, use the MCDA method below.
 - **MCDA** (Green Book standard): 0-100 scoring, swing weighting, Decision Conference format, required for HM Treasury business cases
 
 Also supports **AHP** (Analytic Hierarchy Process) with pairwise comparisons and consistency checking.
@@ -50,7 +50,7 @@ The Excel workbook is the primary output. MCA is fundamentally a spreadsheet exe
 
 **Options:**
 - `--method mca|mcda|ahp` : Analysis method. `mca` (default: flexible scale, multiple weighting methods). `mcda` (Green Book MCDA: 0-100 scoring, swing weighting, Decision Conference format). `ahp` (Analytic Hierarchy Process: pairwise comparisons, consistency check).
-- `--scale 3|5|7|10|100` : Scoring scale. Default: 5. If `--method mcda`, forced to 100.
+- `--scale 3|5|7|100` : Scoring scale. Default: 5. If `--method mcda`, forced to 100.
 - `--with-cba <path>` : Link to a CBA companion JSON from `/cost-benefit`. MCA covers non-monetised benefits only; monetised benefits are excluded to prevent double counting.
 - `--full` : Skip interactive menus, generate all sections
 - `--client "Name"` : Add "Prepared for"
@@ -438,6 +438,8 @@ Present the resulting weights.
 
 **If MCDA (Green Book):**
 
+**Important: For the MCDA method, swap the order of Steps 4 and 5.** Score the options first (Step 5), then swing weight (Step 4). This is because swing weights depend on seeing the range of performance across options. You need to know how much the scores vary on each criterion before you can judge the value of swinging from worst to best. The Green Book five-step process specifies: (1) identify criteria, (2) assess performance, (3) consolidate in Decision Conference, (4) swing weight, (5) sensitivity analysis.
+
 Swing weighting is mandatory. Follow the swing weighting process above. Note: "Swing weighting is the only weighting method approved by the Green Book for MCDA. Importance-based weighting (assigning weights based on how important a criterion is, without considering the performance range) is explicitly rejected by HM Treasury as it conflates importance with discriminating power."
 
 **If AHP:**
@@ -586,6 +588,10 @@ For the top-ranked option, compute how much its score on each criterion could fa
 Recompute rankings with each criterion removed in turn. Report any removals that change the top rank:
 
 "Removing [criterion] would change the top-ranked option from [A] to [B]. The result depends on including this criterion."
+
+5. **Rank reversal check:**
+
+If the option set changes (an option is added or removed), the ranking of remaining options may change. This is a known property of the linear additive model and AHP. Do not infer rankings for a modified option set from a previous run. Note: "If the options under consideration change, re-run the full analysis. Rankings are not stable under option-set changes."
 
 **Summary assessment:**
 
@@ -819,6 +825,8 @@ This analysis follows:
 - Government Analysis Function (2024). "An Introductory Guide to MCDA."
 [If AHP:] - Saaty, T.L. (1980). "The Analytic Hierarchy Process." McGraw-Hill.
 [If AU:] - Infrastructure Australia (2021). "Guide to Multi-Criteria Analysis."
+[If EU:] - European Commission (2023). "Better Regulation Toolbox, Tool #62: Multi-Criteria Decision Analysis."
+- HM Treasury (2015). "The Aqua Book: Guidance on Producing Quality Analysis for Government."
 ```
 
 ### Step 9: Format export
@@ -959,4 +967,8 @@ Files saved:
 - **Descriptors must be tailored, not generic.** "Good/Medium/Bad" or "High/Medium/Low" without context is not acceptable. Every scale point must describe what that level of performance looks like for that specific criterion in concrete, observable terms.
 - **The Excel workbook is the primary deliverable.** It must have blue input cells (#0000FF on #DCE6F1) for all user-adjustable values (scores and weights) so the user can modify and re-run the analysis without re-running the skill. All other cells must be formulas.
 - **Cite the methodology.** Always reference the DCLG Manual (Dodgson et al., 2009), Green Book Supplementary Guidance on MCDA, and Government Analysis Function guide. For AHP, cite Saaty (1980). For Australian projects, cite Infrastructure Australia (2021).
+- **The linear additive model is fully compensatory.** A very low score on one criterion can be fully offset by high scores on other criteria. If any criterion represents a hard constraint (e.g. legal compliance, safety minimum, planning permission), screen options against that constraint BEFORE entering the MCA. Do not use the MCA to evaluate non-negotiable requirements. If an option fails a hard constraint, it should be eliminated before scoring.
+- **Warn about cognitive biases during scoring.** Central tendency bias: users tend to cluster scores in the middle of the scale. Encourage use of the full range. Anchoring bias: presenting draft criteria can anchor the user's thinking. Note this when presenting drafts. Group dynamics: in workshop settings, dominant voices can bias results. The Green Book recommends a trained facilitator for MCDA Decision Conferences.
+- **AHP becomes impractical with many criteria.** For N criteria, AHP requires N(N-1)/2 pairwise comparisons: 7 criteria = 21 comparisons, 10 criteria = 45, 15 criteria = 105. For more than 8-9 criteria, suggest reducing the number or using a hierarchical structure (group criteria, weight groups, then weight within groups).
+- **Quality assure proportionately.** For high-impact decisions, the Aqua Book (HM Treasury, 2015) recommends independent peer review of analytical work. At minimum, the criteria, scores, and weights should be reviewed by someone who was not involved in the original assessment.
 - **Do not confuse MCA with MCDA.** MCA (this skill's default) is a practical weighting-and-scoring approach. MCDA (Green Book) is a more rigorous methodology requiring swing weighting, 0-100 scoring, and ideally a facilitated Decision Conference. Both are supported; the user chooses. Default to MCA.
