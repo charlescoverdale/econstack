@@ -46,6 +46,16 @@ Key routing rules:
 - VfM evaluation, "did it work", programme assessment, Magenta Book → invoke vfm-eval
 - Business case, Five Case Model, SOC, OBC, FBC, HVHR, strategic case, commercial case → invoke business-case
 
+## Versioning
+
+Econstack uses semver-lite. The current version is in `VERSION`.
+
+- **MAJOR** (X.0.0): Breaking change to the parameter database schema, JSON `--from` schema, or skill invocation syntax. Anything that would break existing `--from` JSON files or require users to change how they call a skill.
+- **MINOR** (0.X.0): New skill added, new framework added to an existing skill, or significant new capability (e.g. Monte Carlo, new output format, new jurisdiction).
+- **PATCH** (0.0.X): Bug fixes, audit fixes, parameter updates, wording improvements, template tweaks, heading corrections.
+
+Always bump VERSION in the same commit as the change. Include the new version in the commit message (e.g. "v0.5.0: Add /business-case skill").
+
 ## Data Dependencies
 
 **LA data:** The io-report and la-profile skills read multiplier and LA data from `~/econstack-data/src/data/`.
