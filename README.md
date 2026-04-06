@@ -220,32 +220,30 @@ Letter grade A-F, with auto-fix option. **Options:** `--strict`, `--fix`, `--exe
 
 ---
 
-## The ecosystem
+## Structure
 
 ```
-R packages (data access)          econprofile (data + web)         econstack (skills)
-========================          =======================         ==================
-ons    -> ONS data                391 LA profiles                 /cost-benefit (UK, US, EU, AU, WB, ADB)
-                                                                  /mca (MCA + MCDA + AHP)
-                                                                  /vfm-eval (Magenta Book 3Es/4Es)
-boe    -> Bank of England         IO impact calculator            /macro-briefing (UK, US, EU, AU)
-hmrc   -> HMRC trade              Compare regions tool            /fiscal-briefing (UK, US, AU)
-obr    -> OBR fiscal              Embeddable charts               /io-report (UK)
-fred   -> US FRED data            Country benchmarking            /la-profile (UK)
-readecb -> ECB data                                               /market-research (UK, US, EU, AU, global)
-readoecd -> OECD data                                             /econ-audit
-
-R packages (analytical)           macrowithr.com
-========================          ==============
-nowcast    -> Nowcasting           14-chapter textbook
-debtkit    -> Debt sustainability  Applied macro with R
-yieldcurves -> Yield curves        Uses all the packages above
-inflationkit -> Inflation analysis
-predictset  -> Conformal prediction
-climatekit  -> Climate indices
+econstack/
+├── cost-benefit/        /cost-benefit   CBA (8 frameworks, referent group analysis)
+├── mca/                 /mca            Multi-criteria analysis (MCA + MCDA + AHP)
+├── vfm-eval/            /vfm-eval       Value for Money evaluation (8 frameworks)
+├── macro-briefing/      /macro-briefing Macroeconomic monitor (UK, US, EU, AU)
+├── fiscal-briefing/     /fiscal-briefing Public finances (UK, US, AU)
+├── market-research/     /market-research Industry and market analysis (multi-geo)
+├── io-report/           /io-report      Input-output impact (391 UK LAs)
+├── la-profile/          /la-profile     Local authority profiles (391 UK LAs)
+├── econ-audit/          /econ-audit     Methodology audit (120+ checks)
+├── templates/
+│   └── blocks/          Shared template blocks (preamble, formatting, rules)
+├── scripts/
+│   ├── gen-skill-docs.sh  Generate SKILL.md from SKILL.tmpl + blocks
+│   └── render-report.sh   PDF rendering via Quarto
+├── bin/
+│   └── econstack-update-check
+└── README.md
 ```
 
-All 16 R packages are on [CRAN](https://cran.r-project.org/).
+Backed by 16 R packages on [CRAN](https://cran.r-project.org/) and a [42-file parameter database](https://github.com/charlescoverdale/econstack-data).
 
 ---
 
