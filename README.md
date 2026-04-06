@@ -1,8 +1,8 @@
 # econstack
 
-![Version](https://img.shields.io/badge/version-0.4.0-blue)
+![Version](https://img.shields.io/badge/version-0.5.0-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
-![Skills](https://img.shields.io/badge/skills-9-orange)
+![Skills](https://img.shields.io/badge/skills-10-orange)
 ![Parameters](https://img.shields.io/badge/parameters-42_files-purple)
 ![Frameworks](https://img.shields.io/badge/frameworks-8_countries-red)
 
@@ -195,6 +195,26 @@ Economic snapshot for any of the 391 UK local authorities. Covers demographics, 
 
 ---
 
+### `/business-case`
+
+Draft a complete business case in the structure and language of the selected national framework. Covers all five cases (Strategic, Economic, Commercial, Financial, Management) with framework-native headings: Victoria DTF's 10-chapter Investment Case / Delivery Case, NSW's component model, Queensland's 20-chapter BCDF, NZ Better Business Cases with Te Tiriti o Waitangi, or the UK Five Case Model. Delegates the CBA computation to `/cost-benefit` and adjusts depth by stage (SOC/OBC/FBC) and proportionality (under 1m to over 100m).
+
+Interactive section picker: complete the whole business case or just the sections you know. Skipped sections get placeholders noting what's needed at the next stage. Cross-case consistency checks flag mismatches between financial and economic costs, benefits register and realisation plan, and risk register and economic case risk costs. Supports `--with-cba` to import an existing CBA.
+
+```
+/business-case "New hospital wing in Greater Manchester" --stage obc
+/business-case --framework au-vic --stage fbc --full
+/business-case --case strategic,economic
+/business-case --sections                    # interactive picker
+/business-case --from inputs.json --format docx,pdf
+```
+
+9 frameworks: UK Green Book, AU Commonwealth (RMG 308), AU Victoria (HVHR), AU NSW (TPG24-29), AU Queensland (PAF/BCDF), NZ Better Business Cases, EU Better Regulation, World Bank PAD, US OMB.
+
+**Options:** `--stage`, `--framework`, `--case`, `--sections`, `--proportionality`, `--with-cba`, `--full`, `--exec`, `--audit`, `--client`, `--format`, `--from`
+
+---
+
 ### `/econ-audit`
 
 Think of it as a senior partner and an economics professor going through your work and poking holes in it. Full methodology audit of any output from the skills above, or any economic analysis you point it at. Runs 120+ checks across 16 categories and produces a RAG (red, amber, green) rating on how your methods and assumptions compare to best practice. Agnostic to region or asset class: it draws on government guidance (Green Book 2026, Aqua Book, OMB A-4, EC CBA Guide) and published academic literature (Flyvbjerg, Moretti, Flegg) to assess numerical consistency, discount rates, additionality, multiplier plausibility, double counting, framing, Five Case Model completeness, distributional analysis, Aqua Book RIGOUR compliance, and strategic misrepresentation patterns.
@@ -232,6 +252,7 @@ econstack/
 ├── market-research/     /market-research Industry and market analysis (multi-geo)
 ├── io-report/           /io-report      Input-output impact (391 UK LAs)
 ├── la-profile/          /la-profile     Local authority profiles (391 UK LAs)
+├── business-case/       /business-case  Business case (9 national frameworks)
 ├── econ-audit/          /econ-audit     Methodology audit (120+ checks)
 ├── templates/
 │   └── blocks/          Shared template blocks (preamble, formatting, rules)
