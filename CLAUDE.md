@@ -12,6 +12,7 @@ Each skill has its own directory with a `SKILL.md` defining the workflow.
 - `macro-briefing/SKILL.md` : Macroeconomic monitor (UK, US, Euro area, Australia; --international for 30-country comparison)
 - `cost-benefit/SKILL.md` : Cost-benefit analysis (8 international frameworks)
 - `vfm-eval/SKILL.md` : Value for Money evaluation (3Es/4Es, unit cost benchmarks, fiscal return, evidence grading)
+- `business-case/SKILL.md` : Five Case Model business case (UK Green Book, Australian Commonwealth/Victoria HVHR/NSW/Queensland, NZ, EU, World Bank, US). Framework-native headings and terminology (e.g. VIC DTF 10-chapter structure, NSW component model, QLD 20-chapter BCDF). Interactive section picker.
 - `econ-audit/SKILL.md` : Methodology audit (80+ checks, RED/AMBER/GREEN grading)
 
 ## Important Rules
@@ -43,6 +44,7 @@ Key routing rules:
 - Save progress, checkpoint, resume → invoke checkpoint
 - Code quality, health check → invoke health
 - VfM evaluation, "did it work", programme assessment, Magenta Book → invoke vfm-eval
+- Business case, Five Case Model, SOC, OBC, FBC, HVHR, strategic case, commercial case → invoke business-case
 
 ## Data Dependencies
 
