@@ -1,0 +1,962 @@
+---
+name: mca
+description: Multi-criteria analysis and MCDA. Criteria generation, tailored scoring scales, weighting (swing, equal, budget, AHP), sensitivity analysis. Excel scoring matrix, Word/PPT/Markdown/PDF summaries.
+allowed-tools:
+  - Bash
+  - Read
+  - Write
+  - Glob
+  - Grep
+  - AskUserQuestion
+  - Skill
+---
+
+<!-- preamble: update check -->
+Before starting, run this silently. If it outputs UPDATE_AVAILABLE, tell the user:
+"A new version of econstack is available. Run `cd ~/.claude/skills/econstack && git pull` to update."
+Then continue with the skill normally.
+
+```bash
+~/.claude/skills/econstack/bin/econstack-update-check 2>/dev/null || true
+```
+
+# /mca: Multi-Criteria Analysis and MCDA
+
+Structured multi-criteria analysis for options appraisal. Supports two levels of rigour:
+
+- **MCA** (default): flexible scoring scale, multiple weighting methods, suitable for most decisions
+- **MCDA** (Green Book standard): 0-100 scoring, swing weighting, Decision Conference format, required for HM Treasury business cases
+
+Also supports **AHP** (Analytic Hierarchy Process) with pairwise comparisons and consistency checking.
+
+**This skill is interactive.** It takes your decision problem, generates tailored criteria with scale descriptors specific to each criterion (not generic "good/medium/bad"), walks you through weighting and scoring, computes rankings with sensitivity analysis, and produces an Excel scoring matrix alongside summary reports.
+
+The Excel workbook is the primary output. MCA is fundamentally a spreadsheet exercise: the workbook has blue input cells for all scores and weights so you can modify and re-run without re-running the skill.
+
+## Arguments
+
+```
+/mca [description of problem or options] [options]
+```
+
+**Examples:**
+```
+/mca "We're choosing between 3 sites for a new hospital in Leeds"
+/mca "Evaluate 5 renewable energy technologies for a rural council" --scale 5
+/mca --from criteria.json --format xlsx,word
+/mca "Longlist 6 transport options for the A66 corridor" --method mcda
+/mca "Compare 4 regulatory options for online safety" --method ahp
+```
+
+**Options:**
+- `--method mca|mcda|ahp` : Analysis method. `mca` (default: flexible scale, multiple weighting methods). `mcda` (Green Book MCDA: 0-100 scoring, swing weighting, Decision Conference format). `ahp` (Analytic Hierarchy Process: pairwise comparisons, consistency check).
+- `--scale 3|5|7|10|100` : Scoring scale. Default: 5. If `--method mcda`, forced to 100.
+- `--with-cba <path>` : Link to a CBA companion JSON from `/cost-benefit`. MCA covers non-monetised benefits only; monetised benefits are excluded to prevent double counting.
+- `--full` : Skip interactive menus, generate all sections
+- `--client "Name"` : Add "Prepared for"
+- `--format <type>` : Output format(s): `markdown`, `xlsx`, `word`, `pptx`, `pdf`, or `all`. Comma-separate for multiple. Default: markdown + xlsx (both always generated for MCA)
+- `--exec` : McKinsey-style executive summary deck (5 slides with action titles)
+- `--from <file.json>` : Import criteria, options, scores, and weights from JSON. Skips interactive entry. Use `--from schema` to print the expected JSON schema.
+
+**Method comparison:**
+
+| Feature | MCA (default) | MCDA (Green Book) | AHP |
+|---------|:---:|:---:|:---:|
+| Scoring scale | User choice (1-3, 1-5, 1-7, 1-10) | 0-100 (mandatory) | Pairwise (1-9 scale) |
+| Weighting | Equal, direct, budget, rank-order, or swing | Swing weighting (mandatory) | Eigenvector from pairwise matrix |
+| Consistency check | No | No (validated in Decision Conference) | Yes (CR < 0.10) |
+| Rigour level | Practical | HM Treasury standard | Academic standard |
+| Green Book compliant | Supplementary only | Yes (longlist stage) | No (not in Green Book) |
+| Best for | Quick sifts, internal decisions, many options | Government business cases, spending reviews | Complex trade-offs, hard-to-score criteria |
+
+## Instructions
+
+### Step 0: Load parameters (standard preamble)
+
+### Step 1: Understand the problem
+
+If the user provided a description as an argument, parse it. Otherwise ask:
+
+"Describe the decision you're trying to make. What options are you comparing, and what matters most?"
+
+Extract:
+- **Options** (the alternatives being compared)
+- **Context** (sector, geography, scale, stage of appraisal)
+- **Objectives** (what the decision-maker cares about)
+
+If the user provides a clear list of options, confirm them. If not, ask using AskUserQuestion:
+
+**Question:** "How many options are you comparing (including do-nothing if applicable)?"
+
+Default: 3-5 options.
+
+For each option, ask for: short name and one-line description.
+
+**JSON import mode:** If `--from <file.json>` specified, read and parse. Expected schema:
+
+```json
+{
+  "problem": "Description of the decision",
+  "method": "mca | mcda | ahp",
+  "scale": 5,
+  "options": [
+    { "name": "Option A", "description": "Description" },
+    { "name": "Option B", "description": "Description" }
+  ],
+  "criteria": [
+    {
+      "name": "Strategic alignment",
+      "category": "Strategic",
+      "description": "Alignment with policy objectives and local priorities",
+      "descriptors": {
+        "1": "No alignment with strategic objectives",
+        "2": "Weak alignment, tangential to priorities",
+        "3": "Moderate alignment with some priorities",
+        "4": "Strong alignment with most priorities",
+        "5": "Full alignment with all strategic objectives"
+      }
+    }
+  ],
+  "weights": { "Strategic alignment": 20, "Economic impact": 25 },
+  "scores": {
+    "Option A": { "Strategic alignment": 4, "Economic impact": 3 },
+    "Option B": { "Strategic alignment": 3, "Economic impact": 4 }
+  }
+}
+```
+
+If `--from schema` specified, print the schema above and stop.
+
+Skip all interactive questions. Proceed to Step 6 (Compute). Still ask about output formats unless `--full` is also specified.
+
+### Step 1b: Method selection
+
+If `--method` was not specified, ask using AskUserQuestion:
+
+**Question:** "What level of rigour do you need?"
+
+Options:
+- A) **MCA (standard)** (Recommended for most decisions. Flexible scoring scale, multiple weighting methods. Quick and practical.)
+- B) **MCDA (Green Book)** (HM Treasury standard. 0-100 scoring with component value functions, swing weighting, Decision Conference format. Use for government business cases and spending reviews.)
+- C) **AHP** (Analytic Hierarchy Process. Pairwise comparisons with mathematical consistency check. Good when criteria are hard to score directly on a numerical scale.)
+
+Default to A (MCA) unless the user's description suggests a formal government appraisal (keywords: "business case", "Green Book", "spending review", "Five Case Model", "longlist", "HM Treasury").
+
+**If MCDA selected:**
+Note: "The Green Book prescribes MCDA at the longlist stage only (Chapter 4). At the shortlist stage, CBA or CEA must be used. MCDA should be facilitated through a Decision Conference (minimum half-day workshop with stakeholders). This skill structures the analysis; the scoring and weighting should ideally be done in a facilitated session."
+
+Force `--scale 100` and swing weighting.
+
+**If AHP selected:**
+Note: "AHP uses pairwise comparisons on a 1-9 scale to derive both weights and scores. It includes a mathematical consistency check (Consistency Ratio < 0.10). AHP is not part of the Green Book methodology but is widely used internationally."
+
+### Step 2: Generate criteria
+
+**This is the key feature.** Based on the problem description, generate a draft set of 6-10 criteria grouped into 3-5 categories. The criteria must be:
+
+1. **Ends, not means**: "Maximise training capacity" not "Hire more trainers"
+2. **Measurable or assessable**: Can be scored on the chosen scale
+3. **Non-redundant**: No two criteria should measure the same underlying attribute
+4. **Preferentially independent**: Trade-offs between any two criteria should not depend on the level of a third (this is required for the linear additive model)
+
+**Criteria generation by sector/problem type:**
+
+**Infrastructure / capital project:**
+- Strategic fit: alignment with national/local policy objectives, strategic priorities, levelling up
+- Economic impact: jobs created, GVA contribution, wider economic benefits
+- Environmental impact: carbon footprint, biodiversity net gain, air quality, noise, flood risk
+- Social impact: equity, accessibility for disadvantaged groups, community cohesion
+- Deliverability: technical feasibility, construction complexity, planning risk, programme risk
+- Resilience: climate adaptation, future-proofing, flexibility for changing demand
+
+**Policy / programme:**
+- Effectiveness: expected achievement of primary policy objectives
+- Efficiency: cost per outcome, administrative simplicity, implementation burden
+- Equity: distributional impact, who benefits vs who bears costs, regional balance
+- Feasibility: political acceptability, legal basis, administrative capacity
+- Sustainability: long-term viability, environmental sustainability, fiscal sustainability
+- Evidence base: quality and strength of evidence for expected outcomes
+
+**Technology / procurement:**
+- Performance: capability, reliability, throughput, accuracy
+- Scalability: growth capacity, modular expansion, flexibility
+- Integration: compatibility with existing systems, data interoperability, migration effort
+- Risk: technology maturity (TRL), vendor dependency, security posture, obsolescence
+- User experience: ease of use, training requirements, accessibility
+- Sustainability: energy consumption, end-of-life disposal, supply chain ethics
+
+**Site selection:**
+- Accessibility: transport links (road, rail, bus), proximity to demand catchment
+- Land: site size, ownership complexity, contamination, topography
+- Planning: zoning/allocation status, planning history, heritage and conservation constraints
+- Environmental sensitivity: flood zone, ecological designations, landscape impact
+- Community: displacement, visual amenity, local employment, community support/opposition
+- Infrastructure: utilities capacity, broadband, road network capacity
+
+**Regulatory / market:**
+- Consumer benefit: choice, price, quality, innovation outcomes
+- Competition: impact on market structure, barriers to entry, contestability
+- Business impact: compliance costs, regulatory burden, certainty
+- Environmental: carbon, pollution, resource use
+- International: competitiveness, trade implications, regulatory alignment
+- Enforceability: monitoring feasibility, compliance incentives, penalty effectiveness
+
+**Education / skills:**
+- Learner outcomes: qualification rates, progression, employment outcomes
+- Access and equity: reach to disadvantaged groups, geographic coverage
+- Quality: teaching standards, learner satisfaction, employer relevance
+- Efficiency: cost per learner, utilisation rates, administrative simplicity
+- Sustainability: long-term funding viability, scalability, adaptability
+- Innovation: use of technology, pedagogy innovation, employer engagement
+
+Present draft criteria to the user:
+
+```
+DRAFT CRITERIA
+==============
+Based on your description, here are suggested criteria grouped by category:
+
+STRATEGIC
+  1. Strategic alignment: [tailored description]
+  2. [Second criterion]: [description]
+
+ECONOMIC
+  3. [Criterion]: [description]
+  4. [Criterion]: [description]
+
+SOCIAL & ENVIRONMENTAL
+  5. [Criterion]: [description]
+  6. [Criterion]: [description]
+
+DELIVERABILITY
+  7. [Criterion]: [description]
+  8. [Criterion]: [description]
+
+Add, remove, rename, or regroup any of these?
+```
+
+Ask the user to confirm using AskUserQuestion:
+
+**Question:** "Are these criteria right for your decision?"
+
+Options:
+- A) **Yes, use these criteria**
+- B) **Add more criteria** (I'll specify what to add)
+- C) **Remove some** (I'll say which to drop)
+- D) **Start from scratch** (I'll list my own criteria)
+
+Iterate until the user is satisfied.
+
+**CBA linkage check:** If `--with-cba` specified, load the CBA companion JSON and identify monetised benefits. Exclude any MCA criteria that overlap:
+
+"The following criteria overlap with monetised benefits in your CBA and have been excluded to avoid double counting:
+- [Criterion]: monetised as [benefit name] in the CBA (PV: [currency][val]m)
+The MCA should cover only non-monetised benefits that are not captured in the CBA."
+
+**Standalone monetisation check:** If running without `--with-cba`, check if any criteria could be monetised. If so, note: "[Criterion] could potentially be monetised (e.g. through willingness-to-pay or market pricing). If you are also running a CBA, consider moving this criterion there to avoid double counting."
+
+**Cost separation:** If any proposed criterion relates to cost (affordability, value for money, cost-effectiveness), warn: "The DCLG Manual and Green Book require costs to be assessed separately from benefit criteria, not included as a scored MCA criterion. Costs should be compared alongside the MCA results (e.g. in a benefit-cost trade-off chart). Remove [criterion] from the MCA? I can present costs separately in the output."
+
+### Step 3: Define scoring scale and descriptors
+
+**This is the other key feature.** For each criterion, generate tailored scale descriptors that describe what each score point means in concrete terms for that specific criterion.
+
+**Scale selection:**
+
+If `--scale` not specified (and method is not MCDA), ask using AskUserQuestion:
+
+**Question:** "What scoring scale do you want to use?"
+
+Options:
+- A) **1-3** (Low / Medium / High. Simplest. Good for quick sifts with many options, or when information is limited.)
+- B) **1-5** (Recommended. Good balance of simplicity and discrimination. Most common in practice.)
+- C) **1-7** (Better discrimination. Good for fewer options with complex trade-offs. Academic standard for Likert scales.)
+- D) **0-100** (Maximum discrimination. Required for formal MCDA with swing weighting. Automatically selected for Green Book method.)
+
+**Descriptor generation:**
+
+For EACH criterion, generate descriptors for EVERY scale point. Descriptors must be:
+- **Specific to the criterion**: not generic "good/bad/excellent"
+- **Observable and assessable**: describe concrete conditions, not abstract qualities
+- **Evenly spaced**: the perceived difference between adjacent points should be roughly equal
+- **Anchored at extremes**: the top and bottom of the scale must describe realistic best and worst cases
+
+**Examples for a 1-5 scale:**
+
+Criterion: "Environmental impact"
+```
+1 = Significant adverse impact: net increase in carbon emissions (>1,000 tCO2e/yr),
+    habitat loss or degradation, or pollution exceeding regulatory limits.
+    Mitigation options limited or unproven.
+2 = Minor adverse impact: some negative environmental effects (modest emissions,
+    localised habitat disturbance). Partially mitigable through standard measures.
+3 = Neutral: no material net environmental impact. Positive and negative effects
+    broadly offset. Compliant with all environmental regulations.
+4 = Minor positive impact: net carbon reduction, improved biodiversity, or reduced
+    pollution, but modest in scale. Exceeds baseline environmental performance.
+5 = Significant positive impact: transformative environmental improvement.
+    Major habitat restoration, large-scale decarbonisation, or substantial
+    pollution reduction. Sets a new benchmark for the sector.
+```
+
+Criterion: "Technical feasibility"
+```
+1 = Unproven: no comparable precedent at this scale. High technical risk.
+    Significant R&D or piloting required before implementation.
+2 = Emerging: limited track record. Some technical unknowns remain.
+    Requires pilot phase or demonstrator project.
+3 = Established but complex: proven technology, but challenging implementation
+    (e.g. difficult ground conditions, integration with legacy systems,
+    regulatory approval process).
+4 = Proven and straightforward: established technology with manageable
+    implementation challenges. Multiple successful comparable precedents.
+5 = Off-the-shelf: mature, widely deployed. No significant technical risk.
+    Standard procurement and implementation.
+```
+
+Criterion: "Strategic alignment"
+```
+1 = No alignment: does not contribute to any stated policy objective.
+    May actively conflict with strategic priorities.
+2 = Weak alignment: tangential to strategic priorities. Addresses a secondary
+    objective but not the primary policy goals.
+3 = Moderate alignment: addresses some strategic priorities. Contributes to
+    1-2 key objectives but not the core focus area.
+4 = Strong alignment: directly supports the primary policy objective and
+    contributes to multiple secondary priorities.
+5 = Full alignment: central to the core strategic objective. Advances all
+    key priorities. Explicitly referenced in the strategy/policy document.
+```
+
+Criterion: "Community impact"
+```
+1 = Severe disruption: permanent displacement of residents or businesses.
+    Significant loss of amenity. Strong, organised community opposition.
+2 = Moderate disruption: temporary construction impacts. Some loss of amenity.
+    Mixed community views, some opposition.
+3 = Neutral: minimal disruption to existing communities. No significant
+    positive or negative community impact.
+4 = Moderate benefit: improved local amenity, new community facilities,
+    some local employment during and after construction.
+5 = Transformative benefit: major regeneration catalyst. Significant new
+    employment, improved public realm, strong community support.
+```
+
+**For the 1-3 scale:** Generate three descriptors per criterion:
+```
+1 = [Weak / negative / adverse performance specific to this criterion]
+2 = [Moderate / neutral / mixed performance]
+3 = [Strong / positive / beneficial performance]
+```
+
+**For the 0-100 scale (MCDA):** Generate component value functions with anchor points:
+```
+  0 = [Worst realistic performance]: [concrete description]
+ 25 = [Below-average performance]: [description]
+ 50 = [Average / midpoint performance]: [description]
+ 75 = [Above-average performance]: [description]
+100 = [Best realistic performance]: [concrete description]
+```
+
+The 0-100 scale is relative: 100 = best among the options being compared, 0 = worst (or the "do nothing" level). The midpoint (50) should be calibrated by indifference: "a decision-maker would be equally satisfied with a certain outcome at 50 as with a 50/50 gamble between 0 and 100."
+
+Present all descriptors to the user:
+
+```
+SCORING DESCRIPTORS (Scale 1-5)
+================================
+
+1. Strategic alignment
+   1 = No alignment: does not contribute to any stated policy objective...
+   2 = Weak alignment: tangential to strategic priorities...
+   3 = Moderate alignment: addresses some strategic priorities...
+   4 = Strong alignment: directly supports the primary policy objective...
+   5 = Full alignment: central to the core strategic objective...
+
+2. Environmental impact
+   1 = Significant adverse impact: net increase in carbon emissions...
+   [etc.]
+
+Edit any of these? (Enter to accept all)
+```
+
+The user can edit any descriptor. Iterate until confirmed.
+
+### Step 4: Weighting
+
+**If MCA (default):**
+
+Ask using AskUserQuestion:
+
+**Question:** "How do you want to assign weights to the criteria?"
+
+Options:
+- A) **Equal weights** (all criteria weighted equally. Simple, transparent. Research shows this performs well when the number of criteria is large and true weights are uncertain.)
+- B) **Direct weights** (assign each criterion a weight out of 100, I'll normalise to sum to 1.0)
+- C) **Swing weighting** (Green Book method: weight reflects both the importance of the criterion AND the range of performance across options. Most rigorous.)
+- D) **Budget allocation** (distribute 100 points across all criteria)
+- E) **Rank order** (rank criteria from most to least important, I'll compute weights using the rank-sum formula)
+
+**If A (equal weights):**
+Set weight(i) = 1/N for all criteria. Note: "Equal weights assume all criteria are equally important and have equal performance ranges. This is a reasonable default when there is no strong prior on weights, and it provides a useful baseline for sensitivity analysis."
+
+**If B (direct weights):**
+For each criterion, ask the user to assign a weight (0-100). Normalise so they sum to 1.0.
+
+**If C (swing weighting):**
+Walk through the swing weighting process:
+
+"Imagine all options perform at their **worst** level on every criterion. Now:"
+
+"**Step 1:** Which single criterion, if it swung from worst to best, would create the **biggest improvement** in the overall decision? That criterion gets a reference weight of 100."
+
+Ask the user to identify the criterion.
+
+"**Step 2:** For each remaining criterion, how valuable is its swing from worst to best, **relative to** the reference criterion?"
+
+For each remaining criterion:
+"If [reference criterion] swinging from worst to best is worth 100, how much is [this criterion] swinging from worst to best worth? (0-100)"
+
+Normalise so weights sum to 1.0.
+
+**Important:** "Swing weighting captures both how much you care about a criterion AND the range of performance difference across your options. A criterion might be very important but have similar performance across all options (small swing), in which case it gets a low weight because it doesn't help discriminate. Conversely, a moderately important criterion with a large performance range gets a higher weight."
+
+**If D (budget allocation):**
+"You have 100 points to allocate across all criteria. More points = more importance. How do you want to distribute them?"
+
+List criteria. User assigns points. Check they sum to 100 (or normalise if close). Convert to weights summing to 1.0.
+
+**If E (rank order):**
+"Rank the criteria from most important (rank 1) to least important."
+
+List criteria. User assigns ranks. Compute rank-sum weights:
+```
+weight(i) = (N + 1 - rank(i)) / sum over all j of (N + 1 - rank(j))
+```
+
+Present the resulting weights.
+
+**If MCDA (Green Book):**
+
+Swing weighting is mandatory. Follow the swing weighting process above. Note: "Swing weighting is the only weighting method approved by the Green Book for MCDA. Importance-based weighting (assigning weights based on how important a criterion is, without considering the performance range) is explicitly rejected by HM Treasury as it conflates importance with discriminating power."
+
+**If AHP:**
+
+Generate pairwise comparison questions. For N criteria, there are N(N-1)/2 pairs.
+
+For each pair, ask:
+
+"Comparing **[Criterion A]** vs **[Criterion B]**: which is more important for this decision, and how much more?"
+
+Options:
+- Equal importance (1)
+- Slightly more important (3)
+- Moderately more important (5)
+- Strongly more important (7)
+- Extremely more important (9)
+
+(Intermediate values 2, 4, 6, 8 are permitted.)
+
+Build the comparison matrix A where a(i,j) = user's rating of criterion i relative to j, and a(j,i) = 1/a(i,j).
+
+Compute the principal eigenvector of A (the weight vector). Normalise to sum to 1.0.
+
+Compute the Consistency Ratio:
+```
+CI = (lambda_max - N) / (N - 1)
+CR = CI / RI
+
+where RI (Random Index) for N criteria:
+N:   3     4     5     6     7     8     9     10
+RI:  0.58  0.90  1.12  1.24  1.32  1.41  1.45  1.49
+```
+
+If CR > 0.10: warn "Your comparisons are inconsistent (CR = [val], threshold = 0.10). This means some of your pairwise judgments contradict each other. The most inconsistent judgment is [Criterion A vs Criterion B]. Would you like to revise?"
+
+If CR <= 0.10: "Comparisons are consistent (CR = [val]). Weights derived from the eigenvector."
+
+**Present weights (all methods):**
+
+```
+WEIGHTS
+=======
+Method: [equal / direct / swing / budget / rank-order / AHP]
+
+Criterion                    Raw weight    Normalised    [AHP: CR = X.XX]
+[Criterion 1]                [val]         [0.XX]
+[Criterion 2]                [val]         [0.XX]
+[Criterion 3]                [val]         [0.XX]
+...
+TOTAL                                      1.00
+```
+
+### Step 5: Score the options
+
+For each option against each criterion, ask the user to assign a score using the scale and descriptors from Step 3.
+
+Present one criterion at a time with its descriptors:
+
+```
+CRITERION: Environmental impact (weight: 0.XX)
+Scale: 1-5
+
+Descriptors:
+  1 = Significant adverse impact: net increase in carbon emissions...
+  2 = Minor adverse impact: some negative effects, partially mitigable...
+  3 = Neutral: no material net environmental impact...
+  4 = Minor positive impact: net carbon reduction, modest in scale...
+  5 = Significant positive impact: transformative improvement...
+
+Score each option:
+  Option A (New build, greenfield):     [?]
+  Option B (Refurbishment, brownfield): [?]
+  Option C (Do minimum):               [?]
+```
+
+After all scores are entered, display the complete performance matrix:
+
+```
+PERFORMANCE MATRIX (raw scores, scale 1-[max])
+===============================================
+                          Option A    Option B    Option C
+Strategic alignment       4           3           2
+Economic impact           3           4           2
+Environmental impact      2           4           3
+Community impact          3           2           4
+Technical feasibility     5           3           4
+Planning risk             4           2           3
+```
+
+Check for dominance: "Does any option score at least as well as every other option on ALL criteria?" If so: "[Option X] dominates [Option Y] (equal or better on every criterion). [Option Y] cannot be the preferred option regardless of weighting."
+
+**If AHP method (scores derived from pairwise comparisons):**
+For each criterion, generate pairwise comparisons of options (same 1-9 scale as for weights). Derive scores from the eigenvector. This is more work but avoids the need for a direct scoring scale.
+
+### Step 6: Compute
+
+**Linear additive model (all methods):**
+
+```
+For each option j:
+  V(j) = sum over all criteria i of [ normalised_score(i,j) * weight(i) ]
+```
+
+If scale is not 0-100, normalise scores:
+```
+normalised_score = (raw_score - scale_min) / (scale_max - scale_min) * 100
+```
+
+Compute:
+- **Weighted scores** for each option-criterion cell: w(i) * normalised_score(i,j)
+- **Overall weighted score** for each option: sum of weighted scores across criteria
+- **Rank order**: descending by overall weighted score
+- **Score gap**: difference between first and second-ranked options
+- **Dominance check**: identify dominated options (scored worse on ALL criteria by another option)
+
+**Sensitivity analysis (mandatory):**
+
+1. **Weight sensitivity (threshold analysis):**
+
+For each criterion, compute the weight at which the top-ranked option would lose its first place:
+
+```
+For the top-ranked option (rank 1) and second-ranked (rank 2):
+  For each criterion i:
+    Find weight_threshold(i) such that V_rank1 = V_rank2
+    when weight(i) = weight_threshold(i) and all other weights
+    are re-normalised proportionally.
+```
+
+Present as: "To overturn the ranking, [criterion] would need a weight of [X] (currently [Y]). This is a [large/modest/small] change, suggesting the result is [robust/sensitive] to this weight."
+
+2. **Equal-weights check:**
+
+Recompute rankings with all weights set to 1/N. If the ranking changes: "Under equal weights, [Option X] would rank first instead of [Option Y]. The ranking depends on the weighting scheme."
+
+If the ranking does not change: "The top-ranked option is the same under both the chosen weights and equal weights. This strengthens confidence in the result."
+
+3. **Score sensitivity:**
+
+For the top-ranked option, compute how much its score on each criterion could fall (to the scale minimum) before it loses first place:
+
+"Option A's environmental score could fall from 4 to [X] (a drop of [Y] points) before Option B overtakes it."
+
+4. **Remove-a-criterion test:**
+
+Recompute rankings with each criterion removed in turn. Report any removals that change the top rank:
+
+"Removing [criterion] would change the top-ranked option from [A] to [B]. The result depends on including this criterion."
+
+**Summary assessment:**
+
+Based on sensitivity analysis, classify robustness:
+- **Robust**: Top-ranked option is first under all weight scenarios tested, equal weights, and all remove-a-criterion tests. Score gaps are large.
+- **Moderately robust**: Top-ranked option is first under most but not all scenarios. Some sensitivity to specific weights or criteria.
+- **Sensitive**: Top-ranked option changes under equal weights or under plausible weight changes. Score gaps are small. Further analysis or workshop discussion needed.
+
+### Step 7: Show results and ask what the user needs
+
+Display headline results:
+
+```
+MCA RESULTS ([method])
+======================
+Method:     [MCA / MCDA / AHP]
+Scale:      [1-3 / 1-5 / 1-7 / 0-100]
+Weighting:  [equal / direct / swing / budget / rank-order / AHP]
+Criteria:   [N]
+Options:    [N]
+
+RANKING
+-------
+  Rank 1:  [Option name]    Score: [val]
+  Rank 2:  [Option name]    Score: [val]  (gap: [val])
+  Rank 3:  [Option name]    Score: [val]
+  ...
+
+Robustness: [Robust / Moderately robust / Sensitive]
+
+[If with-cba]: "This MCA covers non-monetised benefits only. Monetised benefits
+are captured in the linked CBA (NPV: [val], BCR: [val])."
+```
+
+**If `--full` was NOT specified**, ask using AskUserQuestion:
+
+**Question:** "What output do you need?"
+
+Options:
+- A) **Full MCA report** (all sections including sensitivity analysis)
+- B) **Pick sections** (choose what you need)
+- C) **Results only** (ranking table and headline numbers)
+- D) **Data only** (structured JSON)
+
+**If B** (multiSelect: true):
+- Performance matrix (raw scores with descriptors)
+- Weighted scores matrix (scores x weights with totals)
+- Results summary (ranking table with strengths/weaknesses)
+- Criteria descriptors (full reference table of all scale descriptors)
+- Weighting rationale (weights table with method description)
+- Sensitivity analysis (weight thresholds, equal-weights check, score sensitivity, remove-a-criterion)
+- Benefit-cost trade-off (if --with-cba: plot MCA score vs CBA cost for each option)
+- Methodology note (method, scale, assumptions, limitations, references)
+
+### Step 8: Generate output
+
+**Always include the KEY NUMBERS block at the top of markdown output:**
+
+```markdown
+<!-- KEY NUMBERS
+type: mca
+method: [mca/mcda/ahp]
+scale: [3/5/7/10/100]
+weighting: [equal/direct/swing/budget/rank-order/ahp]
+options: [count]
+criteria: [count]
+top_ranked: [option name]
+top_score: [val]
+second_ranked: [option name]
+second_score: [val]
+score_gap: [val]
+robustness: [robust/moderate/sensitive]
+with_cba: [true/false]
+date: [date]
+-->
+```
+
+**Always save a companion JSON file:** `mca-data-{slug}-{date}.json`
+
+The JSON contains: problem description, method, scale, options (with descriptions), criteria (with categories, descriptions, and full descriptors), weights (with method and raw values), raw scores, normalised scores, weighted scores, rankings, sensitivity results (weight thresholds, equal-weights ranking, score sensitivity, remove-a-criterion), and robustness assessment.
+
+#### Section templates
+
+**Performance matrix:**
+```markdown
+Table [N]: Performance Matrix (raw scores, scale 1-[max])
+
+| Criterion (category) | Weight | [Option A] | [Option B] | [Option C] |
+|----------------------|--------|-----------|-----------|-----------|
+| Strategic alignment (Strategic) | [0.XX] | [score] | [score] | [score] |
+| Economic impact (Economic) | [0.XX] | [score] | [score] | [score] |
+| Environmental impact (Social & Env) | [0.XX] | [score] | [score] | [score] |
+| Community impact (Social & Env) | [0.XX] | [score] | [score] | [score] |
+| Technical feasibility (Deliverability) | [0.XX] | [score] | [score] | [score] |
+| Planning risk (Deliverability) | [0.XX] | [score] | [score] | [score] |
+
+Source: Scoring workshop / analyst assessment.
+Notes: Scale [1-max]. Higher = better. [Method]. [Date].
+```
+
+**Weighted scores:**
+```markdown
+Table [N]: Weighted Scores
+
+| Criterion | Weight | [Option A] | [Option B] | [Option C] |
+|-----------|--------|-----------|-----------|-----------|
+| [Criterion 1] | [0.XX] | [w*s] | [w*s] | [w*s] |
+| [Criterion 2] | [0.XX] | [w*s] | [w*s] | [w*s] |
+| ... | | | | |
+| **Total weighted score** | **1.00** | **[val]** | **[val]** | **[val]** |
+| **Rank** | | **[rank]** | **[rank]** | **[rank]** |
+
+Source: econstack MCA computation.
+Notes: Weighted score = raw score (normalised to 0-100) x criterion weight. [Method], [weighting method]. [Date].
+```
+
+**Results summary:**
+```markdown
+Table [N]: MCA Results Summary
+
+| Rank | Option | Weighted score | Key strengths (top 2 criteria) | Key weaknesses (bottom 2 criteria) |
+|------|--------|---------------|-------------------------------|-----------------------------------|
+| 1 | [name] | [val] | [criterion]: [score], [criterion]: [score] | [criterion]: [score], [criterion]: [score] |
+| 2 | [name] | [val] | [top 2] | [bottom 2] |
+| 3 | [name] | [val] | [top 2] | [bottom 2] |
+
+**Preferred option: [name]** (score: [val], gap to second place: [val])
+
+[2 paragraphs: why this option ranks first, which criteria drive the ranking, any caveats from sensitivity analysis. If the gap is small: "The score gap between [first] and [second] is [val], which is [small/moderate/large] relative to the total score range. Sensitivity analysis should inform whether this gap is robust."]
+
+Source: econstack MCA analysis.
+Notes: [Method], [scale], [weighting method]. [Date].
+```
+
+**Criteria descriptors (reference annex):**
+```markdown
+## Annex: Criteria and Scoring Descriptors
+
+### [Criterion 1]: [Name]
+**Category:** [category]
+**Description:** [1-2 sentence description]
+**Weight:** [0.XX] ([weighting method])
+
+| Score | Descriptor |
+|-------|-----------|
+| 1 | [Full tailored descriptor for this criterion] |
+| 2 | [descriptor] |
+| 3 | [descriptor] |
+| 4 | [descriptor] |
+| 5 | [descriptor] |
+
+### [Criterion 2]: [Name]
+[Same format]
+...
+```
+
+**Sensitivity analysis:**
+```markdown
+## Sensitivity Analysis
+
+### Weight sensitivity (threshold analysis)
+
+Table [N]: Weight Thresholds for Rank Change
+
+| Criterion | Current weight | Threshold weight | Change needed | Would overturn ranking? |
+|-----------|---------------|-----------------|---------------|------------------------|
+| [Criterion 1] | [0.XX] | [0.XX] | [+/-0.XX] | [Yes: [Option B] overtakes / No: outside feasible range] |
+| [Criterion 2] | [0.XX] | [0.XX] | [+/-0.XX] | [Yes/No] |
+
+[Interpretation: "The ranking is most sensitive to the weight on [criterion]. A [modest/large] increase in this weight from [X] to [Y] would change the top-ranked option."]
+
+### Equal-weights comparison
+
+| Option | Chosen weights score | Equal weights score | Chosen rank | Equal weights rank | Rank change? |
+|--------|---------------------|---------------------|-------------|-------------------|-------------|
+| [Option A] | [val] | [val] | [rank] | [rank] | [Yes/No] |
+| [Option B] | [val] | [val] | [rank] | [rank] | [Yes/No] |
+
+[Interpretation: "Under equal weights, [the ranking is the same / Option X overtakes Option Y]."]
+
+### Score sensitivity
+
+Table [N]: Score Thresholds for the Top-Ranked Option
+
+| Criterion | Current score | Break-even score | Margin | Would change? |
+|-----------|-------------|-----------------|--------|---------------|
+| [Criterion 1] | [val] | [val] | [val] points | [Only if score drops by X points] |
+| [Criterion 2] | [val] | [val] | [val] points | [description] |
+
+### Remove-a-criterion test
+
+| Criterion removed | New rank 1 | New rank 2 | Ranking changed? |
+|-------------------|-----------|-----------|-----------------|
+| [Criterion 1] | [option] | [option] | [Yes/No] |
+| [Criterion 2] | [option] | [option] | [Yes/No] |
+
+**Overall robustness: [Robust / Moderately robust / Sensitive]**
+
+[2 paragraphs: synthesis of sensitivity findings. What gives confidence in the ranking? What are the key vulnerabilities? What would need to be true for a different option to be preferred?]
+
+Source: econstack sensitivity analysis.
+Notes: [Method], [scale], [weighting method]. [Date].
+```
+
+**Benefit-cost trade-off (if `--with-cba`):**
+```markdown
+## Benefit-Cost Trade-off
+
+Table [N]: MCA Benefit vs CBA Cost
+
+| Option | MCA weighted score (non-monetised benefits) | CBA PV Cost ([currency]m) | CBA NPV ([currency]m) | CBA BCR |
+|--------|---------------------------------------------|--------------------------|----------------------|---------|
+| [Option A] | [val] | [val] | [val] | [val] |
+| [Option B] | [val] | [val] | [val] | [val] |
+
+[Interpretation: "Option [X] offers the highest non-monetised benefits at [a cost of / combined with a CBA NPV of]. Considering both the monetised (CBA) and non-monetised (MCA) analysis together, [recommendation]."
+
+If MCA and CBA rank differently: "[Option A] ranks first on monetised benefits (CBA), while [Option B] ranks first on non-monetised benefits (MCA). The decision depends on the relative weight placed on monetised vs non-monetised outcomes."]
+
+Source: CBA from [companion JSON path]. MCA from this analysis.
+Notes: CBA covers monetised benefits only. MCA covers non-monetised benefits only. No double counting.
+```
+
+**Methodology note:**
+```markdown
+**Methodology:** Multi-criteria [analysis/decision analysis] using the linear additive model (V = sum of vi x wi). Method: [MCA / MCDA / AHP]. Scoring scale: [1-N / 0-100]. Weighting: [method]. [N] criteria across [N] categories, [N] options assessed. Scores [were assigned by the analyst / were assigned in a facilitated workshop]. Sensitivity analysis: weight threshold analysis, equal-weights check, score sensitivity, remove-a-criterion test. Robustness: [assessment]. [If with-cba: "This MCA is linked to a CBA ([path]) and covers non-monetised benefits only."]
+
+This analysis follows:
+- Dodgson, J., Spackman, M., Pearman, A., Phillips, L. (2009). "Multi-Criteria Analysis: A Manual." DCLG.
+- HM Treasury / Government Analysis Function (2026). "Use of Multi-Criteria Decision Analysis in Options Appraisal of Economic Cases." Green Book Supplementary Guidance.
+- Government Analysis Function (2024). "An Introductory Guide to MCDA."
+[If AHP:] - Saaty, T.L. (1980). "The Analytic Hierarchy Process." McGraw-Hill.
+[If AU:] - Infrastructure Australia (2021). "Guide to Multi-Criteria Analysis."
+```
+
+### Step 9: Format export
+
+**Markdown** always generated. Save as `mca-{slug}-{date}.md`. Always save `mca-data-{slug}-{date}.json`.
+
+**Excel (.xlsx)** always generated alongside markdown. Invoke the `/xlsx` skill:
+
+1. **Cover sheet:** Title, date, method, scale, "Prepared for" if specified. Model guide:
+   - "Blue cells are user inputs (scores and weights). Change these to re-run the analysis."
+   - "All other cells contain formulas. Do not edit."
+   - Sheet descriptions.
+
+2. **Criteria sheet:** One row per criterion. Columns: number, category, name, description, then one column per scale point with the tailored descriptor text. This is the reference sheet.
+
+3. **Weights sheet:** Criteria names in column A. Raw weights in column B (blue input cells). Normalised weights in column C (formula: B/SUM(B)). If swing weighting: column D for swing rationale text.
+
+4. **Performance Matrix sheet:** Options as column headers (row 1). Criteria as row headers (column A). Weights in column B (linked from Weights sheet). Raw scores in the matrix cells (blue input cells). Scale descriptors as cell comments (hover to see what each score means).
+
+5. **Weighted Scores sheet:** Same layout as Performance Matrix but cells are formulas: = Performance_Matrix_cell / (scale_max - scale_min) * 100 * weight. Row sums in a TOTAL row. RANK formula in a Rank row. Conditional formatting: green (#006100) for the top-ranked option's total, red (#9C0006) for the bottom.
+
+6. **Summary sheet:** Rank order table. Stacked bar chart showing each option's score broken down by criterion contribution. "Key strengths" and "Key weaknesses" columns.
+
+7. **Sensitivity sheet:** Weight threshold table. Equal-weights comparison table. Score sensitivity table. Heat map: for each cell in the Performance Matrix, show whether changing it by 1 point would alter the top rank (green = no change, red = rank change). This is the single most useful sheet for decision-makers.
+
+IB formatting throughout: blue inputs (#0000FF on #DCE6F1), Calibri 10pt, no gridlines, thin borders on tables, navy headers (#003078 white text), conditional formatting on ranks and sensitivity.
+
+Save as `mca-{slug}-{date}.xlsx`.
+
+**If `--format` was NOT specified**, ask about additional formats beyond markdown + xlsx (which are always generated):
+
+**Question:** "What additional file formats do you need?"
+
+Options (multiSelect: true):
+- Word (.docx) : Formatted document with tables and methodology
+- PowerPoint (.pptx) : Slide deck with scoring matrix and results
+- PDF : Branded consulting-quality PDF via Quarto
+
+**Word (.docx)** (if selected):
+Invoke `/docx`. Navy headings, formatted tables, title page. Include: summary table, performance matrix, weighted scores, sensitivity, methodology. Save as `mca-{slug}-{date}.docx`.
+
+**PowerPoint (.pptx)** (if selected):
+Invoke `/pptx`. Slides:
+1. Title: "[Decision] Multi-Criteria Analysis"
+2. Options summary: table of options with descriptions
+3. Criteria and weights: table with criteria names, categories, weights
+4. Performance matrix: colour-coded (green = high, red = low)
+5. Results: rank order table with stacked bar chart
+6. Sensitivity: key findings (weight thresholds, equal-weights check)
+7. Methodology and references
+Navy accent (#003078). Save as `mca-{slug}-{date}.pptx`.
+
+**Executive summary deck** (if `--exec` specified):
+
+Invoke `/pptx` skill. McKinsey-style action title + evidence format.
+
+Formatting: Action title 24-28pt bold navy (#003078). Body 14-16pt, one key number bolded per bullet. Footer 10pt light grey. Clean white background, no decorative elements. Slide numbers bottom-right.
+
+**Slide 1: Title**
+- "[Decision] Multi-Criteria Analysis" (large, navy)
+- Method, date, "Prepared for: [client]" if specified
+
+**Slide 2: Verdict**
+- Action title: "[Option X] is the preferred option, ranking first on [Y] of [Z] criteria"
+- Evidence:
+  - Overall score: **[val]** (vs **[val]** for second-ranked [Option Y])
+  - Strongest criteria: **[criterion]** (score [val]) and **[criterion]** (score [val])
+  - [If with-cba]: CBA NPV: **[currency][val]m** (BCR **[val]**)
+  - Robustness: **[Robust/Moderate/Sensitive]**
+
+**Slide 3: How the options compare**
+- Action title: "[Option X] leads on [strategic/environmental/...] criteria, while [Option Y] leads on [economic/deliverability/...]"
+- Evidence: Simplified performance matrix showing top 5 criteria only, colour-coded:
+  - Green (top score among options)
+  - Amber (mid-range)
+  - Red (lowest score among options)
+
+**Slide 4: Robustness**
+- Action title: "The ranking is [robust: Option X leads under all tested weight scenarios / sensitive: a [modest/large] change in [criterion] weight would change the result]"
+- Evidence:
+  - Equal weights: [same ranking / different ranking]
+  - Most sensitive weight: [criterion] (threshold: [val], current: [val])
+  - Score margin: [Option X] could drop by **[val] points** before losing first place
+  - [Key finding from remove-a-criterion test]
+
+**Slide 5: Recommendation**
+- Action title: "Recommend [Option X] [subject to / with confidence, as the ranking is robust]"
+- Evidence:
+  - [2-3 bullet recommendation points]
+  - [Key caveat or condition]
+  - [Next step: e.g. "proceed to shortlist CBA", "commission detailed design"]
+- Footer: "Full MCA report: mca-{slug}-{date}.md | Excel model: mca-{slug}-{date}.xlsx"
+
+Save as `mca-exec-{slug}-{date}.pptx`.
+
+**PDF** (if selected):
+```bash
+ECONSTACK_DIR="$HOME/.claude/skills/econstack"
+"$ECONSTACK_DIR/scripts/render-report.sh" mca-{slug}-{date}.md \
+  --title "Multi-Criteria Analysis" \
+  --subtitle "[Decision description]" \
+  [--client "{client name}" if specified]
+```
+If Quarto is not installed, tell the user: "PDF rendering requires Quarto (https://quarto.org). The markdown report has been saved."
+
+### Step 10: Save and present
+
+Tell the user what was generated:
+```
+Files saved:
+  mca-{slug}-{date}.md          (report / selected sections)
+  mca-data-{slug}-{date}.json   (structured data)
+  mca-{slug}-{date}.xlsx        (scoring matrix workbook)
+  mca-{slug}-{date}.docx        (if Word selected)
+  mca-{slug}-{date}.pptx        (if PowerPoint selected)
+  mca-exec-{slug}-{date}.pptx   (if --exec selected)
+  mca-{slug}-{date}.pdf         (if PDF selected)
+```
+
+## Important Rules
+
+- Never use em dashes.
+- Never attribute econstack to any individual.
+- Every section stands alone.
+- **Table and figure formatting (universal across all econstack outputs):**
+  - **Numbering**: Every table is "Table 1: [short description]", every figure/chart is "Figure 1: [short description]". Numbering restarts at 1 for each report. The caption goes above the table/figure.
+  - **Source note**: Below every table and figure: "Source: [Author/Publisher] ([year])." If multiple sources: "Sources: [Source 1]; [Source 2]."
+  - **Notes line**: Below the source, if needed: "Notes: [caveats, e.g. 'scale 1-5', 'swing weighting', 'analyst scores']."
+  - **Minimal formatting (low ink-to-data ratio)**: No heavy borders or gridlines. Thin rule under the header row only. No shading on data cells (light grey alternating rows permitted in Excel/HTML only). Right-align all numbers. Left-align all text. Bold totals rows only. No decorative elements.
+  - **Number formatting**: Weights to 2 decimal places (e.g. "0.25"), scores as integers, weighted scores to 1 decimal place, percentages to 1 decimal place.
+  - **Consistency**: The same metric must use the same unit and precision throughout the report.
+- **Costs must be separate from benefit criteria.** Never include cost, affordability, or value for money as a scored MCA criterion. Costs are assessed separately (in a CBA, CEA, or standalone cost comparison) and presented alongside the MCA results. This follows the DCLG Manual (Chapter 3) and Green Book (Chapter 4).
+- **Do not double count with CBA.** If `--with-cba` is specified, exclude any criterion that overlaps with a monetised CBA benefit. If standalone, warn if a criterion looks monetisable: "This criterion could potentially be monetised. Consider including it in a CBA instead."
+- **Swing weighting is mandatory for Green Book MCDA.** Do not accept importance-based weighting for the MCDA method. The Green Book and Government Analysis Function explicitly reject it as conflating importance with discriminating power.
+- **Scores are interval, not ratio.** Never state "Option A is twice as good as Option B." Only differences in scores are meaningful. This is a property of the linear additive model.
+- **Criteria must be preferentially independent.** If the user's criteria suggest that trade-offs between two criteria depend on the level of a third, flag this and suggest restructuring the criteria hierarchy.
+- **Always run sensitivity analysis.** An MCA without sensitivity analysis is incomplete. At minimum: equal-weights check and weight threshold analysis. The Green Book and DCLG Manual both require sensitivity testing of MCDA results.
+- **Descriptors must be tailored, not generic.** "Good/Medium/Bad" or "High/Medium/Low" without context is not acceptable. Every scale point must describe what that level of performance looks like for that specific criterion in concrete, observable terms.
+- **The Excel workbook is the primary deliverable.** It must have blue input cells (#0000FF on #DCE6F1) for all user-adjustable values (scores and weights) so the user can modify and re-run the analysis without re-running the skill. All other cells must be formulas.
+- **Cite the methodology.** Always reference the DCLG Manual (Dodgson et al., 2009), Green Book Supplementary Guidance on MCDA, and Government Analysis Function guide. For AHP, cite Saaty (1980). For Australian projects, cite Infrastructure Australia (2021).
+- **Do not confuse MCA with MCDA.** MCA (this skill's default) is a practical weighting-and-scoring approach. MCDA (Green Book) is a more rigorous methodology requiring swing weighting, 0-100 scoring, and ideally a facilitated Decision Conference. Both are supported; the user chooses. Default to MCA.

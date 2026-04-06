@@ -2,7 +2,7 @@
 
 ![Version](https://img.shields.io/badge/version-0.3.0-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
-![Skills](https://img.shields.io/badge/skills-8-orange)
+![Skills](https://img.shields.io/badge/skills-9-orange)
 ![Parameters](https://img.shields.io/badge/parameters-42_files-purple)
 ![Frameworks](https://img.shields.io/badge/frameworks-8_countries-red)
 
@@ -78,6 +78,23 @@ It then works through costs using the latest government guidelines and market be
 | Optimism bias | 6 types x 3 stages | | | | | |
 
 **Options:** `--framework`, `--from`, `--full`, `--exec`, `--audit`, `--format`
+
+---
+
+### `/mca`
+
+Multi-criteria analysis and MCDA for options appraisal. Describe your decision problem and the skill generates tailored criteria, builds scoring scales with descriptors specific to each criterion (not generic "good/medium/bad"), and walks you through weighting and scoring. Three methods: standard MCA (default, flexible scale and weighting), Green Book MCDA (0-100 scoring, swing weighting, Decision Conference format), and AHP (pairwise comparisons with consistency check).
+
+Links to `/cost-benefit` via `--with-cba` to cover non-monetised benefits without double counting. Outputs an IB-quality Excel scoring matrix with blue input cells, plus summary tables in Word/PPT/Markdown/PDF. Built-in sensitivity analysis: weight thresholds, equal-weights check, score sensitivity, remove-a-criterion test.
+
+```
+/mca "Choosing between 3 sites for a new hospital in Leeds"
+/mca "Evaluate 5 renewable energy technologies" --scale 5
+/mca "Longlist transport options" --method mcda --exec
+/mca --from criteria.json --format xlsx,word
+```
+
+**Options:** `--method`, `--scale`, `--with-cba`, `--full`, `--exec`, `--client`, `--format`, `--from`
 
 ---
 
@@ -209,6 +226,7 @@ Letter grade A-F, with auto-fix option. **Options:** `--strict`, `--fix`, `--exe
 R packages (data access)          econprofile (data + web)         econstack (skills)
 ========================          =======================         ==================
 ons    -> ONS data                391 LA profiles                 /cost-benefit (UK, US, EU, AU, WB, ADB)
+                                                                  /mca (MCA + MCDA + AHP)
                                                                   /vfm-eval (Magenta Book 3Es/4Es)
 boe    -> Bank of England         IO impact calculator            /macro-briefing (UK, US, EU, AU)
 hmrc   -> HMRC trade              Compare regions tool            /fiscal-briefing (UK, US, AU)
