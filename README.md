@@ -77,7 +77,7 @@ The skill includes 8 frameworks (UK Green Book, US OMB A-4, EU Cohesion, Austral
 | VTTS | TAG Data Book | DOT wage-% | | ATAP formula | | |
 | Optimism bias | 6 types x 3 stages | | | | | |
 
-**Options:** `--framework`, `--from`, `--full`, `--exec`, `--audit`, `--format`
+**Options:** `--framework`, `--from`, `--full`, `--exec`, `--audit`, `--client`, `--format`
 
 ---
 
@@ -131,7 +131,7 @@ Up-to-date macroeconomic reports for the UK, US, Euro area, and Australia. Tell 
 /macro-briefing --international     # Add 30-country comparison tables
 ```
 
-Traffic-light macro assessment (GREEN/AMBER/RED) with quantitative thresholds. Outputs to Markdown, HTML, Word, PowerPoint, or PDF. **Options:** `--country`, `--full`, `--focus`, `--international`, `--exec`, `--format`
+Traffic-light macro assessment (GREEN/AMBER/RED) with quantitative thresholds. Outputs to Markdown, HTML, Word, PowerPoint, or PDF. **Options:** `--country`, `--full`, `--focus`, `--international`, `--exec`, `--audit`, `--client`, `--format`
 
 ---
 
@@ -146,7 +146,7 @@ Up-to-date public finances reports for the UK, US, and Australia. Pulls live dat
 /fiscal-briefing --dsa              # Add debt sustainability analysis via debtkit
 ```
 
-Outputs to Markdown, HTML, Word, PowerPoint, or PDF. **Options:** `--country`, `--full`, `--dsa`, `--exec`, `--format`
+Outputs to Markdown, HTML, Word, PowerPoint, or PDF. **Options:** `--country`, `--full`, `--dsa`, `--exec`, `--audit`, `--client`, `--format`
 
 ---
 
@@ -178,7 +178,7 @@ Allows you to choose between Type I and Type II multipliers, adjust for addition
 /io-report 500 jobs in Construction in Glasgow --type2
 ```
 
-**Options:** `--type2`, `--conservative`/`--optimistic`, `--exec`, `--audit`, `--format`
+**Options:** `--type2`, `--conservative`/`--optimistic`, `--full`, `--exec`, `--audit`, `--client`, `--format`
 
 ---
 
@@ -191,7 +191,7 @@ Economic snapshot for any of the 391 UK local authorities. Covers demographics, 
 /la-profile Leeds --compare Birmingham
 ```
 
-**Options:** `--compare`, `--focus`, `--full`, `--exec`, `--format`
+**Options:** `--compare`, `--focus`, `--full`, `--exec`, `--audit`, `--client`, `--format`
 
 ---
 
@@ -208,7 +208,7 @@ When it finds issues, it gives you a structured step-by-step plan to fix them an
 /econ-audit . --fix
 ```
 
-Letter grade A-F, with auto-fix option. **Options:** `--strict`, `--fix`, `--exec`, `--format`
+Letter grade A-F, with auto-fix option. **Options:** `--strict`, `--fix`, `--json`, `--framework`, `--full`, `--exec`, `--client`, `--format`
 
 ---
 

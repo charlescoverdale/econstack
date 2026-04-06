@@ -39,6 +39,7 @@ Generate a narrative briefing on public finances for the UK, US, or Australia. C
 - `--dsa` : Add a debt sustainability analysis section using the `debtkit` R package (projections, stress tests, fan chart description)
 - `--client "Name"` : Add "Prepared for"
 - `--exec` : Generate a management consulting-style executive summary deck (6 slides with action titles). Can be combined with `--format pptx` for both decks.
+- `--audit` : After generating, run `/econ-audit` on the output
 - `--format <type>` : Output format(s): `markdown`, `html`, `word`, `pptx`, `pdf`, or `all`. Comma-separate for multiple. Default: markdown only
 
 ## Country Routing

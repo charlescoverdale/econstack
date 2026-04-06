@@ -8,6 +8,7 @@ allowed-tools:
   - Glob
   - Grep
   - AskUserQuestion
+  - Skill
   - WebSearch
 ---
 
@@ -40,6 +41,8 @@ This is the "second pair of eyes" that catches errors a reviewer would flag. It 
 - `--fix` : Auto-fix issues where possible, skipping the interactive fix question. Only fixes RED issues by default (numerical inconsistencies, formula errors, missing caveats). Does NOT change methodology choices (discount rate, additionality assumptions, framework selection). Does NOT delete content. All fixes are shown to the user before being applied. If `--strict` is also specified, AMBER issues are fixed too.
 - `--json` : Output the audit as structured JSON
 - `--framework <name>` : Override framework detection (uk, eu, us, wb, au, nz)
+- `--full` : Skip interactive menus, output full audit report with all categories
+- `--client "Name"` : Add "Prepared for"
 - `--exec` : Generate a management consulting-style executive summary deck (5 slides with action titles). Can be combined with `--format pptx` for both decks.
 - `--format <type>` : Output format(s): `markdown`, `html`, `word`, `pptx`, `pdf`, or `all`. Comma-separate for multiple (e.g. `--format html,pdf`). Default: markdown only
 

@@ -43,6 +43,7 @@ Generate professional economic profile content for any UK local authority. Cover
 - `--focus business` : Emphasise business activity and industry structure
 - `--client "Name"` : Add "Prepared for: [Name]" on outputs
 - `--exec` : Generate a management consulting-style executive summary deck (6 slides with action titles). Can be combined with `--format pptx` for both decks.
+- `--audit` : After generating, run `/econ-audit` on the output
 - `--format <type>` : Output format(s): `markdown`, `html`, `word`, `pptx`, `pdf`, or `all`. Comma-separate for multiple. Default: markdown only
 
 ## Instructions
@@ -151,7 +152,8 @@ Then generate ONLY the selected sections.
 **Always include a key stats block at the top of any output file:**
 
 ```markdown
-<!-- KEY STATS
+<!-- KEY NUMBERS
+type: la-profile
 la: [LA name]
 country: [country]
 population: [val]
@@ -485,5 +487,17 @@ Files saved:
 - Price-to-earnings: <5x affordable, 5-8x moderate, 8-12x expensive, >12x severely unaffordable.
 - IMD: rank 1 = most deprived. England only.
 - The narrative should characterize the economy, not just list numbers. What kind of place is this?
+- Be specific about dates. "[Year]" not "recent". State the data year for every metric.
 - The key stats block at the top is always included, even for partial outputs.
-- The companion JSON is always saved, even for partial outputs.
+- The companion JSON must include all data points, source metadata, and comparison benchmarks.
+- **Always include a data sources section** listing the specific ONS datasets used:
+  - ONS Annual Population Survey (employment, economic activity)
+  - ONS Annual Survey of Hours and Earnings (workplace-based earnings)
+  - ONS Business Register and Employment Survey (industry employment, LQs)
+  - ONS UK House Price Index or Land Registry (house prices)
+  - ONS Mid-Year Population Estimates (population)
+  - ONS Regional GVA (GVA per job, productivity)
+  - MHCLG Index of Multiple Deprivation (deprivation, England only)
+  - NOMIS Labour Market Statistics (claimant count, JSA/UC)
+  - DfE Skills data (NVQ qualifications)
+  Include the data vintage (year) for each dataset used.
