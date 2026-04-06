@@ -47,7 +47,7 @@ The companion to `/cost-benefit`. Where `/cost-benefit` asks "should we do this?
 - `--framework <type>` : `3e` (UK Magenta Book, default), `4e` (FCDO international development), `au` (Australian ANAO 4Es with ethics), `us` (US GAO/OMB standards), `eu` (EC Better Regulation 5 criteria), `wb` (World Bank IEG 6-point rating), `dac` (OECD DAC 6 criteria), `nz` (NZ Living Standards Framework)
 - `--full` : Skip interactive menus, generate all sections
 - `--client "Name"` : Add "Prepared for"
-- `--exec` : Generate a McKinsey-style executive summary deck (7 slides with action titles). Can be combined with `--format pptx` for both decks.
+- `--exec` : Generate a management consulting-style executive summary deck (7 slides with action titles). Can be combined with `--format pptx` for both decks.
 - `--audit` : After generating, automatically run `/econ-audit` on the output
 - `--format <type>` : Output format(s): `markdown`, `html`, `xlsx`, `word`, `pptx`, `pdf`, or `all`. Comma-separate for multiple. Default: markdown only
 
@@ -1032,7 +1032,7 @@ Invoke the `/pptx` skill. Slides: (1) Title with programme name, (2) Logic model
 
 **Executive summary deck** (if `--exec` specified):
 
-Invoke the `/pptx` skill to create a McKinsey-style executive summary deck. Every slide follows the **action title + evidence** pattern: a 2-line strapline stating the conclusion, then 3-4 dot points or a chart proving it.
+Invoke the `/pptx` skill to create a management consulting-style executive summary deck. Every slide follows the **action title + evidence** pattern: a 2-line strapline stating the conclusion, then 3-4 dot points or a chart proving it.
 
 Formatting: Action title 24-28pt bold navy (#003078). Body 14-16pt, one key number bolded per bullet. Footer 10pt light grey with methodology note + date. Clean white background, no decorative elements. Slide numbers bottom-right. Charts in navy/grey/light blue palette.
 

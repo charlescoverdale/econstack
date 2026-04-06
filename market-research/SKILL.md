@@ -53,7 +53,7 @@ Produce a structured, source-cited market research report for any industry or pr
 - `--focus <area>` : Emphasise a specific area: `competition`, `regulation`, `pricing`, `supply-chain`, `ma`, `entry`
 - `--client "Name"` : Add "Prepared for"
 - `--format <type>` : Output format(s): `markdown`, `html`, `word`, `pptx`, `pdf`, or `all`. Comma-separate for multiple. Default: markdown only
-- `--exec` : Generate a McKinsey-style executive summary deck (7 slides with action titles)
+- `--exec` : Generate a management consulting-style executive summary deck (7 slides with action titles)
 - `--audit` : After generating, run `/econ-audit` on the output
 
 ## Instructions
@@ -1002,7 +1002,7 @@ Save as `market-research-{industry-slug}-{geo}-{date}.pptx`.
 
 **Executive summary deck** (if `--exec` specified):
 
-Invoke the `/pptx` skill to create a McKinsey-style executive summary deck. Every slide follows the **action title + evidence** pattern: a 2-line strapline stating the conclusion (a complete sentence, NOT a topic label), then 3-4 dot points proving it.
+Invoke the `/pptx` skill to create a management consulting-style executive summary deck. Every slide follows the **action title + evidence** pattern: a 2-line strapline stating the conclusion (a complete sentence, NOT a topic label), then 3-4 dot points proving it.
 
 Formatting: Action title 24-28pt bold navy (#003078). Body 14-16pt, one key number bolded per bullet. Footer 10pt light grey with source + date. Clean white background, no decorative elements. Slide numbers bottom-right. Charts in navy/grey/light blue palette.
 

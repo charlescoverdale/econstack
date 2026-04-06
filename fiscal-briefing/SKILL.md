@@ -45,7 +45,7 @@ Generate a narrative briefing on public finances for the UK, US, or Australia. C
 - `--full` : Skip menu, generate all sections
 - `--dsa` : Add a debt sustainability analysis section using the `debtkit` R package (projections, stress tests, fan chart description)
 - `--client "Name"` : Add "Prepared for"
-- `--exec` : Generate a McKinsey-style executive summary deck (6 slides with action titles). Can be combined with `--format pptx` for both decks.
+- `--exec` : Generate a management consulting-style executive summary deck (6 slides with action titles). Can be combined with `--format pptx` for both decks.
 - `--format <type>` : Output format(s): `markdown`, `html`, `word`, `pptx`, `pdf`, or `all`. Comma-separate for multiple. Default: markdown only
 
 ## Country Routing
@@ -868,7 +868,7 @@ Invoke the `/pptx` skill. Slides: (1) Title, (2) Dashboard, (3) Receipts table, 
 
 **Executive summary deck** (if `--exec` specified):
 
-Invoke the `/pptx` skill to create a McKinsey-style executive summary deck. Every slide follows the **action title + evidence** pattern: a 2-line strapline stating the conclusion (a complete sentence, NOT a topic label), then 3-4 dot points proving it.
+Invoke the `/pptx` skill to create a management consulting-style executive summary deck. Every slide follows the **action title + evidence** pattern: a 2-line strapline stating the conclusion (a complete sentence, NOT a topic label), then 3-4 dot points proving it.
 
 Formatting: Action title 24-28pt bold navy (#003078). Body 14-16pt, one key number bolded per bullet. Footer 10pt light grey with data source + vintage date. Clean white background, no decorative elements. Slide numbers bottom-right.
 

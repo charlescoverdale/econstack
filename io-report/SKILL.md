@@ -49,7 +49,7 @@ Generate professional economic impact assessment content for an investment or jo
 - `--client "Name"` : Add "Prepared for: [Name]" on outputs
 - `--full` : Skip the interactive menu, generate the complete report
 - `--format <type>` : Output format(s): `markdown`, `html`, `word`, `pptx`, `pdf`, or `all`. Comma-separate for multiple (e.g. `--format word,pdf`). Default: markdown only
-- `--exec` : Generate a McKinsey-style executive summary deck (6 slides with action titles). Can be combined with `--format pptx` for both decks.
+- `--exec` : Generate a management consulting-style executive summary deck (6 slides with action titles). Can be combined with `--format pptx` for both decks.
 - `--audit` : After generating the report, automatically run `/econ-audit` on the output
 
 ## Instructions
@@ -615,7 +615,7 @@ Save as `io-report-{slug}-{date}.pptx`.
 
 **Executive summary deck** (if `--exec` specified):
 
-Invoke the `/pptx` skill to create a McKinsey-style executive summary deck. Every slide follows the **action title + evidence** pattern: a 2-line strapline stating the conclusion (a complete sentence, NOT a topic label), then 3-4 dot points proving it.
+Invoke the `/pptx` skill to create a management consulting-style executive summary deck. Every slide follows the **action title + evidence** pattern: a 2-line strapline stating the conclusion (a complete sentence, NOT a topic label), then 3-4 dot points proving it.
 
 Formatting: Action title 24-28pt bold navy (#003078). Body 14-16pt, one key number bolded per bullet. Footer 10pt light grey with methodology note + date. Clean white background, no decorative elements. Slide numbers bottom-right.
 

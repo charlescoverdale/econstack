@@ -47,7 +47,7 @@ The skill handles the computation and structure. You provide the substance (what
 - `--client "Name"` : Add "Prepared for"
 - `--format <type>` : Output format(s): `markdown`, `xlsx`, `word`, `pptx`, `pdf`, or `all`. Comma-separate for multiple (e.g. `--format xlsx,word`). Default: markdown only
 - `--from <file.json>` : Import all inputs from a JSON file. Skips all interactive questions. Use `--from schema` to print the expected JSON schema.
-- `--exec` : Generate a McKinsey-style executive summary deck (5-8 slides with action titles). Can be combined with `--format pptx` to get both the data deck and the narrative deck.
+- `--exec` : Generate a management consulting-style executive summary deck (5-8 slides with action titles). Can be combined with `--format pptx` to get both the data deck and the narrative deck.
 - `--audit` : After generating the report, automatically run `/econ-audit` on the output
 
 **Supported frameworks:**
@@ -1643,7 +1643,7 @@ Save as `cba-{project-slug}-{date}.pptx`.
 
 **Executive summary deck** (if `--exec` specified):
 
-Invoke the `/pptx` skill to create a McKinsey-style executive summary deck. This is a separate file from the standard PPTX. Every slide follows the **action title + evidence** pattern: a 2-line strapline at the top stating the conclusion (not a topic label), then 3-4 dot points or a chart proving it.
+Invoke the `/pptx` skill to create a management consulting-style executive summary deck. This is a separate file from the standard PPTX. Every slide follows the **action title + evidence** pattern: a 2-line strapline at the top stating the conclusion (not a topic label), then 3-4 dot points or a chart proving it.
 
 **Formatting rules for all exec summary slides:**
 - Action title: 2 lines max, bold, 24-28pt, navy (#003078). Must be a complete sentence stating an insight, NOT a topic label. "This project delivers high value for money" not "Value for Money Results".

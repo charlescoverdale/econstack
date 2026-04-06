@@ -55,7 +55,7 @@ The Excel workbook is the primary output. MCA is fundamentally a spreadsheet exe
 - `--full` : Skip interactive menus, generate all sections
 - `--client "Name"` : Add "Prepared for"
 - `--format <type>` : Output format(s): `markdown`, `xlsx`, `word`, `pptx`, `pdf`, or `all`. Comma-separate for multiple. Default: markdown + xlsx (both always generated for MCA)
-- `--exec` : McKinsey-style executive summary deck (5 slides with action titles)
+- `--exec` : management consulting-style executive summary deck (5 slides with action titles)
 - `--from <file.json>` : Import criteria, options, scores, and weights from JSON. Skips interactive entry. Use `--from schema` to print the expected JSON schema.
 
 **Method comparison:**
@@ -881,7 +881,7 @@ Navy accent (#003078). Save as `mca-{slug}-{date}.pptx`.
 
 **Executive summary deck** (if `--exec` specified):
 
-Invoke `/pptx` skill. McKinsey-style action title + evidence format.
+Invoke `/pptx` skill. management consulting-style action title + evidence format.
 
 Formatting: Action title 24-28pt bold navy (#003078). Body 14-16pt, one key number bolded per bullet. Footer 10pt light grey. Clean white background, no decorative elements. Slide numbers bottom-right.
 

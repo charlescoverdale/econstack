@@ -49,7 +49,7 @@ Generate a professional macroeconomic briefing for the UK, US, Euro area, or Aus
 - `--focus <area>` : Emphasise a specific area (output, labour, prices, monetary, fiscal, trade, housing)
 - `--international` : Include international comparison tables (30 economies)
 - `--client "Name"` : Add "Prepared for" on outputs
-- `--exec` : Generate a McKinsey-style executive summary deck (6 slides with action titles). Can be combined with `--format pptx` for both decks.
+- `--exec` : Generate a management consulting-style executive summary deck (6 slides with action titles). Can be combined with `--format pptx` for both decks.
 - `--format <type>` : Output format(s): `markdown`, `html`, `word`, `pptx`, `pdf`, or `all`. Comma-separate for multiple (e.g. `--format word,pdf`). Default: markdown only
 
 ## Country Routing
@@ -1471,7 +1471,7 @@ Invoke the `/pptx` skill. Create slides: (1) Title, (2) Dashboard table, (3) Key
 
 **Executive summary deck** (if `--exec` specified):
 
-Invoke the `/pptx` skill to create a McKinsey-style executive summary deck. Every slide follows the **action title + evidence** pattern: a 2-line strapline stating the conclusion (a complete sentence, NOT a topic label), then 3-4 dot points proving it.
+Invoke the `/pptx` skill to create a management consulting-style executive summary deck. Every slide follows the **action title + evidence** pattern: a 2-line strapline stating the conclusion (a complete sentence, NOT a topic label), then 3-4 dot points proving it.
 
 Formatting: Action title 24-28pt bold navy (#003078). Body 14-16pt, one key number bolded per bullet. Footer 10pt light grey with data source + vintage date. Clean white background, no decorative elements. Slide numbers bottom-right. Charts in navy/grey/light blue palette.
 

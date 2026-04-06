@@ -1,6 +1,6 @@
 # econstack
 
-![Version](https://img.shields.io/badge/version-0.3.0-blue)
+![Version](https://img.shields.io/badge/version-0.4.0-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Skills](https://img.shields.io/badge/skills-9-orange)
 ![Parameters](https://img.shields.io/badge/parameters-42_files-purple)
@@ -40,7 +40,7 @@ No npm, no API keys, no configuration. Claude Code discovers skills in `~/.claud
 
 Install econstack in Claude Code and start talking to it about your analysis. Describe your project and the skill integrates with whatever you're building, whether that's a report, a model, a slide deck, or a policy brief. Generate a full analysis or just the sections you need, then export to Markdown, HTML, Word, PowerPoint, PDF, or Excel.
 
-Every skill supports `--exec` to generate a McKinsey/BCG-style executive summary deck: 5-8 slides with action titles (a sentence stating the insight, not a topic label), 3-4 evidence bullets per slide, and optional charts. The kind of deck you'd present to a board, minister, or investment committee. Separate from the standard data-heavy PPTX output.
+Every skill supports `--exec` to generate a management consulting-style executive summary deck: 5-8 slides with action titles (a sentence stating the insight, not a topic label), 3-4 evidence bullets per slide, and optional charts. The kind of deck you'd present to a board, minister, or investment committee.
 
 ---
 
@@ -62,10 +62,10 @@ It then works through costs using the latest government guidelines and market be
 /cost-benefit
 /cost-benefit --framework us
 /cost-benefit --from assumptions.json --full --format xlsx,pdf
-/cost-benefit --exec                          # McKinsey-style exec summary deck
+/cost-benefit --exec                          # executive summary deck
 ```
 
-8 frameworks (UK Green Book, US OMB A-4, EU Cohesion, Australia, World Bank, NZ CBAx, EIB, ADB). 39 audited parameter files with source citations and staleness detection.
+The skill includes 8 frameworks (UK Green Book, US OMB A-4, EU Cohesion, Australia, World Bank, NZ CBAx, EIB, ADB) and 39 audited parameter files with source citations and staleness detection.
 
 | Parameter | UK | US | EU | AU | WB | ADB |
 |-----------|:--:|:--:|:--:|:--:|:--:|:---:|

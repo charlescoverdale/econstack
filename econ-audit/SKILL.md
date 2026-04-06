@@ -47,7 +47,7 @@ This is the "second pair of eyes" that catches errors a reviewer would flag. It 
 - `--fix` : Auto-fix issues where possible, skipping the interactive fix question. Only fixes RED issues by default (numerical inconsistencies, formula errors, missing caveats). Does NOT change methodology choices (discount rate, additionality assumptions, framework selection). Does NOT delete content. All fixes are shown to the user before being applied. If `--strict` is also specified, AMBER issues are fixed too.
 - `--json` : Output the audit as structured JSON
 - `--framework <name>` : Override framework detection (uk, eu, us, wb, au, nz)
-- `--exec` : Generate a McKinsey-style executive summary deck (5 slides with action titles). Can be combined with `--format pptx` for both decks.
+- `--exec` : Generate a management consulting-style executive summary deck (5 slides with action titles). Can be combined with `--format pptx` for both decks.
 - `--format <type>` : Output format(s): `markdown`, `html`, `word`, `pptx`, `pdf`, or `all`. Comma-separate for multiple (e.g. `--format html,pdf`). Default: markdown only
 
 ## Instructions
@@ -461,7 +461,7 @@ Save as `audit-{source-filename}-{date}.pptx`.
 
 **Executive summary deck** (if `--exec` specified):
 
-Invoke the `/pptx` skill to create a McKinsey-style executive summary deck. Every slide follows the **action title + evidence** pattern: a 2-line strapline stating the conclusion (a complete sentence, NOT a topic label), then 3-4 dot points proving it.
+Invoke the `/pptx` skill to create a management consulting-style executive summary deck. Every slide follows the **action title + evidence** pattern: a 2-line strapline stating the conclusion (a complete sentence, NOT a topic label), then 3-4 dot points proving it.
 
 Formatting: Action title 24-28pt bold navy (#003078). Body 14-16pt, one key number bolded per bullet. Use red (#CC0000) for RED issue text, amber (#CC8800) for AMBER, green (#006100) for pass indicators. Footer 10pt light grey. Clean white background. Slide numbers bottom-right.
 
