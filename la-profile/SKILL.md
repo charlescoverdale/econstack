@@ -52,6 +52,16 @@ Confidence guide: 9-10 for directly observed or user-stated preferences. 6-8 for
 
 All learnings are stored locally at `~/.econstack/projects/` on the user's machine. Nothing is transmitted to any server.
 
+<!-- preamble: safety hooks -->
+
+**Safety rules for this skill:**
+
+1. **Parameter database is read-only.** Never write to, modify, or delete files in `~/econstack-data/parameters/`. These are shared, versioned parameters maintained separately. If a parameter needs updating, tell the user to update the econstack-data repo.
+
+2. **Confirm before overwriting.** Before writing an output file, check if a file with the same name already exists. If it does, ask the user: "A file named [filename] already exists. Overwrite it, or save with a new name?" Do not silently overwrite.
+
+3. **No destructive git operations.** Never run `git reset --hard`, `git push --force`, or `git clean -f` in the econstack or econstack-data directories.
+
 # /la-profile: Local Authority Economic Profile (UK)
 
 Generate professional economic profile content for any UK local authority. Covers demographics, labour market, earnings, industry structure, housing, business activity, productivity, deprivation, skills, and national benchmarking.

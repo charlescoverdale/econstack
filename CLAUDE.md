@@ -30,7 +30,21 @@ When the user's request matches an available skill, ALWAYS invoke it using the S
 tool as your FIRST action. Do NOT answer directly, do NOT use other tools first.
 The skill has specialized workflows that produce better results than ad-hoc answers.
 
-Key routing rules:
+**Proactive detection:** If the user describes a task without naming a skill, match their intent to the routing table below. You do not need to wait for an explicit `/command`. For example, "I need to appraise three options for a new school" should auto-route to `/cost-benefit` or `/business-case` depending on context. "What's happening with UK inflation?" should route to `/macro-briefing`.
+
+**Econstack routing rules:**
+- CBA, appraisal, "is this worth it", discount rate, NPV, BCR, options appraisal → invoke cost-benefit
+- Business case, Five Case Model, SOC, OBC, FBC, HVHR, strategic case, commercial case → invoke business-case
+- VfM evaluation, "did it work", programme assessment, Magenta Book, 3Es, effectiveness → invoke vfm-eval
+- Compare options, criteria, scoring, weighting, MCDA, AHP → invoke mca
+- GDP, inflation, unemployment, wages, interest rates, macro, "what's happening with the economy" → invoke macro-briefing
+- Borrowing, debt, deficit, budget, fiscal rules, public finances → invoke fiscal-briefing
+- Market size, industry, competition, M&A, Porter's Five Forces, HHI → invoke market-research
+- Economic impact, multiplier, jobs created, GVA, input-output → invoke io-report
+- Local authority, council area, area profile, LA data → invoke la-profile
+- Audit, check methodology, review my numbers, "is this analysis right" → invoke econ-audit
+
+**Gstack routing rules (non-econstack):**
 - Product ideas, "is this worth building", brainstorming → invoke office-hours
 - Bugs, errors, "why is this broken", 500 errors → invoke investigate
 - Ship, deploy, push, create PR → invoke ship
@@ -43,8 +57,6 @@ Key routing rules:
 - Architecture review → invoke plan-eng-review
 - Save progress, checkpoint, resume → invoke checkpoint
 - Code quality, health check → invoke health
-- VfM evaluation, "did it work", programme assessment, Magenta Book → invoke vfm-eval
-- Business case, Five Case Model, SOC, OBC, FBC, HVHR, strategic case, commercial case → invoke business-case
 
 ## Versioning
 

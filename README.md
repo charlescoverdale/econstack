@@ -1,6 +1,6 @@
 # econstack
 
-![Version](https://img.shields.io/badge/version-0.6.0-blue)
+![Version](https://img.shields.io/badge/version-0.7.0-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Skills](https://img.shields.io/badge/skills-10-orange)
 ![Parameters](https://img.shields.io/badge/parameters-42_files-purple)

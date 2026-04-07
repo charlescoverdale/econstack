@@ -51,6 +51,37 @@ Confidence guide: 9-10 for directly observed or user-stated preferences. 6-8 for
 
 All learnings are stored locally at `~/.econstack/projects/` on the user's machine. Nothing is transmitted to any server.
 
+<!-- preamble: parameter database check -->
+After the update check, verify the parameter database is available and check staleness:
+
+```bash
+PARAMS_DIR="$HOME/econstack-data/parameters"
+if [ -d "$PARAMS_DIR" ]; then
+  PARAM_COUNT=$(find "$PARAMS_DIR" -name "*.json" 2>/dev/null | wc -l | tr -d ' ')
+  echo "PARAMS: $PARAM_COUNT files loaded from $PARAMS_DIR"
+
+  # Check for stale files (last_verified > 2 years ago)
+  STALE=$(find "$PARAMS_DIR" -name "*.json" -mtime +730 2>/dev/null | wc -l | tr -d ' ')
+  if [ "$STALE" -gt 0 ]; then
+    echo "PARAMS_WARNING: $STALE file(s) not updated in 2+ years. Run: cd ~/econstack-data && git pull"
+  fi
+else
+  echo "PARAMS: not found. Using built-in defaults. For full parameter support: git clone https://github.com/charlescoverdale/econstack-data.git ~/econstack-data"
+fi
+```
+
+If PARAMS_WARNING appears, tell the user which parameter files may be stale and recommend updating. Continue with the skill normally using whatever parameters are available.
+
+<!-- preamble: safety hooks -->
+
+**Safety rules for this skill:**
+
+1. **Parameter database is read-only.** Never write to, modify, or delete files in `~/econstack-data/parameters/`. These are shared, versioned parameters maintained separately. If a parameter needs updating, tell the user to update the econstack-data repo.
+
+2. **Confirm before overwriting.** Before writing an output file, check if a file with the same name already exists. If it does, ask the user: "A file named [filename] already exists. Overwrite it, or save with a new name?" Do not silently overwrite.
+
+3. **No destructive git operations.** Never run `git reset --hard`, `git push --force`, or `git clean -f` in the econstack or econstack-data directories.
+
 # Business Case
 
 Full Five Case Model business case generator. Covers all five cases (Strategic, Economic, Commercial, Financial, Management) with framework-specific guidance. Interactive: the user picks which cases and sections they want to complete.

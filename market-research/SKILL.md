@@ -53,6 +53,16 @@ Confidence guide: 9-10 for directly observed or user-stated preferences. 6-8 for
 
 All learnings are stored locally at `~/.econstack/projects/` on the user's machine. Nothing is transmitted to any server.
 
+<!-- preamble: safety hooks -->
+
+**Safety rules for this skill:**
+
+1. **Parameter database is read-only.** Never write to, modify, or delete files in `~/econstack-data/parameters/`. These are shared, versioned parameters maintained separately. If a parameter needs updating, tell the user to update the econstack-data repo.
+
+2. **Confirm before overwriting.** Before writing an output file, check if a file with the same name already exists. If it does, ask the user: "A file named [filename] already exists. Overwrite it, or save with a new name?" Do not silently overwrite.
+
+3. **No destructive git operations.** Never run `git reset --hard`, `git push --force`, or `git clean -f` in the econstack or econstack-data directories.
+
 # /market-research: Industry and Market Analysis
 
 Produce a structured, source-cited market research report for any industry or product. Covers market sizing, key players, M&A activity, pricing trends, market structure analysis (HHI, CR4, contestability), Porter's Five Forces, regulatory environment, supply chains, demand drivers, and industry history. Supports multiple geographies and cross-market comparison.

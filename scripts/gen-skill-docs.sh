@@ -40,6 +40,8 @@ load_block() {
 
 PREAMBLE="$(load_block preamble.md)"
 LEARNINGS="$(load_block learnings.md)"
+PARAMETER_CHECK="$(load_block parameter-check.md)"
+SAFETY_HOOKS="$(load_block safety-hooks.md)"
 FORMATTING_RULES="$(load_block formatting-rules.md)"
 IMPORTANT_RULES_BASE="$(load_block important-rules-base.md)"
 EXEC_FORMAT_SPEC="$(load_block exec-format-spec.md)"
@@ -83,6 +85,8 @@ with open('$tmp_file', 'r') as f:
 blocks = {
     '{{PREAMBLE}}': open('$BLOCKS_DIR/preamble.md').read(),
     '{{LEARNINGS}}': open('$BLOCKS_DIR/learnings.md').read(),
+    '{{PARAMETER_CHECK}}': open('$BLOCKS_DIR/parameter-check.md').read(),
+    '{{SAFETY_HOOKS}}': open('$BLOCKS_DIR/safety-hooks.md').read(),
     '{{FORMATTING_RULES}}': open('$BLOCKS_DIR/formatting-rules.md').read(),
     '{{IMPORTANT_RULES_BASE}}': open('$BLOCKS_DIR/important-rules-base.md').read(),
     '{{EXEC_FORMAT_SPEC}}': open('$BLOCKS_DIR/exec-format-spec.md').read(),
