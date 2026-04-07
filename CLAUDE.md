@@ -15,7 +15,7 @@ Each skill has its own directory with a `SKILL.md` defining the workflow.
 - `fiscal-briefing/SKILL.md` : Public finances briefing (UK, US, Australia)
 - `market-research/SKILL.md` : Industry and market analysis (sizing, structure, competition, M&A, multi-geo)
 - `la-profile/SKILL.md` : Local authority economic profile (UK, 391 areas)
-- `econ-audit/SKILL.md` : Methodology audit (120+ checks, RED/AMBER/GREEN grading)
+- `econ-audit/SKILL.md` : Methodology audit (124 checks across 17 categories, RED/AMBER/GREEN grading, includes AU framework checks)
 
 **Preamble tiers:** All 10 skills get update check, learnings, safety hooks, and completion status. 6 skills (cost-benefit, business-case, vfm-eval, io-report, mca, econ-audit) additionally get the parameter database check because they read from `~/econstack-data/parameters/`. The other 4 (macro-briefing, fiscal-briefing, la-profile, market-research) pull live data or LA-specific data and do not use the parameter database.
 
