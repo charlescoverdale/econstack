@@ -1,8 +1,8 @@
 # econstack
 
-![Version](https://img.shields.io/badge/version-0.8.0-blue)
+![Version](https://img.shields.io/badge/version-0.9.0-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
-![Skills](https://img.shields.io/badge/skills-10-orange)
+![Skills](https://img.shields.io/badge/skills-12-orange)
 ![Parameters](https://img.shields.io/badge/parameters-45_files-purple)
 ![Frameworks](https://img.shields.io/badge/frameworks-8_countries-red)
 
@@ -255,7 +255,9 @@ econstack/
 ├── io-report/           /io-report      Input-output impact (391 UK LAs)
 ├── la-profile/          /la-profile     Local authority profiles (391 UK LAs)
 ├── business-case/       /business-case  Business case (9 national frameworks)
-├── econ-audit/          /econ-audit     Methodology audit (120+ checks)
+├── briefing-note/       /briefing-note  Policy briefing note (4 templates)
+├── reg-impact/          /reg-impact     Regulatory Impact Assessment (4 frameworks)
+├── econ-audit/          /econ-audit     Methodology audit (124 checks)
 ├── templates/
 │   └── blocks/          Shared template blocks (preamble, formatting, rules)
 ├── scripts/
