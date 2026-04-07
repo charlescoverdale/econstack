@@ -115,7 +115,33 @@ If a specific sub-national region is requested (e.g. `southeast-england`, `calif
 | `us` | Census Bureau USA Trade Online, BLS import/export price indices, USITC DataWeb | Bilateral goods trade by HS code, tariff data |
 | `eu` | Eurostat Comext, EU TARIC (tariff database) | Intra-EU and extra-EU trade by CN code |
 | `au` | ABS International Trade, DFAT trade statistics | Bilateral trade by HS code |
-| `global` | UN Comtrade, WTO Statistics, UNCTAD TRAINS (tariffs) | Global bilateral trade by HS code, tariff and non-tariff measures |
+| `global` | UN Comtrade (via `comtrade` R package), WTO Statistics, UNCTAD TRAINS (tariffs) | Global bilateral trade by HS code, tariff and non-tariff measures |
+
+**Comtrade R package integration:** If the `comtrade` R package is installed, use it for programmatic trade data retrieval. This provides structured data directly in R without web scraping. Key functions:
+
+```r
+# Check if comtrade is available
+if (requireNamespace("comtrade", quietly = TRUE)) {
+  # Top exports for a country by HS chapter
+  comtrade::ct_top_products("GBR", flow = "X", year = 2023, n = 10)
+
+  # Trade balance with key partners
+  comtrade::ct_balance("GBR", partner = "CHN", year = 2020:2023)
+
+  # Export partner concentration (HHI)
+  comtrade::ct_hhi("GBR", flow = "X", year = 2023, by = "partner")
+
+  # Revealed comparative advantage
+  comtrade::ct_rca("GBR", year = 2023, level = 2)
+
+  # Trade growth over time
+  comtrade::ct_growth("GBR", flow = "X", years = 2018:2023)
+}
+```
+
+If comtrade is not installed, fall back to WebSearch for trade data from the sources listed above. Inform the user: "For structured trade data, install the comtrade package: `devtools::install_github('charlescoverdale/comtrade')`"
+
+The comtrade package works without an API key for basic queries (up to 500 records). For detailed commodity breakdowns or full partner lists, prompt the user to register for a free key at [comtradedeveloper.un.org](https://comtradedeveloper.un.org/) and set it with `comtrade::ct_set_key("key")`.
 
 Trade data is particularly important for manufacturing, agriculture, commodities, and any market with significant cross-border flows. Use trade data to assess import penetration, export dependency, and the geographic structure of supply chains.
 
@@ -340,7 +366,7 @@ For each stage, identify:
 - Key input costs and their trends
 - Supply chain risks (single-source dependencies, geopolitical exposure, logistics bottlenecks)
 
-Sources: ONS input-output analytical tables (UK), BEA input-output tables (US), HMRC Overseas Trade Statistics (UK imports/exports by HS code, via `hmrc` R package), Census Bureau USA Trade Online (US), Eurostat Comext (EU), UN Comtrade (global bilateral trade).
+Sources: ONS input-output analytical tables (UK), BEA input-output tables (US), HMRC Overseas Trade Statistics (UK imports/exports by HS code, via `hmrc` R package), Census Bureau USA Trade Online (US), Eurostat Comext (EU), UN Comtrade (via `comtrade` R package: use `ct_top_products()` for commodity structure, `ct_balance()` for import/export balance, `ct_share()` for world market share).
 
 For `--depth deep`: extend the value chain analysis to include support activities (Porter's value chain: procurement, technology development, HR, infrastructure).
 

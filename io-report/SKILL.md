@@ -643,6 +643,19 @@ To compute the national benchmark, load 3-5 other LA multipliers for the same se
 - On Census vintage: "Regional employment structure is from Census 2021. If the SA4's industry mix has changed materially since then, these multipliers may not reflect current conditions."
 
 To compute the national benchmark, use the national multiplier from ~/econstack-data/src/data/au/national-io.json. For SA4 benchmarks, load 3-5 other SA4s with similar lambda values and compute the unweighted average.
+
+**Trade context (optional, if `comtrade` R package is installed):** For sectors with significant trade exposure (Mining, Manufacturing, Agriculture), add a trade context note using comtrade data:
+
+```r
+if (requireNamespace("comtrade", quietly = TRUE)) {
+  # Australia's share of world exports in this commodity
+  comtrade::ct_share("AUS", commodity = hs_code, flow = "X", year = latest_year)
+  # Export partner concentration
+  comtrade::ct_hhi("AUS", flow = "X", year = latest_year, by = "partner")
+}
+```
+
+Example: "Australia accounts for 53% of global iron ore exports (HS 26), with China receiving 82% of shipments (HHI: 6,724, highly concentrated). Regional IO multiplier estimates for mining should consider this export dependency."
 ```
 
 **Local economic context:**

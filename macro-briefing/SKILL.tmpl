@@ -978,6 +978,20 @@ Public sector net debt stands at [val]% of GDP (£[val]bn). Debt interest paymen
 [1-2 sentences on whether the trade position is improving or deteriorating.]
 ```
 
+**Comtrade enrichment (optional):** If the `comtrade` R package is installed and the user requests deeper trade analysis, supplement the ONS headline figures with UN Comtrade data:
+
+```r
+if (requireNamespace("comtrade", quietly = TRUE)) {
+  # UK's top 5 export partners and concentration
+  comtrade::ct_top_partners("GBR", flow = "X", year = latest_year, n = 5)
+  comtrade::ct_hhi("GBR", flow = "X", year = latest_year, by = "partner")
+  # Export growth trajectory
+  comtrade::ct_growth("GBR", flow = "X", years = (latest_year - 4):latest_year)
+}
+```
+
+This is supplementary context, not a replacement for the ONS trade balance headline. Use it when `--focus trade` is specified or when the user asks for deeper trade analysis. For AU briefings, comtrade is the primary source for trade structure data since ABS trade releases are less granular than ONS.
+
 **Housing market:**
 ```markdown
 ## Housing Market
