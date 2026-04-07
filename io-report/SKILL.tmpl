@@ -107,8 +107,9 @@ Extract from the user's input:
 **Country auto-detection:**
 - Currency: AUD -> au, GBP/£ -> uk
 - Location keywords: Sydney, Melbourne, Brisbane, Perth, Adelaide, Hobart, Darwin, Canberra, Gold Coast, Cairns, Townsville, Geelong, Ballarat, Sunshine Coast, Ipswich, Toowoomba, Mackay, Bunbury, Mandurah, Launceston -> au
-- Location keywords: London, Manchester, Birmingham, Glasgow, Edinburgh, Leeds, Bristol, Liverpool, Newcastle, Cardiff, Belfast -> uk
-- If ambiguous: ask via AskUserQuestion
+- Location keywords: London, Manchester, Birmingham, Glasgow, Edinburgh, Leeds, Bristol, Liverpool, Cardiff, Belfast -> uk
+- **Ambiguous locations** (exist in both countries): Newcastle, Richmond. If the user says just "Newcastle" without further context, ask: "Did you mean Newcastle upon Tyne (UK) or Newcastle and Lake Macquarie (Australia)?" Same for Richmond.
+- If ambiguous for other reasons: ask via AskUserQuestion
 
 **Australian sector mapping (ANZSIC divisions A-S):**
 When country = au, map informal sector names to ANZSIC divisions:
@@ -297,6 +298,32 @@ factor = (1 - deadweight) * (1 - displacement) * (1 - leakage) * (1 - substituti
 netOutput = round(totalOutput * factor)
 netJobs = round(totalJobs * factor)
 ```
+
+**Australian computation notes (country = au):**
+
+When computing for an AU SA4, map the SA4 JSON field names to the computation formulas:
+- `employment_per_AUDm` in the SA4 JSON maps to `directEmploymentPerMillion` in the formulas
+- `output_multiplier_type1` maps to `outputMultiplier`; `output_multiplier_type2` maps to `outputMultiplierTypeII`
+- `employment_multiplier_type1` maps to `employmentMultiplier`
+
+**AU data limitations:** The SA4 JSON files do NOT contain `gvaToOutputRatio` or `averageEarningsPerJob`. For AU reports:
+- **GVA impact**: Omit from the report, or use a rough national approximation (GVA/output ratio ~0.55 for Australia, from ABS national accounts). If using the approximation, note: "GVA estimated using national average GVA-to-output ratio. Regional ratio may differ."
+- **Earnings impact**: Omit from the report. State: "Earnings impact not computed. SA4-level earnings by industry data is not available from ABS."
+- **Tax revenue**: Omit by default. The UK tax computation does NOT apply to AU. If `--with-tax` is requested for AU, use the AU tax brackets from `au/tax-parameters.json`, but note that this is even more approximate than the UK version.
+- **Local economic context section**: AU reports omit claimant rate, median earnings, and GVA per job comparisons (data not available at SA4 level). The section should focus on employment structure and sector concentration.
+
+**AU additionality defaults** (load from `au/additionality.json`, or use built-in defaults):
+```
+Standard:      deadweight=20%, displacement=20%, leakage=15%, substitution=0%  (net factor: 0.544)
+Conservative:  deadweight=35%, displacement=35%, leakage=25%, substitution=5%  (net factor: 0.285)
+Optimistic:    deadweight=10%, displacement=10%, leakage=10%, substitution=0%  (net factor: 0.729)
+```
+
+Note: Australia does not have a single equivalent to the UK HMT Additionality Guide. These are indicative central estimates. Users should adjust based on project-specific evidence.
+
+**FIFO/DIDO leakage warning:** If the SA4 has high Mining (B) employment (>20% of total regional employment), flag: "This region has a significant mining/resources workforce. FIFO and DIDO patterns may increase leakage well above the default 15%. Consider using the conservative additionality scenario (25% leakage) or a custom leakage rate."
+
+**Division S (Other services) handling:** If the user requests sector S and country = au, respond: "The ABS 2023-24 IO tables do not separately identify Other Services (ANZSIC Division S). This sector is folded into adjacent divisions. Try a more specific sector: Arts & recreation (R), Administrative & support (N), or another ANZSIC division."
 
 **Temporal profile (optional):**
 
