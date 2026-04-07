@@ -1,6 +1,6 @@
 ---
 name: io-report
-description: Input-output economic impact assessment (UK). Regional IO multipliers with FLQ regionalization, additionality, tax revenue, temporal profiles. 391 UK local authorities. Interactive.
+description: Input-output economic impact assessment (UK and Australia). Regional IO multipliers with FLQ regionalization, additionality, tax revenue, temporal profiles. 391 UK local authorities, 88 Australian SA4 regions. Interactive.
 allowed-tools:
   - Bash
   - Read
@@ -82,16 +82,18 @@ If PARAMS_WARNING appears, tell the user which parameter files may be stale and 
 
 Format: `STATUS: [status] | [one-line reason]`
 
-# /io-report: Input-Output Economic Impact Assessment (UK)
+# /io-report: Input-Output Economic Impact Assessment
 
-Generate professional economic impact assessment content for an investment or job creation in any UK local authority. Uses regional input-output multipliers with FLQ regionalization, additionality adjustments per HM Treasury Green Book guidance, and full methodology documentation.
+Generate professional economic impact assessment content for an investment or job creation in any UK local authority (391 areas) or Australian SA4 region (88 areas). Uses regional input-output multipliers with FLQ regionalization, additionality adjustments, and full methodology documentation.
+
+**Country detection:** Auto-detect from the location name. Australian place names (Sydney, Melbourne, Brisbane, Perth, Adelaide, Hobart, Darwin, Canberra, Gold Coast, Cairns, Newcastle NSW, Geelong, etc.) route to the AU model. UK place names route to the UK model. If ambiguous, ask. Can be overridden with `--country`.
 
 **This skill is interactive.** It computes the impact, shows you the key numbers, then asks what output you need: a full report, specific sections, slide-ready bullets, or just the data.
 
 ## Arguments
 
 ```
-/io-report <amount> in <sector> in <local_authority> [options]
+/io-report <amount> in <sector> in <location> [options]
 ```
 
 **Examples:**
@@ -100,9 +102,13 @@ Generate professional economic impact assessment content for an investment or jo
 /io-report 500 jobs in Construction in Glasgow
 /io-report £25m in Financial & Insurance in City of London --type2
 /io-report £5m in Accommodation & Food in Brighton and Hove --full
+/io-report AUD 20m in Mining in Perth - North West --country au
+/io-report AUD 50m in Construction in Melbourne - South East
+/io-report 200 jobs in Health Care in Gold Coast
 ```
 
 **Options:**
+- `--country uk|au` : Force country (default: auto-detect from location name and currency)
 - `--type2` : Include household spending (induced) effects (default: Type I only)
 - `--conservative` : Use conservative additionality (35% deadweight, 40% displacement, 20% leakage, 5% substitution)
 - `--optimistic` : Use optimistic additionality (10% deadweight, 10% displacement, 5% leakage)
@@ -145,7 +151,8 @@ Extract from the user's input:
 
   If the sector still cannot be mapped after checking all mappings, display the full list of 19 SIC sections and use AskUserQuestion with the top 4 most likely matches as options (based on keyword similarity to the user's input).
 
-- **local_authority**: The LA name or slug
+- **location**: The LA name (UK) or SA4 name (AU)
+- **country**: "uk" or "au" (auto-detected from location/currency, or from --country flag)
 - **multiplier_type**: "typeI" (default) or "typeII" (if --type2)
 - **additionality**: "standard" (default), "conservative", "optimistic", or "none"
 - **client**: Optional client name
@@ -153,10 +160,38 @@ Extract from the user's input:
 - **formats**: List of output formats. Default: `["markdown"]`. Parse `--format` flag by splitting on commas. If `--format all`, expand to `["markdown", "html", "word", "pptx", "pdf"]`
 - **audit**: If true, run `/econ-audit` after generating the report
 
+**Country auto-detection:**
+- Currency: AUD -> au, GBP/£ -> uk
+- Location keywords: Sydney, Melbourne, Brisbane, Perth, Adelaide, Hobart, Darwin, Canberra, Gold Coast, Cairns, Townsville, Geelong, Ballarat, Sunshine Coast, Ipswich, Toowoomba, Mackay, Bunbury, Mandurah, Launceston -> au
+- Location keywords: London, Manchester, Birmingham, Glasgow, Edinburgh, Leeds, Bristol, Liverpool, Newcastle, Cardiff, Belfast -> uk
+- If ambiguous: ask via AskUserQuestion
+
+**Australian sector mapping (ANZSIC divisions A-S):**
+When country = au, map informal sector names to ANZSIC divisions:
+- "mining"/"resources"/"iron ore"/"coal"/"gas"/"LNG" -> Mining (B)
+- "tech"/"software"/"IT" -> Information media & telecommunications (J)
+- "hospitality"/"hotels"/"tourism" -> Accommodation & food services (H)
+- "banking"/"finance"/"super"/"insurance" -> Financial & insurance services (K)
+- "pharma"/"chemicals"/"food processing" -> Manufacturing (C)
+- "logistics"/"freight"/"shipping"/"ports" -> Transport, postal & warehousing (I)
+- "housing"/"development"/"construction"/"building" -> Construction (E)
+- "retail"/"shops" -> Retail trade (G)
+- "farming"/"agriculture"/"pastoral"/"cropping" -> Agriculture, forestry & fishing (A)
+- "defence"/"military"/"government" -> Public administration & safety (O)
+- "care"/"aged care"/"NDIS"/"hospital"/"health" -> Health care & social assistance (Q)
+- "renewable"/"solar"/"wind"/"energy"/"electricity" -> Electricity, gas, water & waste (D)
+- "consulting"/"engineering"/"R&D"/"biotech" -> Professional, scientific & technical (M)
+- "cleaning"/"security"/"admin"/"labour hire" -> Administrative & support services (N)
+- "university"/"TAFE"/"school"/"education" -> Education & training (P)
+- "property"/"real estate"/"rental" -> Rental, hiring & real estate (L)
+- "wholesale"/"distribution" -> Wholesale trade (F)
+- "arts"/"creative"/"sport"/"recreation" -> Arts & recreation services (R)
+
 ### Step 2: Load data and compute
 
-Load the multiplier data and parameters:
+Load the multiplier data and parameters based on the detected country.
 
+**For UK (country = uk):**
 ```bash
 DATA_DIR="$HOME/econstack-data/src/data"
 PARAMS_DIR="$HOME/econstack-data/parameters"
@@ -164,11 +199,40 @@ cat "$DATA_DIR/${LA_SLUG}/multipliers.json"
 cat "$DATA_DIR/${LA_SLUG}/summary.json"
 cat "$DATA_DIR/${LA_SLUG}/employment.json"
 cat "$DATA_DIR/national-benchmarks.json"
-cat "$PARAMS_DIR/uk/tax-parameters.json"
 cat "$PARAMS_DIR/uk/additionality.json"
 ```
 
-Use the tax thresholds and rates from `uk/tax-parameters.json` for the tax revenue estimate. Use the additionality scenarios from `uk/additionality.json`. If the parameter files are not found, use the built-in defaults below.
+**For Australia (country = au):**
+```bash
+DATA_DIR="$HOME/econstack-data/src/data/au"
+PARAMS_DIR="$HOME/econstack-data/parameters"
+cat "$DATA_DIR/sa4/${SA4_SLUG}.json"
+cat "$DATA_DIR/national-io.json"
+cat "$PARAMS_DIR/au/additionality.json"
+cat "$PARAMS_DIR/au/io-metadata.json"
+```
+
+Use the additionality scenarios from the appropriate jurisdiction file. If parameter files are not found, use the built-in defaults below.
+
+**AU SA4 fuzzy matching:**
+
+If the SA4 slug is not found exactly in ~/econstack-data/src/data/au/sa4/:
+
+1. Slugify the input (lowercase, replace spaces with hyphens, remove apostrophes and parentheses).
+2. Try exact match on the slugified version.
+3. Try case-insensitive partial match: ls ~/econstack-data/src/data/au/sa4/ | grep -i "{slug}"
+4. Try matching on the main city name:
+   - "Sydney" -> list all sydney-*.json files, ask which SA4
+   - "Melbourne" -> list all melbourne-*.json files, ask which SA4
+   - "Perth" -> list all perth-*.json files, ask which SA4
+   - "Brisbane" -> list all brisbane-*.json files, ask which SA4
+   - "Adelaide" -> list all adelaide-*.json files, ask which SA4
+5. If multiple matches found, present them as AskUserQuestion options (max 4).
+6. If no matches: "No SA4 region found matching '[input]'. The data covers 88 Australian SA4 regions. Try the full SA4 name (e.g., 'Melbourne - South East' not just 'Melbourne')."
+
+**Currency handling:**
+- UK: GBP (£). Display as "GBP X.Xm" or "£X.Xm".
+- AU: AUD. Display as "AUD X.Xm". Never use $ without the AUD prefix (ambiguous).
 
 **LA fuzzy matching:**
 
@@ -610,12 +674,119 @@ Based on HM Treasury Additionality Guide (BIS, 2009; updated 2014) and MHCLG App
 - These are indicative estimates, not formal economic impact assessments.
 ```
 
-**Methodology summary (one paragraph):**
+**Methodology summary (one paragraph, UK):**
 ```markdown
 **Methodology:** Estimates from a regional input-output model using ONS 2023 data (Blue Book 2025), regionalized via the Flegg Location Quotient method (Flegg et al. 1995). [Standard/Conservative/Optimistic] additionality adjustments applied per HM Treasury guidance (2014) and MHCLG (2025). Type [I/II] multipliers. Indicative upper bounds, not a formal assessment. See full methodology for details and limitations.
 ```
 
-**References:**
+**Methodology summary (one paragraph, AU):**
+```markdown
+**Methodology:** Estimates from a regional input-output model using ABS Input-Output Tables 2023-24 (published March 2026), regionalized to [SA4 name] via the Flegg Location Quotient method (Flegg et al. 1995; delta = 0.3 per Lenzen et al. 2017 Australian calibration). Regional employment structure from Census 2021 Place of Work data. [Standard/Conservative/Optimistic] additionality adjustments applied. Type [I/II] multipliers. The ABS stopped publishing IO multipliers after 1998-99 due to misuse concerns; these are independently derived. Indicative upper bounds, not a formal assessment.
+```
+
+**If country = au, use the following methodology appendix instead of the UK version:**
+
+```markdown
+## Methodology
+
+### Input-output model
+
+This assessment uses a regional input-output (IO) model derived from the Australian Bureau of Statistics Input-Output Tables for 2023-24 (published 25 March 2026). The national direct requirements matrix at 109 IO Industry Groups (IOIGs) is aggregated to 19 ANZSIC divisions using output-weighted averaging. This matrix is regionalized using the Flegg Location Quotient (FLQ) method (Flegg et al. 1995), which adjusts national coefficients to reflect the regional economy's sectoral structure and size.
+
+The Leontief inverse of the regionalized matrix yields Type I multipliers, capturing direct effects (the initial expenditure) and indirect effects (supply chain purchases from local firms). [If Type II: When household spending is included, the matrix is augmented with a household row and column, yielding Type II multipliers that additionally capture induced effects.]
+
+Employment multipliers are derived by weighting the Leontief inverse columns by sector-level employment intensity (jobs per AUD million of output), sourced from the ABS IO Tables employment data (Table 20).
+
+### Data sources
+
+| Data | Source | Reference period | Published | Notes |
+|------|--------|-----------------|-----------|-------|
+| National IO tables | ABS Australian National Accounts: Input-Output Tables | 2023-24 | 25 March 2026 | 109 IOIGs, aggregated to 19 ANZSIC divisions |
+| Regional employment | ABS Census 2021, Table G54 (Place of Work) | 10 August 2021 | 2022 | Employment by ANZSIC division by SA4 |
+| National employment | ABS IO Tables, Table 20 | 2023-24 | 25 March 2026 | Employment by IOIG |
+| National output | ABS IO Tables, Table 5 | 2023-24 | 25 March 2026 | Australian production by industry |
+
+The ABS publishes national-level IO tables only. All regional IO tables in Australia are estimated using non-survey methods. No official state or sub-state IO tables exist. The leading commercial providers (REMPLAN, NIEIR/.id, IO Economics) use similar approaches to produce regional multipliers from the national tables.
+
+### Regionalization method
+
+The Flegg Location Quotient (FLQ) adjusts national input coefficients to reflect the regional economy. The key innovation of FLQ over simpler location quotients (SLQ, CILQ) is a regional size parameter (lambda) that accounts for the fact that smaller regions are more likely to import.
+
+**Lambda** = [log2(1 + RE / NE)]^delta
+
+Where:
+- RE = total regional employment ([SA4 name]: [val])
+- NE = total national employment (10,008,216, Census 2021)
+- delta = 0.3 (calibrated for Australia by Lenzen et al. 2017)
+
+Lambda for [SA4 name] = [val]. This means [interpretation: larger lambda means more self-sufficient, smaller lambda means more import-dependent].
+
+The FLQ for each input pair (i, j) is:
+- FLQ(i,j) = CILQ(i,j) x lambda, for i != j
+- FLQ(i,j) = SLQ(i), for i = j
+
+Where CILQ(i,j) = SLQ(i) / SLQ(j), and SLQ(i) = (regional employment share in i) / (national employment share in i).
+
+The regional direct requirements coefficient is: A_reg(i,j) = A_nat(i,j) x min(FLQ(i,j), 1). If FLQ >= 1, the region is self-sufficient in that input; the national coefficient holds. If FLQ < 1, the coefficient is scaled down (the region imports some of that input).
+
+### Why [SA4 name]'s multiplier is [X]x
+
+[Interpretation of the multiplier in context of the SA4's industry structure. E.g., "Melbourne - South East has a diversified economy with strong manufacturing and construction sectors, producing higher-than-average supply chain linkages. Its lambda of 0.42 reflects a large regional economy (380,000 employed), meaning a greater share of supply chain spending stays local."]
+
+### Technical parameters
+
+| Parameter | Value |
+|-----------|-------|
+| Data source | ABS Input-Output Tables, 2023-24 (published March 2026) |
+| Regional employment | ABS Census 2021, Table G54 (Place of Work) |
+| Sector classification | 19 ANZSIC divisions (A-R), aggregated from 109 IOIGs |
+| Regionalization | Flegg Location Quotient (FLQ), delta = 0.3 |
+| Delta source | Lenzen, M. et al. (2017). Economic Systems Research 29(2): 275-295 |
+| Lambda for [SA4] | [val] |
+| Multiplier type | Type I [or Type II] |
+| Currency | AUD (2023-24 current prices) |
+| Additionality | Calibrated from Infrastructure Australia and state treasury guidance |
+
+### Additionality framework
+
+Australia does not have a single equivalent to the UK HM Treasury Additionality Guide. The additionality parameters used here are calibrated from Infrastructure Australia guidance, state treasury practices (VIC DTF, NSW TPG23-08), and Australian evaluation literature.
+
+- **Deadweight:** Activity that would have occurred anyway. Range: 0-40%.
+- **Displacement:** Activity shifted from elsewhere. Range: 0-60%.
+- **Leakage:** Benefits flowing outside the region. Range: 5-40%. Note: Australian regions may have higher leakage than UK local authorities due to FIFO/DIDO workforce patterns and greater geographic distances.
+- **Substitution:** Replacing existing activity. Typically low for investment interventions.
+
+### Caveats
+
+- IO models assume spare capacity. In a tight labour market, actual impacts may be smaller.
+- Fixed input proportions. No substitution, efficiency gains, or technological change captured.
+- No price effects. Large investments can push up local costs (particularly in regional areas).
+- National IO data is 2023-24 vintage. Regional employment structure is from Census 2021.
+- 19-division aggregation averages sub-industries with different supply chain characteristics.
+- SA4 boundaries are statistical, not economic. Impacts spill across boundaries.
+- The ABS stopped publishing IO multipliers after 1998-99 specifically because of concerns about their misuse. These independently derived multipliers carry the same inherent limitations.
+- Cross-hauling (a region simultaneously importing and exporting the same commodity) is not captured.
+- IO multipliers are generally indicative upper bounds, not predictions.
+- These are indicative estimates, not formal economic impact assessments.
+```
+
+**References (AU):**
+```markdown
+## References
+
+- ABS (2026). "Australian National Accounts: Input-Output Tables, 2023-24". Published 25 March 2026.
+- ABS (2022). "Census of Population and Housing 2021, Table G54: Industry of Employment".
+- Flegg, A.T., Webber, C.D. and Elliott, M.V. (1995). "On the Appropriate Use of Location Quotients in Generating Regional Input-Output Tables". Regional Studies, 29(6), pp. 547-561.
+- Flegg, A.T. and Tohmo, T. (2013). "Regional Input-Output Tables and the FLQ Formula". Regional Studies, 47(5), pp. 703-721.
+- Flegg, A.T., Mastronardi, L.J. and Romero, C.A. (2016). "Evaluating the FLQ and AFLQ formulae". Regional Studies, 50(2), pp. 310-325.
+- Lenzen, M., Geschke, A., Malik, A. et al. (2017). "New multi-regional input-output databases for Australia". Economic Systems Research, 29(2), pp. 275-295.
+- Jensen, R.C., Mandeville, T.D. and Karunaratne, N.D. (1979). "Regional Economic Planning: Generation of Regional Input-Output Analysis". Routledge.
+- Infrastructure Australia (2021). "Assessment Framework".
+- Victorian DTF (2025). "Investment Lifecycle and High Value High Risk Guidelines".
+- NSW Treasury (2024). "TPG23-08: NSW Government Guide to Cost-Benefit Analysis".
+```
+
+**References (UK, existing):**
 ```markdown
 ## References
 
