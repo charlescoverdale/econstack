@@ -83,7 +83,7 @@ Format: `STATUS: [status] | [one-line reason]`
 
 # /reg-impact: Regulatory Impact Assessment
 
-Generate a Regulatory Impact Assessment (RIA) or Regulatory Impact Statement (RIS) for a proposed regulation, policy, or legislative change. Covers four frameworks: UK Better Regulation, Australian OIA, EU Better Regulation Toolbox, and US OMB Circular A-4.
+Generate a Regulatory Impact Assessment (RIA) or Regulatory Impact Statement (RIS) for a proposed regulation, policy, or legislative change. Covers 9 frameworks: UK Better Regulation, Australian Commonwealth OIA, five Australian state frameworks (QLD, VIC, NSW, SA, WA), EU Better Regulation Toolbox, and US OMB Circular A-4.
 
 The RIA is distinct from a CBA (which is one section within it) and distinct from a business case (which covers delivery and management, not regulatory compliance). An RIA answers: what is the problem, why should government intervene, what are the options, what are the costs and benefits of each, and how will we know if it worked?
 
@@ -100,6 +100,8 @@ The RIA is distinct from a CBA (which is one section within it) and distinct fro
 /reg-impact "Mandatory climate risk disclosure for listed companies"
 /reg-impact "Ban on single-use plastics in food packaging" --framework uk
 /reg-impact "Increase minimum wage to $25/hour" --framework au
+/reg-impact "New short-term rental regulations" --framework au-vic
+/reg-impact "Changes to mining rehabilitation bonds" --framework au-qld
 /reg-impact "New data protection requirements for AI systems" --framework eu
 /reg-impact --from inputs.json
 ```
@@ -117,24 +119,42 @@ The RIA is distinct from a CBA (which is one section within it) and distinct fro
 
 **Supported frameworks:**
 
-| Flag | Framework | Oversight body | Key features |
-|------|-----------|---------------|-------------|
-| `uk` | UK Better Regulation Framework | Regulatory Policy Committee (RPC) | EANDCB (net direct cost to business), Small Business Impact Test, competition filter, post-implementation review |
-| `au` | Australian OIA Impact Analysis | Office of Impact Analysis (OIA) | 7 RIS questions, preliminary assessment, net benefit test, mandatory 5-year review |
-| `eu` | EU Better Regulation Toolbox | Regulatory Scrutiny Board (RSB) | Proportionality, subsidiarity, SME test, stakeholder consultation, REFIT |
-| `us` | US OMB Circular A-4 | Office of Information and Regulatory Affairs (OIRA) | Baseline analysis, break-even analysis, transfer analysis, 3% and 7% discount rates (pre-2023) or 2% (post-2023) |
+| Flag | Framework | Oversight body | Discount rate | Key features |
+|------|-----------|---------------|--------------|-------------|
+| `uk` | UK Better Regulation Framework | Regulatory Policy Committee (RPC) | 3.5% | EANDCB, Small Business Impact Test, competition filter, post-implementation review |
+| `au` | Australian Commonwealth OIA | Office of Impact Analysis (OIA) | 7% | 7 RIS questions, preliminary assessment, net benefit test, mandatory review |
+| `au-qld` | Queensland Impact Analysis Statement | OBPR (QPC/Treasury) | 7% | IAS (not RIS), Exclusion/Summary/Full tiers, fundamental legislative principles test, 28-day consultation |
+| `au-vic` | Victorian RIS / LIA | Commissioner for Better Regulation | 4% or 7% | $2M/$8M thresholds, RIS (subordinate) + LIA (primary), Regulatory Change Measurement, $500M red tape target |
+| `au-nsw` | NSW Better Regulation Statement | NSW Treasury | 7% (3%, 10% sensitivity) | Seven Better Regulation Principles, BRS/RIS dual system, Licensing Framework test |
+| `au-sa` | South Australia RIS | Cabinet Office (DPC) | 7% | Multi-agency gatekeeping (DTF, DTED, DFC, DENR), family/societal impact domain |
+| `au-wa` | Western Australia CRIS/DRIS | Better Regulation Unit (DTF) | 7% | Two-stage CRIS/DRIS, Executive Director sign-off, BRU Letter of Advice |
+| `eu` | EU Better Regulation Toolbox | Regulatory Scrutiny Board (RSB) | 3%/5% | Proportionality, subsidiarity, SME test, stakeholder consultation, REFIT |
+| `us` | US OMB Circular A-4 | OIRA | 2% | Baseline analysis, break-even analysis, transfer analysis |
 
 ## Instructions
 
 ### Step 0: Framework detection and setup
 
 Auto-detect framework from context:
-- "UK", "GBP", "RPC", "EANDCB", "Better Regulation" -> `uk`
-- "Australia", "AUD", "OIA", "RIS", "OBPR" -> `au`
+- "UK", "GBP", "RPC", "EANDCB" -> `uk`
+- "Queensland", "QLD", "QPC", "IAS" -> `au-qld`
+- "Victoria", "VIC", "BRV", "Commissioner for Better Regulation", "LIA" -> `au-vic`
+- "NSW", "New South Wales", "BRS", "Better Regulation Statement" -> `au-nsw`
+- "South Australia", "SA", "DPC" (in AU context) -> `au-sa`
+- "Western Australia", "WA", "BRU", "CRIS", "DRIS" -> `au-wa`
+- "Australia", "AUD", "OIA", "Commonwealth" (without state indicators) -> `au`
 - "EU", "EUR", "RSB", "subsidiarity", "REFIT" -> `eu`
 - "US", "USD", "OIRA", "OMB", "A-4" -> `us`
 
-If ambiguous, ask via AskUserQuestion.
+If ambiguous (e.g., "Australian regulation" without a state), ask:
+```
+AskUserQuestion: "Which Australian jurisdiction?"
+Options:
+  - "Commonwealth (federal, OIA)" (Recommended)
+  - "Queensland (QPC/OBPR)"
+  - "Victoria (Better Regulation Victoria)"
+  - "New South Wales (NSW Treasury)"
+```
 
 Load parameters from the parameter database:
 ```bash
@@ -273,7 +293,12 @@ BCR per option = PV(benefits) / PV(costs)
 
 Using framework-appropriate discount rates:
 - UK: 3.5% (Green Book STPR)
-- AU: 7% (OIA standard)
+- AU Commonwealth: 7% (OIA standard)
+- AU-QLD: 7% (Queensland Treasury)
+- AU-VIC: 4% or 7% (Victorian DTF, report both for high-impact RIS)
+- AU-NSW: 7% central, with 3% and 10% sensitivity (TPP17-03)
+- AU-SA: 7% (follows Commonwealth convention)
+- AU-WA: 7% (follows Commonwealth convention)
 - EU: 3% or 5% (depending on member state)
 - US: 2% (OMB A-4 2023 revision)
 
@@ -338,6 +363,40 @@ The skill maps its sections to these 7 questions.
 
 **Break-even analysis:** What is the minimum benefit required for the regulation to be justified?
 
+**Queensland (au-qld):**
+
+**Fundamental legislative principles test:** Does the regulation have sufficient regard to the rights and liberties of individuals? Does it have sufficient regard to the institution of Parliament? These are constitutional requirements under the Legislative Standards Act 1992.
+
+**Competition impact assessment:** Consistent with National Competition Policy obligations. Does the regulation restrict competition? If so, demonstrate that the benefits outweigh the costs and that the objectives can only be achieved by restricting competition.
+
+**Direct costs calculation:** Use the Queensland Direct Costs Calculator tool (simplified or standard version) to estimate compliance costs. The OBPR provides both versions.
+
+**Victoria (au-vic):**
+
+**Regulatory Change Measurement (RCM):** For high-impact RIS ($8M+ per year), quantify the change in regulatory burden using the Victorian RCM methodology. Three cost types: administrative costs (paperwork, reporting), compliance costs (substantive changes to behaviour), delay costs (time waiting for approvals). Use the RCM Toolkit from DTF.
+
+**Small business impact statement:** Mandatory within the "Preferred option summary" section (Question 5). Describe specific impacts on small businesses and any accommodations (phased implementation, simplified compliance, exemptions).
+
+**Commissioner for Better Regulation assessment:** The Commissioner independently assesses the adequacy of each RIS. Allow 3-4 business days per draft for low-impact, 10 business days for high-impact. Budget for 3-4 draft iterations.
+
+**NSW (au-nsw):**
+
+**Licensing Framework assessment:** If the proposal creates a new licence or revises an existing one, apply the NSW Licensing Framework. Demonstrate that licensing is the least restrictive option that achieves the regulatory objective.
+
+**Principles-based assessment:** Unlike the prescriptive templates of other jurisdictions, NSW requires demonstration that each of the Seven Better Regulation Principles has been satisfied. This is a principles check, not a template fill.
+
+**SA (au-sa):**
+
+**Multi-agency gatekeeping:** Circulate the draft RIS to all four assessment agencies (DTF, DTED, DFC, DENR) plus Cabinet Office simultaneously. All must assess adequacy before proceeding. Allow time for this parallel review process.
+
+**Family and societal impact assessment:** Unique to SA. Explicitly assess the impact on families, including: financial impacts on households, impacts on family relationships and stability, impacts on children and young people.
+
+**WA (au-wa):**
+
+**Agency Self-Assessment Template:** Must be completed and signed off at Executive Director level before the BRU will engage. This is the gateway to the full process.
+
+**BRU Letter of Advice:** The BRU issues formal Letters of Advice at both the CRIS and DRIS stages. These are independent assessments of the adequacy of the analysis. Address all points raised in the first Letter before finalising the DRIS.
+
 ### Step 7: Sensitivity and risk
 
 - What are the key uncertainties in the cost and benefit estimates?
@@ -399,7 +458,7 @@ Assemble the full document:
 13. Summary table (costs/benefits/EANDCB per option)
 14. Annex: analytical methodology
 
-**AU structure (7 RIS questions):**
+**AU Commonwealth structure (7 RIS questions):**
 1. Cover sheet (entity, contact officer, RIS ID)
 2. Executive summary
 3. Q1: What is the problem?
@@ -410,6 +469,109 @@ Assemble the full document:
 8. Q6: What is the best option?
 9. Q7: How will it be implemented and evaluated?
 10. Appendix: detailed CBA tables
+
+**Queensland structure (Impact Analysis Statement):**
+
+Note: Queensland uses "Impact Analysis Statement" (IAS), not RIS. Three tiers: Exclusion IAS, Summary IAS, Full IAS (Consultation + Decision).
+
+For Summary IAS:
+1. Header (lead department, proposal name, instrument title, date)
+2. Nature, size and scope of the problem
+3. Objectives of government action
+4. Policy options considered
+5. Impacts of the proposal (costs and benefits)
+6. Direct costs (using Queensland Direct Costs Calculator)
+7. Consultation undertaken
+8. Consistency with fundamental legislative principles
+
+For Full IAS (Consultation IAS, released for 28-day public consultation):
+1. Problem identification with evidence
+2. Objectives of government action
+3. Options analysis (regulatory and non-regulatory)
+4. Impact analysis per option with CBA
+5. Competition impact assessment (National Competition Policy)
+6. Consultation plan and stakeholder engagement
+7. Recommended option with justification
+8. Consistency with fundamental legislative principles
+9. Implementation and evaluation strategy
+
+For Full IAS (Decision IAS, post-consultation):
+All sections from Consultation IAS, plus:
+10. Summary of submissions received and key issues raised
+11. Agency response to consultation feedback
+12. Any changes to the preferred option based on consultation
+
+**Victorian structure (RIS or LIA):**
+
+Note: Victoria has two instruments: RIS (subordinate legislation, under Subordinate Legislation Act 1994) and LIA (primary legislation, under Cabinet Handbook). Both follow the same 7-question structure but LIAs are assessed by the Commissioner for Better Regulation.
+
+Thresholds: < $2M/year = no RIS. $2M-$8M/year = low-impact RIS. > $8M/year = high-impact RIS.
+
+Seven mandatory questions:
+1. Problem analysis: why is the Government considering action?
+2. Objectives: which outcomes is the Government aiming to achieve?
+3. Options identification: what are the possible courses of action?
+4. Impact analysis: what are the expected impacts (benefits and costs) and what is the preferred option?
+5. Preferred option summary: characteristics including small business and competition impacts
+6. Implementation plan: how will the preferred option be put into place?
+7. Evaluation strategy: when and how will the Government evaluate effectiveness?
+
+For high-impact RIS: add Regulatory Change Measurement (RCM) analysis quantifying the change in regulatory burden using the Victorian RCM methodology (administrative costs, compliance costs, delay costs).
+
+**NSW structure (Better Regulation Statement):**
+
+Note: NSW uses two instruments: Better Regulation Statement (BRS, for Cabinet proposals) and RIS (for subordinate legislation under Subordinate Legislation Act 1989). Both must satisfy the Seven Better Regulation Principles.
+
+Seven Better Regulation Principles:
+1. Need for government action established (benefits outweigh costs)
+2. Objective of government action is clear
+3. Impact properly understood across a range of options
+4. Action is effective and proportional
+5. Consultation has informed regulatory development
+6. Simplification, repeal, reform or consolidation considered
+7. Regulation will be periodically reviewed
+
+BRS structure:
+1. Executive summary / overview
+2. Proportionality demonstration
+3. Consultation approach and summary of stakeholder views
+4. Cost-benefit analysis (preferred option provides greatest net benefit)
+5. Preferred option justification
+6. Licensing Framework assessment (if new/revised licence proposed)
+
+**South Australia structure:**
+1. Problem description (nature, evidence, scale, who is affected)
+2. Objectives of government action
+3. Statement of options (regulatory and non-regulatory)
+4. Cost-benefit analysis per option
+5. Consultation evidence
+6. Recommended option with justification
+7. Implementation, monitoring and review
+
+Note: SA uses a multi-agency gatekeeping process. The RIS is assessed across four domains by different agencies: business and regional impacts (DTED), CBA quality (DTF), family and societal impacts (DFC), environmental impacts (DENR).
+
+**Western Australia structure (CRIS/DRIS):**
+
+Note: WA uses a two-stage process with BRU Letters of Advice at each stage. Starts with Agency Self-Assessment Template signed off at Executive Director level.
+
+Consultation RIS (CRIS):
+1. Problem definition
+2. Non-regulatory and regulatory options
+3. Comparative analysis of options
+4. Expected costs and benefits per option
+(BRU reviews and issues Letter of Advice before publication)
+
+Decision RIS (DRIS):
+1. Executive summary
+2. Issue statement
+3. Policy objectives
+4. Options considered
+5. Impact assessment
+6. Consultation summary (incorporating CRIS feedback)
+7. Preferred option with supporting reasons
+8. Implementation and enforcement details
+9. Evaluation/review plan
+(BRU reviews and issues second Letter of Advice)
 
 **EU structure:**
 1. Context and problem definition
