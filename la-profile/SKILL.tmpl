@@ -7,12 +7,12 @@ allowed-tools:
   - Write
   - Glob
   - Grep
-  - Agent
   - AskUserQuestion
   - Skill
 ---
 
-
+**Only stop to ask the user when:** local authority name is ambiguous (multiple matches), or the user requests a comparison LA.
+**Never stop to ask about:** which sections to include when --full is specified, data year (use latest available), or benchmark selection (default to the LA's own country average).
 {{PREAMBLE}}
 
 {{LEARNINGS}}

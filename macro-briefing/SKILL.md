@@ -12,6 +12,10 @@ allowed-tools:
 ---
 
 
+
+**Only stop to ask the user when:** country is ambiguous, or the user requests a focus area not in the standard list.
+**Never stop to ask about:** data sources (use the best available for the country), section selection when --full is specified, or indicator definitions.
+
 <!-- preamble: update check -->
 Before starting, run this silently. If it outputs UPDATE_AVAILABLE, tell the user:
 "A new version of econstack is available. Run `cd ~/.claude/skills/econstack && git pull` to update."
@@ -99,7 +103,7 @@ Parse the `--country` flag. Default is `uk` if not specified.
 | `uk` | A1: ons + boe packages | B1 | C1: 12 sections | BoE Monetary Policy Report |
 | `us` | A2: fred package | B2 | C2: 8 sections | FOMC / Beige Book |
 | `eu` | A3: readecb package | B3 | C3: 6 sections | ECB Economic Bulletin |
-| `au` | A4: fred + readoecd | B4 | C4: 5 sections | RBA Statement on Monetary Policy |
+| `au` | A4: readabs + readrba + fred | B4 | C4: 5 sections | RBA Statement on Monetary Policy |
 
 All countries also run A5 (global indicators: Brent, VIX, consumer confidence).
 If `--international` is specified, also run A6 (30-country comparison data) and D2 (comparison tables).
@@ -1594,13 +1598,12 @@ Country-specific data source footer:
 - Never use em dashes.
 - Never attribute econstack to any individual.
 - Every section stands alone.
-- **Table and figure formatting (universal across all econstack outputs):**
-  - **Numbering**: Every table is "Table 1: [short description]", every figure/chart is "Figure 1: [short description]". Numbering restarts at 1 for each report. The caption goes above the table/figure.
-  - **Source note**: Below every table and figure: "Source: [Author/Publisher] ([year])." If multiple sources: "Sources: [Source 1]; [Source 2]."
-  - **Notes line**: Below the source, if needed: "Notes: [caveats, e.g. 'real 2026 prices', '2024-25 data', 'estimated from available figures']."
-  - **Minimal formatting (low ink-to-data ratio)**: No heavy borders or gridlines. Thin rule under the header row only. No shading on data cells (light grey alternating rows permitted in Excel/HTML only). Right-align all numbers. Left-align all text. Bold totals rows only. No decorative elements.
-  - **Number formatting**: Currency with comma separators and 1 decimal place for millions (e.g. "GBP 45.2m" / "AUD 45.2m"), whole numbers for counts (e.g. "1,250 jobs"), percentages to 1 decimal place (e.g. "3.5%").
-  - **Consistency**: The same metric must use the same unit and precision throughout the report. Do not switch between "GBP m" and "GBP bn" for the same order of magnitude.
+- **Numbering**: Every table is "Table 1: [short description]", every figure/chart is "Figure 1: [short description]". Numbering restarts at 1 for each report. The caption goes above the table/figure.
+- **Source note**: Below every table and figure: "Source: [Author/Publisher] ([year])." If multiple sources: "Sources: [Source 1]; [Source 2]."
+- **Notes line**: Below the source, if needed: "Notes: [caveats, e.g. 'real 2026 prices', '2024-25 data', 'estimated from available figures']."
+- **Minimal formatting (low ink-to-data ratio)**: No heavy borders or gridlines. Thin rule under the header row only. No shading on data cells (light grey alternating rows permitted in Excel/HTML only). Right-align all numbers. Left-align all text. Bold totals rows only. No decorative elements.
+- **Number formatting**: Currency with comma separators and 1 decimal place for millions (e.g. "GBP 45.2m" / "AUD 45.2m"), whole numbers for counts (e.g. "1,250 jobs"), percentages to 1 decimal place (e.g. "3.5%").
+- **Consistency**: The same metric must use the same unit and precision throughout the report. Do not switch between "GBP m" and "GBP bn" for the same order of magnitude.
 - Bold lead sentence in every section: state the finding, not just the topic.
 - All comparisons need context: vs previous period, vs year ago, vs target/forecast where applicable.
 - Be specific about dates. "Q4 2025" not "last quarter". "February 2026" not "last month".

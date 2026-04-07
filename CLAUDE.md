@@ -6,14 +6,18 @@ Claude Code skills for professional economic analysis.
 
 Each skill has its own directory with a `SKILL.md` defining the workflow.
 
-- `io-report/SKILL.md` : Input-output economic impact assessment (UK)
-- `la-profile/SKILL.md` : Local authority economic profile (UK)
-- `fiscal-briefing/SKILL.md` : Public finances briefing (UK, US, Australia)
-- `macro-briefing/SKILL.md` : Macroeconomic monitor (UK, US, Euro area, Australia; --international for 30-country comparison)
 - `cost-benefit/SKILL.md` : Cost-benefit analysis (8 international frameworks)
-- `vfm-eval/SKILL.md` : Value for Money evaluation (3Es/4Es, unit cost benchmarks, fiscal return, evidence grading)
-- `business-case/SKILL.md` : Five Case Model business case (UK Green Book, Australian Commonwealth/Victoria HVHR/NSW/Queensland, NZ, EU, World Bank, US). Framework-native headings and terminology (e.g. VIC DTF 10-chapter structure, NSW component model, QLD 20-chapter BCDF). Interactive section picker.
-- `econ-audit/SKILL.md` : Methodology audit (80+ checks, RED/AMBER/GREEN grading)
+- `business-case/SKILL.md` : Five Case Model business case (UK, AU, NZ, EU, World Bank, US). Framework-native headings. Interactive section picker.
+- `vfm-eval/SKILL.md` : Value for Money evaluation (3Es/4Es, unit cost benchmarks, fiscal return, evidence grading). AU framework support is structural only (ANAO 4Es headings); cost benchmarks use UK GMCA as proxy.
+- `mca/SKILL.md` : Multi-criteria analysis and MCDA (tailored criteria, swing/AHP weighting, sensitivity)
+- `io-report/SKILL.md` : Input-output economic impact assessment (UK: 391 LAs, Australia: 88 SA4 regions)
+- `macro-briefing/SKILL.md` : Macroeconomic monitor (UK, US, Euro area, Australia; --international for 30-country comparison)
+- `fiscal-briefing/SKILL.md` : Public finances briefing (UK, US, Australia)
+- `market-research/SKILL.md` : Industry and market analysis (sizing, structure, competition, M&A, multi-geo)
+- `la-profile/SKILL.md` : Local authority economic profile (UK, 391 areas)
+- `econ-audit/SKILL.md` : Methodology audit (120+ checks, RED/AMBER/GREEN grading)
+
+**Preamble tiers:** All 10 skills get update check, learnings, safety hooks, and completion status. 6 skills (cost-benefit, business-case, vfm-eval, io-report, mca, econ-audit) additionally get the parameter database check because they read from `~/econstack-data/parameters/`. The other 4 (macro-briefing, fiscal-briefing, la-profile, market-research) pull live data or LA-specific data and do not use the parameter database.
 
 ## Important Rules
 
@@ -43,7 +47,6 @@ The skill has specialized workflows that produce better results than ad-hoc answ
 - Economic impact, multiplier, jobs created, GVA, input-output → invoke io-report
 - Local authority, council area, area profile, LA data → invoke la-profile
 - Audit, check methodology, review my numbers, "is this analysis right" → invoke econ-audit
-
 
 ## Versioning
 
@@ -76,4 +79,6 @@ Econstack remembers per-project preferences across sessions. Learnings are store
 
 **LA data:** The io-report and la-profile skills read multiplier and LA data from `~/econstack-data/src/data/`.
 
-**CBA parameters:** The cost-benefit, io-report, and econ-audit skills read structured parameter files from `~/econstack-data/parameters/`. 14 JSON files covering UK, EU, and AU: discount rates, carbon values, VSL, QALY, VTTS, optimism bias, additionality, tax parameters, distributional weights, and construction benchmarks. Skills fall back to built-in defaults if parameter files are not found.
+**AU IO data:** The io-report skill reads Australian SA4 multipliers from `~/econstack-data/src/data/au/sa4/` and national IO data from `~/econstack-data/src/data/au/national-io.json`.
+
+**CBA parameters:** The cost-benefit, business-case, io-report, mca, vfm-eval, and econ-audit skills read structured parameter files from `~/econstack-data/parameters/`. 45 JSON files covering UK, US, EU, AU, World Bank, ADB, and common parameters: discount rates, carbon values, VSL, QALY, VTTS, optimism bias, additionality, tax parameters, distributional weights, construction benchmarks, and IO metadata. Skills fall back to built-in defaults if parameter files are not found.

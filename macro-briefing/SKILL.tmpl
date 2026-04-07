@@ -12,6 +12,10 @@ allowed-tools:
 ---
 
 
+
+**Only stop to ask the user when:** country is ambiguous, or the user requests a focus area not in the standard list.
+**Never stop to ask about:** data sources (use the best available for the country), section selection when --full is specified, or indicator definitions.
+
 {{PREAMBLE}}
 
 {{LEARNINGS}}
@@ -62,7 +66,7 @@ Parse the `--country` flag. Default is `uk` if not specified.
 | `uk` | A1: ons + boe packages | B1 | C1: 12 sections | BoE Monetary Policy Report |
 | `us` | A2: fred package | B2 | C2: 8 sections | FOMC / Beige Book |
 | `eu` | A3: readecb package | B3 | C3: 6 sections | ECB Economic Bulletin |
-| `au` | A4: fred + readoecd | B4 | C4: 5 sections | RBA Statement on Monetary Policy |
+| `au` | A4: readabs + readrba + fred | B4 | C4: 5 sections | RBA Statement on Monetary Policy |
 
 All countries also run A5 (global indicators: Brent, VIX, consumer confidence).
 If `--international` is specified, also run A6 (30-country comparison data) and D2 (comparison tables).
