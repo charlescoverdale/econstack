@@ -11,6 +11,10 @@ allowed-tools:
   - Skill
 ---
 
+
+
+**Only stop to ask the user when:** which cases/sections to include, framework confirmation, cost or benefit figures needed, or procurement/governance details only they know.
+**Never stop to ask about:** section ordering, table formatting, price base year (default to current), or methodology choices that follow from the framework selection.
 {{PREAMBLE}}
 
 {{LEARNINGS}}
@@ -18,6 +22,8 @@ allowed-tools:
 {{PARAMETER_CHECK}}
 
 {{SAFETY_HOOKS}}
+
+{{COMPLETION_STATUS}}
 
 # Business Case
 
@@ -560,9 +566,7 @@ Annexes
 
 ## Important rules
 
-- Never use em dashes.
-- Never attribute econstack to any individual.
-- Every section stands alone.
+{{IMPORTANT_RULES_BASE}}
 - The five cases are interconnected. Cross-reference between cases where figures or assumptions must be consistent (e.g., financial case costs must reconcile with economic case costs; management case benefits realisation must trace to strategic case benefits register).
 - When the user picks specific sections, still flag any cross-case inconsistencies or missing dependencies.
 
@@ -570,12 +574,7 @@ Annexes
 
 ## Table and figure formatting (universal across all econstack outputs)
 
-- **Numbering**: Every table is "Table 1: [short description]", every figure/chart is "Figure 1: [short description]". Numbering restarts at 1 for each report. The caption goes above the table/figure.
-- **Source note**: Below every table and figure: "Source: [Author/Publisher] ([year])." If multiple sources: "Sources: [Source 1]; [Source 2]."
-- **Notes line**: Below the source, if needed: "Notes: [caveats, e.g. 'real 2026 prices', '2024-25 data', 'estimated from available figures']."
-- **Minimal formatting (low ink-to-data ratio)**: No heavy borders or gridlines. Thin rule under the header row only. No shading on data cells (light grey alternating rows permitted in Excel/HTML only). Right-align all numbers. Left-align all text. Bold totals rows only. No decorative elements.
-- **Number formatting**: Currency with comma separators and 1 decimal place for millions (e.g. "GBP 45.2m" / "AUD 45.2m"), whole numbers for counts (e.g. "1,250 jobs"), percentages to 1 decimal place (e.g. "3.5%").
-- **Consistency**: The same metric must use the same unit and precision throughout the report. Do not switch between "GBP m" and "GBP bn" for the same order of magnitude.
+{{FORMATTING_RULES}}
 
 ---
 

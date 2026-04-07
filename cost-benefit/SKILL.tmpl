@@ -11,6 +11,10 @@ allowed-tools:
   - Skill
 ---
 
+
+
+**Only stop to ask the user when:** framework is ambiguous, discount rate needs confirming, cost/benefit figures are missing, or the user explicitly requested interactive mode.
+**Never stop to ask about:** price base year (default to current), additionality rates (use HMT defaults), table formatting, output filename, or methodology choices that have a clear default in the selected framework.
 {{PREAMBLE}}
 
 {{LEARNINGS}}
@@ -18,6 +22,8 @@ allowed-tools:
 {{PARAMETER_CHECK}}
 
 {{SAFETY_HOOKS}}
+
+{{COMPLETION_STATUS}}
 
 # /cost-benefit: Green Book Cost-Benefit Analysis
 

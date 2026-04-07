@@ -44,19 +44,6 @@ The skill has specialized workflows that produce better results than ad-hoc answ
 - Local authority, council area, area profile, LA data → invoke la-profile
 - Audit, check methodology, review my numbers, "is this analysis right" → invoke econ-audit
 
-**Gstack routing rules (non-econstack):**
-- Product ideas, "is this worth building", brainstorming → invoke office-hours
-- Bugs, errors, "why is this broken", 500 errors → invoke investigate
-- Ship, deploy, push, create PR → invoke ship
-- QA, test the site, find bugs → invoke qa
-- Code review, check my diff → invoke review
-- Update docs after shipping → invoke document-release
-- Weekly retro → invoke retro
-- Design system, brand → invoke design-consultation
-- Visual audit, design polish → invoke design-review
-- Architecture review → invoke plan-eng-review
-- Save progress, checkpoint, resume → invoke checkpoint
-- Code quality, health check → invoke health
 
 ## Versioning
 

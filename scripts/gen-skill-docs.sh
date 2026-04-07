@@ -42,9 +42,11 @@ PREAMBLE="$(load_block preamble.md)"
 LEARNINGS="$(load_block learnings.md)"
 PARAMETER_CHECK="$(load_block parameter-check.md)"
 SAFETY_HOOKS="$(load_block safety-hooks.md)"
+COMPLETION_STATUS="$(load_block completion-status.md)"
 FORMATTING_RULES="$(load_block formatting-rules.md)"
 IMPORTANT_RULES_BASE="$(load_block important-rules-base.md)"
-EXEC_FORMAT_SPEC="$(load_block exec-format-spec.md)"
+# exec-format-spec.md exists as reference but is not used as a placeholder.
+# Skills that need exec formatting have it inline (tailored per skill).
 
 # Find all skills with .tmpl files
 SKILLS=()
@@ -87,9 +89,9 @@ blocks = {
     '{{LEARNINGS}}': open('$BLOCKS_DIR/learnings.md').read(),
     '{{PARAMETER_CHECK}}': open('$BLOCKS_DIR/parameter-check.md').read(),
     '{{SAFETY_HOOKS}}': open('$BLOCKS_DIR/safety-hooks.md').read(),
+    '{{COMPLETION_STATUS}}': open('$BLOCKS_DIR/completion-status.md').read(),
     '{{FORMATTING_RULES}}': open('$BLOCKS_DIR/formatting-rules.md').read(),
     '{{IMPORTANT_RULES_BASE}}': open('$BLOCKS_DIR/important-rules-base.md').read(),
-    '{{EXEC_FORMAT_SPEC}}': open('$BLOCKS_DIR/exec-format-spec.md').read(),
 }
 for placeholder, block in blocks.items():
     content = content.replace(placeholder, block)

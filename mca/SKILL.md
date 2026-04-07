@@ -11,6 +11,10 @@ allowed-tools:
   - Skill
 ---
 
+
+
+**Only stop to ask the user when:** criteria need confirming, weights need user input, or scores are ambiguous.
+**Never stop to ask about:** scoring scale (use the selected default), table formatting, or sensitivity method (always run all four tests).
 <!-- preamble: update check -->
 Before starting, run this silently. If it outputs UPDATE_AVAILABLE, tell the user:
 "A new version of econstack is available. Run `cd ~/.claude/skills/econstack && git pull` to update."
@@ -28,28 +32,15 @@ eval "$(~/.claude/skills/econstack/bin/econstack-slug)"
 ~/.claude/skills/econstack/bin/econstack-learnings-read --limit 3 2>/dev/null || true
 ```
 
-If learnings are found, apply them to this session. When a prior learning influences a decision (e.g., defaulting to a framework because the user always picks it, or applying a custom parameter override), note: "Prior learning applied: [key]".
+If learnings are found, apply them. When a prior learning influences a decision, note: "Prior learning applied: [key]".
 
-**Capturing new learnings:** After completing this skill, log any new insights about the user's preferences, parameter choices, or project-specific quirks using:
+**Capturing new learnings:** After completing this skill, log new insights via:
 
 ```bash
-~/.claude/skills/econstack/bin/econstack-learnings-log '<json>'
+~/.claude/skills/econstack/bin/econstack-learnings-log '{"skill":"...","type":"...","key":"...","insight":"...","confidence":N,"source":"observed|user-stated|inferred"}'
 ```
 
-Learning types for econstack:
-
-| Type | When to log | Example |
-|------|-------------|---------|
-| `framework` | User picks or confirms a framework | `{"skill":"cost-benefit","type":"framework","key":"uk-green-book","insight":"User prefers UK Green Book with 3.5% declining","confidence":9,"source":"observed"}` |
-| `parameter` | User overrides a default parameter | `{"skill":"cost-benefit","type":"parameter","key":"optimism-bias-zero","insight":"User always sets optimism bias to 0% with justification for this project","confidence":8,"source":"observed"}` |
-| `data-source` | User states a data preference | `{"skill":"macro-briefing","type":"data-source","key":"ons-abs-preferred","insight":"User prefers ONS ABS over HMRC for sector data","confidence":7,"source":"user-stated"}` |
-| `output` | A report is generated | `{"skill":"cost-benefit","type":"output","key":"last-cba","insight":"Generated cba-hospital-uk-2026-04-07.json","confidence":10,"source":"observed"}` |
-| `operational` | A tool or dependency is unavailable | `{"skill":"cost-benefit","type":"operational","key":"no-r-available","insight":"R is not installed, use deterministic sensitivity only","confidence":9,"source":"observed"}` |
-| `preference` | User requests a specific format or style | `{"skill":"fiscal-briefing","type":"preference","key":"aud-millions-no-decimals","insight":"User wants all tables in AUD millions, no decimal places","confidence":8,"source":"user-stated"}` |
-
-Confidence guide: 9-10 for directly observed or user-stated preferences. 6-8 for strong inferences. 4-5 for weak inferences. User-stated learnings never decay; observed/inferred learnings lose 1 confidence point per 30 days.
-
-All learnings are stored locally at `~/.econstack/projects/` on the user's machine. Nothing is transmitted to any server.
+Types: `framework` (preferred appraisal framework), `parameter` (custom overrides), `data-source` (preferred data), `output` (past report references), `operational` (tool/env quirks), `preference` (formatting/style). Confidence: 9-10 observed/stated, 6-8 strong inference, 4-5 weak. User-stated never decays; observed/inferred lose 1 point per 30 days. All data stored locally. Nothing transmitted.
 
 <!-- preamble: parameter database check -->
 After the update check, verify the parameter database is available and check staleness:
@@ -80,7 +71,15 @@ If PARAMS_WARNING appears, tell the user which parameter files may be stale and 
 
 2. **Confirm before overwriting.** Before writing an output file, check if a file with the same name already exists. If it does, ask the user: "A file named [filename] already exists. Overwrite it, or save with a new name?" Do not silently overwrite.
 
-3. **No destructive git operations.** Never run `git reset --hard`, `git push --force`, or `git clean -f` in the econstack or econstack-data directories.
+<!-- preamble: completion status -->
+**At the end of every skill run, report one of these statuses:**
+
+- **DONE**: Analysis complete, output generated, all sections finished.
+- **DONE_WITH_CONCERNS**: Output generated but with caveats (e.g., data gaps, assumptions that need review, sections below expected depth).
+- **BLOCKED**: Cannot proceed (e.g., missing critical input, parameter database unavailable, framework not supported).
+- **NEEDS_CONTEXT**: Need more information from the user before continuing.
+
+Format: `STATUS: [status] | [one-line reason]`
 
 # /mca: Multi-Criteria Analysis and MCDA
 
@@ -1018,7 +1017,7 @@ Files saved:
   - **Source note**: Below every table and figure: "Source: [Author/Publisher] ([year])." If multiple sources: "Sources: [Source 1]; [Source 2]."
   - **Notes line**: Below the source, if needed: "Notes: [caveats, e.g. 'real 2026 prices', '2024-25 data', 'estimated from available figures']."
   - **Minimal formatting (low ink-to-data ratio)**: No heavy borders or gridlines. Thin rule under the header row only. No shading on data cells (light grey alternating rows permitted in Excel/HTML only). Right-align all numbers. Left-align all text. Bold totals rows only. No decorative elements.
-  - **Number formatting**: Currency with comma separators and 1 decimal place for millions (e.g. "GBP 45.2m"), whole numbers for counts (e.g. "1,250 jobs"), percentages to 1 decimal place (e.g. "3.5%").
+  - **Number formatting**: Currency with comma separators and 1 decimal place for millions (e.g. "GBP 45.2m" / "AUD 45.2m"), whole numbers for counts (e.g. "1,250 jobs"), percentages to 1 decimal place (e.g. "3.5%").
   - **Consistency**: The same metric must use the same unit and precision throughout the report. Do not switch between "GBP m" and "GBP bn" for the same order of magnitude.
 - **Costs must be separate from benefit criteria.** Never include cost, affordability, or value for money as a scored MCA criterion. Costs are assessed separately (in a CBA, CEA, or standalone cost comparison) and presented alongside the MCA results. This follows the DCLG Manual (Chapter 3) and Green Book (Chapter 4).
 - **Do not double count with CBA.** If `--with-cba` is specified, exclude any criterion that overlaps with a monetised CBA benefit. If standalone, warn if a criterion looks monetisable: "This criterion could potentially be monetised. Consider including it in a CBA instead."
