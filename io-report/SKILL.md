@@ -368,6 +368,8 @@ When computing for an AU SA4, map the SA4 JSON field names to the computation fo
 - **Tax revenue**: Omit by default. The UK tax computation does NOT apply to AU. If `--with-tax` is requested for AU, use the AU tax brackets from `au/tax-parameters.json`, but note that this is even more approximate than the UK version.
 - **Local economic context section**: AU reports omit claimant rate, median earnings, and GVA per job comparisons (data not available at SA4 level). The section should focus on employment structure and sector concentration.
 
+**AU gross/net distinction:** The same gross/net additionality framework applies for AU reports as for UK. All output templates (impact tables, sensitivity, executive summary) apply identically with AUD currency labels. Gross = before additionality. Net = after additionality. Always present both.
+
 **AU additionality defaults** (load from `au/additionality.json`, or use built-in defaults):
 ```
 Standard:      deadweight=20%, displacement=20%, leakage=15%, substitution=0%  (net factor: 0.544)
@@ -375,7 +377,7 @@ Conservative:  deadweight=35%, displacement=35%, leakage=25%, substitution=5%  (
 Optimistic:    deadweight=10%, displacement=10%, leakage=10%, substitution=0%  (net factor: 0.729)
 ```
 
-Note: Australia does not have a single equivalent to the UK HMT Additionality Guide. These are indicative central estimates. Users should adjust based on project-specific evidence.
+Note: Australia does not have a single equivalent to the UK HMT Additionality Guide. The rates above are indicative central estimates calibrated from Infrastructure Australia's Assessment Framework (2021), state treasury guidance (VIC DTF Investment Lifecycle Guidelines; NSW TPG23-08 Guide to CBA), and the Australian evaluation literature (see Gretton 2013). Users should adjust based on project-specific evidence. When generating AU reports, the additionality section must include this caveat prominently.
 
 **FIFO/DIDO leakage warning:** If the SA4 has high Mining (B) employment (>20% of total regional employment), flag: "This region has a significant mining/resources workforce. FIFO and DIDO patterns may increase leakage well above the default 15%. Consider using the conservative additionality scenario (25% leakage) or a custom leakage rate."
 
@@ -625,6 +627,24 @@ The choice of additionality assumptions has a larger effect on results than mult
 To compute the national benchmark, load 3-5 other LA multipliers for the same sector from ~/econstack-data/src/data/ (choose LAs with similar lambda values, or well-known comparators like Manchester, Birmingham, Leeds). Compute the unweighted average as a benchmark.
 ```
 
+**Key risks (AU version, use when country = au):**
+```markdown
+## Key Risks to This Estimate
+
+[Generate 2-3 project-specific observations from the SA4 data. Use these patterns:]
+
+- Compute sector LQ from the SA4 JSON: LQ = (regional_employment_in_sector / total_regional_employment) / (national_employment_in_sector / national_total_employment). Use national employment from national-io.json.
+- If sector LQ < 0.5: "[SA4]'s [sector] sector is small (LQ [X]), meaning local supply chains may be thinner than the multiplier implies."
+- If sector LQ > 2.0: "[SA4] is highly specialised in [sector] (LQ [X]), which supports the multiplier but increases exposure to sector-specific shocks."
+- If Mining (B) regional employment > 20% of total: "This region has a significant mining/resources workforce ([X]%). FIFO and DIDO workforce patterns may increase leakage above the default assumption, reducing the net local impact."
+- On regional size: if total_employment < 50,000: "This is a small regional economy ([X] employed). Multiplier estimates are less reliable for smaller regions because FLQ is calibrated on larger datasets."
+- On sector aggregation: "The '[sector]' ANZSIC division averages sub-industries with different supply chain characteristics."
+- Always include a multiplier benchmark: "[SA4]'s [sector] output multiplier of [X]x compares to the national average of [national_multiplier]x. [Interpret difference: regional multipliers are always lower than national due to import leakage.]"
+- On Census vintage: "Regional employment structure is from Census 2021. If the SA4's industry mix has changed materially since then, these multipliers may not reflect current conditions."
+
+To compute the national benchmark, use the national multiplier from ~/econstack-data/src/data/au/national-io.json. For SA4 benchmarks, load 3-5 other SA4s with similar lambda values and compute the unweighted average.
+```
+
 **Local economic context:**
 ```markdown
 ## Local Economic Context
@@ -735,6 +755,10 @@ Employment multipliers are derived by weighting the Leontief inverse columns by 
 
 The ABS publishes national-level IO tables only. All regional IO tables in Australia are estimated using non-survey methods. No official state or sub-state IO tables exist. The leading commercial providers (REMPLAN, NIEIR/.id, IO Economics) use similar approaches to produce regional multipliers from the national tables.
 
+**Note on national vs regional multipliers:** National multipliers (from the un-regionalised Leontief inverse) are higher than regional multipliers because the national economy retains virtually all supply chain spending. For example, the national Construction multiplier is 2.28x, but SA4-level Construction multipliers range from 1.30-1.69x. The SA4-level multipliers (which are used in this report) are the appropriate reference for regional impact assessment. Do not cite national multipliers as if they apply to a single region.
+
+**Census data freshness:** Regional employment data is from the 2021 Census (reference date: 10 August 2021). Industry structures shift over time, particularly in fast-growing regions (western Sydney, Gold Coast, Perth corridors). The next Census (2026) will provide an update. For SA4s with rapidly changing industry structures, treat multipliers as approximate. If the current date is more than 5 years after the Census reference date, note: "Regional employment data is from Census 2021 and may not reflect current industry structure."
+
 ### Regionalization method
 
 The Flegg Location Quotient (FLQ) adjusts national input coefficients to reflect the regional economy. The key innovation of FLQ over simpler location quotients (SLQ, CILQ) is a regional size parameter (lambda) that accounts for the fact that smaller regions are more likely to import.
@@ -791,7 +815,7 @@ Australia does not have a single equivalent to the UK HM Treasury Additionality 
 - National IO data is 2023-24 vintage. Regional employment structure is from Census 2021.
 - 19-division aggregation averages sub-industries with different supply chain characteristics.
 - SA4 boundaries are statistical, not economic. Impacts spill across boundaries.
-- The ABS stopped publishing IO multipliers after 1998-99 specifically because of concerns about their misuse. These independently derived multipliers carry the same inherent limitations.
+- The ABS discontinued IO multiplier publication after 1998-99 because multipliers were being used as precise economic forecasts rather than the indicative, assumption-dependent estimates they are (ABS Cat. 5246.0, 2001). These independently derived multipliers carry the same inherent limitations. See Gretton (2013) for a detailed discussion of appropriate and inappropriate uses of IO multipliers in Australian policy analysis.
 - Cross-hauling (a region simultaneously importing and exporting the same commodity) is not captured.
 - IO multipliers are generally indicative upper bounds, not predictions.
 - These are indicative estimates, not formal economic impact assessments.
@@ -808,9 +832,12 @@ Australia does not have a single equivalent to the UK HM Treasury Additionality 
 - Flegg, A.T., Mastronardi, L.J. and Romero, C.A. (2016). "Evaluating the FLQ and AFLQ formulae". Regional Studies, 50(2), pp. 310-325.
 - Lenzen, M., Geschke, A., Malik, A. et al. (2017). "New multi-regional input-output databases for Australia". Economic Systems Research, 29(2), pp. 275-295.
 - Jensen, R.C., Mandeville, T.D. and Karunaratne, N.D. (1979). "Regional Economic Planning: Generation of Regional Input-Output Analysis". Routledge.
+- Gretton, P. (2013). "On input-output tables: uses and abuses." Productivity Commission Staff Research Note. Canberra.
 - Infrastructure Australia (2021). "Assessment Framework".
 - Victorian DTF (2025). "Investment Lifecycle and High Value High Risk Guidelines".
 - NSW Treasury (2024). "TPG23-08: NSW Government Guide to Cost-Benefit Analysis".
+- ABS (2001). "Australian National Accounts: Introduction to Input-Output Multipliers." Information Paper, Cat. 5246.0.
+- Rolfe, J. et al. (2007). "Lessons from the Social and Economic Impacts of the Mining Boom in the Bowen Basin." Australasian Journal of Regional Studies, 13(2).
 ```
 
 **References (UK, existing):**
