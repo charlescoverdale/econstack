@@ -1,0 +1,132 @@
+#!/usr/bin/env bash
+# econstack-learnings-read - Read and surface learnings for the current project
+# Dedup by key+type (latest wins). Confidence decay for observed/inferred.
+# Sort by effective confidence desc, then recency.
+# All data stays on your machine. Nothing is transmitted.
+#
+# Flags:
+#   --limit N     Max learnings to show (default 5)
+#   --type TYPE   Filter by type (framework, parameter, data-source, output, operational, preference)
+#   --query WORD  Full-text search in key and insight
+
+set -euo pipefail
+
+LIMIT=5
+FILTER_TYPE=""
+QUERY=""
+
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --limit) LIMIT="$2"; shift 2 ;;
+    --type)  FILTER_TYPE="$2"; shift 2 ;;
+    --query) QUERY="$2"; shift 2 ;;
+    *)       shift ;;
+  esac
+done
+
+# Resolve project slug
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+eval "$("$SCRIPT_DIR/econstack-slug")"
+
+LEARN_FILE="${HOME}/.econstack/projects/${SLUG}/learnings.jsonl"
+
+if [ ! -f "$LEARN_FILE" ]; then
+  echo "LEARNINGS: 0 (new project)"
+  exit 0
+fi
+
+TOTAL="$(wc -l < "$LEARN_FILE" | tr -d ' ')"
+if [ "$TOTAL" -eq 0 ]; then
+  echo "LEARNINGS: 0"
+  exit 0
+fi
+
+# Process with python: dedup, decay, sort, filter, format
+python3 -c "
+import json, sys
+from datetime import datetime, timezone
+
+LIMIT = $LIMIT
+FILTER_TYPE = '$FILTER_TYPE'
+QUERY = '$QUERY'.lower()
+DECAY_DAYS = 30  # lose 1 confidence point per this many days
+
+entries = []
+with open('$LEARN_FILE', 'r') as f:
+    for line in f:
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            obj = json.loads(line)
+            entries.append(obj)
+        except json.JSONDecodeError:
+            continue
+
+if not entries:
+    print('LEARNINGS: 0')
+    sys.exit(0)
+
+# Dedup by key+type (latest wins)
+seen = {}
+for e in entries:
+    k = (e.get('key', ''), e.get('type', ''))
+    seen[k] = e
+deduped = list(seen.values())
+
+# Filter by type
+if FILTER_TYPE:
+    deduped = [e for e in deduped if e.get('type') == FILTER_TYPE]
+
+# Filter by query
+if QUERY:
+    deduped = [e for e in deduped if QUERY in e.get('key', '').lower() or QUERY in e.get('insight', '').lower()]
+
+# Compute effective confidence with decay
+now = datetime.now(timezone.utc)
+for e in deduped:
+    base_conf = e.get('confidence', 5)
+    source = e.get('source', 'observed')
+    ts_str = e.get('ts', '')
+
+    if source == 'user-stated':
+        e['_eff_conf'] = base_conf  # no decay
+    else:
+        try:
+            ts = datetime.fromisoformat(ts_str.replace('Z', '+00:00'))
+            age_days = (now - ts).days
+            decay = age_days // DECAY_DAYS
+            e['_eff_conf'] = max(0, base_conf - decay)
+        except (ValueError, TypeError):
+            e['_eff_conf'] = base_conf
+
+# Sort by effective confidence desc, then recency
+deduped.sort(key=lambda e: (e['_eff_conf'], e.get('ts', '')), reverse=True)
+
+# Limit
+top = deduped[:LIMIT]
+
+if not top:
+    print('LEARNINGS: 0 matching')
+    sys.exit(0)
+
+# Count by type
+type_counts = {}
+for e in deduped:
+    t = e.get('type', 'unknown')
+    type_counts[t] = type_counts.get(t, 0) + 1
+
+count_str = ', '.join(f'{v} {k}' for k, v in sorted(type_counts.items()))
+print(f'LEARNINGS: {len(deduped)} entries ({count_str})')
+print()
+
+for e in top:
+    t = e.get('type', '?')
+    key = e.get('key', '?')
+    insight = e.get('insight', '')
+    conf = e['_eff_conf']
+    source = e.get('source', '?')
+    ts = e.get('ts', '?')[:10]
+    print(f'- [{t}] {key} (confidence: {conf}/10, {source}, {ts})')
+    print(f'  {insight}')
+"

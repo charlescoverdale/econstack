@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+# econstack-slug - Derive a project slug for learnings storage
+# Output: SLUG=<value> (eval-able)
+# Primary: git remote origin URL (owner/repo)
+# Fallback: basename of cwd
+# All data stays local. No network calls.
+
+set -euo pipefail
+
+slug=""
+
+# Try git remote origin
+if command -v git &>/dev/null && git rev-parse --is-inside-work-tree &>/dev/null 2>&1; then
+  remote="$(git remote get-url origin 2>/dev/null || true)"
+  if [ -n "$remote" ]; then
+    # Extract owner/repo from SSH or HTTPS URL
+    slug="$(echo "$remote" | sed -E 's#^(https?://[^/]+/|git@[^:]+:)##; s#\.git$##; s#/$##')"
+  fi
+fi
+
+# Fallback: basename of cwd
+if [ -z "$slug" ]; then
+  slug="$(basename "$(pwd)")"
+fi
+
+# Sanitize: only alphanumeric, dots, hyphens, underscores, forward slashes
+slug="$(echo "$slug" | tr -cd 'a-zA-Z0-9._/-')"
+
+# Replace slashes with double-dash for filesystem safety
+slug="$(echo "$slug" | sed 's#/#--#g')"
+
+if [ -z "$slug" ]; then
+  slug="unknown"
+fi
+
+echo "SLUG=$slug"

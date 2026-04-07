@@ -56,6 +56,23 @@ Econstack uses semver-lite. The current version is in `VERSION`.
 
 Always bump VERSION in the same commit as the change. Include the new version in the commit message (e.g. "v0.5.0: Add /business-case skill").
 
+## Learned State
+
+Econstack remembers per-project preferences across sessions. Learnings are stored locally at `~/.econstack/projects/{slug}/learnings.jsonl`. No data is transmitted to any server.
+
+**How it works:**
+- Every skill's preamble runs `econstack-learnings-read` to load prior learnings (framework choices, parameter overrides, data preferences, past outputs, operational quirks)
+- After a skill completes, new insights are logged via `econstack-learnings-log`
+- Dedup by key+type (latest wins). Observed/inferred learnings decay 1 confidence point per 30 days. User-stated learnings never decay.
+- Top 3 learnings are surfaced at the start of each skill run
+
+**Bin scripts:**
+- `bin/econstack-slug` : Derive project slug from git remote or cwd
+- `bin/econstack-learnings-log` : Append a learning (validates JSON, auto-timestamps)
+- `bin/econstack-learnings-read` : Read, dedup, decay, sort, and format learnings
+
+**Learning types:** framework, parameter, data-source, output, operational, preference.
+
 ## Data Dependencies
 
 **LA data:** The io-report and la-profile skills read multiplier and LA data from `~/econstack-data/src/data/`.

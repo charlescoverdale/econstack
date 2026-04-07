@@ -1,6 +1,6 @@
 # econstack
 
-![Version](https://img.shields.io/badge/version-0.5.0-blue)
+![Version](https://img.shields.io/badge/version-0.6.0-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Skills](https://img.shields.io/badge/skills-10-orange)
 ![Parameters](https://img.shields.io/badge/parameters-42_files-purple)
@@ -37,6 +37,8 @@ git clone https://github.com/charlescoverdale/econstack-data.git ~/econstack-dat
 ```
 
 No npm, no API keys, no configuration. Claude Code discovers skills in `~/.claude/skills/` automatically. econstack runs entirely on your machine through Claude Code. Your data, inputs, and outputs stay local and are never uploaded or shared.
+
+If you have your own preferences or style (a preferred framework, custom discount rate, specific formatting), econstack notes these on your local machine so they're there for all future analyses. No setup required: preferences are learned automatically as you work and stored at `~/.econstack/projects/` on your device. Nothing is transmitted to any server.
 
 Install econstack in Claude Code and start talking to it about your analysis. Describe your project and the skill integrates with whatever you're building, whether that's a report, a model, a slide deck, or a policy brief. Generate a full analysis or just the sections you need, then export to Markdown, HTML, Word, PowerPoint, PDF, or Excel.
 

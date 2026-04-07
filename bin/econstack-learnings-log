@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+# econstack-learnings-log - Append a learning to the project's JSONL file
+# Usage: econstack-learnings-log '{"type":"preference","key":"...","insight":"...","confidence":8,"source":"observed"}'
+# Validates JSON. Auto-injects timestamp if missing. Append-only.
+# All data stays on your machine. Nothing is transmitted.
+
+set -euo pipefail
+
+if [ $# -lt 1 ]; then
+  echo "Usage: econstack-learnings-log '<json>'" >&2
+  exit 1
+fi
+
+INPUT="$1"
+
+# Validate JSON
+if ! python3 -c "import json; json.loads('''$INPUT''')" 2>/dev/null; then
+  echo "ERROR: Invalid JSON" >&2
+  exit 1
+fi
+
+# Auto-inject timestamp if missing
+ENTRY="$(python3 -c "
+import json, datetime
+obj = json.loads('''$INPUT''')
+if 'ts' not in obj:
+    obj['ts'] = datetime.datetime.now(datetime.timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
+print(json.dumps(obj, separators=(',', ':')))
+")"
+
+# Resolve project slug
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+eval "$("$SCRIPT_DIR/econstack-slug")"
+
+# Write to JSONL
+STATE_DIR="${HOME}/.econstack/projects/${SLUG}"
+mkdir -p "$STATE_DIR" 2>/dev/null || true
+echo "$ENTRY" >> "$STATE_DIR/learnings.jsonl"
