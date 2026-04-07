@@ -1,6 +1,6 @@
 ---
 name: econ-audit
-description: Audit economic analysis outputs (CBA, impact assessments, fiscal briefings) against methodology standards, academic literature, and common errors. 120+ checks across 16 categories including Five Case Model, distributional analysis, Aqua Book RIGOUR, and strategic misrepresentation detection. Returns a scorecard with issues ranked by severity.
+description: Audit economic analysis outputs (CBA, impact assessments, fiscal briefings) against methodology standards, academic literature, and common errors. 124 checks across 17 categories including Five Case Model, distributional analysis, Aqua Book RIGOUR, strategic misrepresentation detection, and Australian framework checks. Returns a scorecard with issues ranked by severity.
 allowed-tools:
   - Bash
   - Read
@@ -130,6 +130,8 @@ Also look for the hidden `<!-- KEY NUMBERS -->` block or companion JSON file. If
 
 Tell the user: "Auditing [filename] as a [type]. Framework detected: [framework]."
 
+**If the document is a skill template or methodology specification** (not a completed analysis): skip numerical consistency checks (Category A) and recomputation checks. Focus on structural, framing, completeness, and methodology categories. Note: "Auditing as a methodology specification. Numerical checks skipped (no computed results to verify)."
+
 ### Step 1b: Load parameter database
 
 Load the parameter database to validate against:
@@ -187,7 +189,7 @@ Run every applicable check from the master checklist below. Each check produces 
 
 | # | Check | Severity if failed |
 |---|-------|--------------------|
-| C1 | For UK infrastructure: is optimism bias applied? (must not be 0% without justification) | RED |
+| C1 | For UK infrastructure: is optimism bias applied? (must not be 0% without justification). **UK only.** EU, AU, US, and WB frameworks do not require fixed optimism bias uplifts. If framework != uk, skip C1 or convert to AMBER noting the framework-appropriate risk treatment (sensitivity analysis for EU/US, Reference Class Forecasting P50/P90 for AU). | RED |
 | C2 | Is the optimism bias rate appropriate for the project type AND stage? | AMBER |
 | C3 | Is optimism bias applied to capex but not opex (unless justified)? | AMBER |
 | C4 | Is Monte Carlo / probabilistic analysis included for projects > £100m PV? | AMBER |
@@ -363,16 +365,32 @@ These replace and expand check C6 for a more thorough assessment:
 | P4 | For projects > GBP 100m PV: is Monte Carlo or equivalent probabilistic analysis included with explicit distributional assumptions on inputs? | AMBER |
 | P5 | Does the worst-case scenario test an outcome that would change the investment decision (not just reduce NPV while remaining positive)? | AMBER |
 
+#### R. Australian framework checks (AU only)
+
+These checks apply when the framework is AU (Commonwealth, Victoria, NSW, Queensland). Skip for non-AU documents.
+
+| # | Check | Severity if failed |
+|---|-------|--------------------|
+| R1 | Is the discount rate 7% (or 4% and 7% for Victoria)? AU does not use the UK 3.5% declining schedule. | RED |
+| R2 | For Victoria: are CBA results reported at BOTH 4% and 7% discount rates? (DTF requires dual presentation for transport projects.) | AMBER |
+| R3 | Is Reference Class Forecasting (P50/P90) used instead of UK-style fixed optimism bias uplifts? AU frameworks do not use the Green Book OB percentages. | AMBER |
+| R4 | Is the industry classification ANZSIC (not UK SIC)? Check that sector names match the 19 ANZSIC divisions, not the 19 SIC sections. | AMBER |
+| R5 | For IO impact assessments: is the Census data vintage noted? If Census employment data is > 4 years old, flag: "Regional employment structure based on Census [year], which may not reflect current industry mix." | AMBER |
+| R6 | For IO impact assessments: are regional Type I multipliers in the 1.0-1.7 range? AU SA4 multipliers are typically lower than UK LA multipliers due to larger geographic distances and more open regional economies. Flag if any SA4 multiplier exceeds 1.8. | AMBER |
+| R7 | For mining-heavy regions: is FIFO/DIDO leakage acknowledged? If Mining (B) employment > 20% of regional total, leakage may be significantly higher than the default assumption. | AMBER |
+| R8 | Is the additionality source honest? AU has no equivalent to the UK HMT Additionality Guide. If the report cites "HMT Additionality Guide" for an AU project, flag as incorrect framework application. | RED |
+
 ### Step 3: Present the scorecard
 
 ```
 ECONOMIC AUDIT: [filename]
 ===========================
 Type:      [CBA / Impact Assessment / Fiscal Briefing / etc.]
-Framework: [UK Green Book / EU / US OMB / etc.]
+Framework: [UK Green Book / EU / US OMB / AU / etc.]
+Checklist: econstack econ-audit v[VERSION], [N] checks across [N] categories
 Date:      [date]
 
-SCORECARD
+SCORECARD (illustrative example)
 ---------
 Category                    RED   AMBER   GREEN   Score
 A. Numerical consistency     0      1       9     9/10
@@ -391,8 +409,9 @@ M. Aqua Book RIGOUR          0      2       4     4/6
 N. Strategic misrep.         0      0       5     5/5
 O. Green Book 2026           0      1       5     5/6
 P. Sensitivity depth         0      1       4     4/5
+R. Australian framework      -      -       -     n/a
 -------------------------------------------------
-OVERALL                      1     17      78    78/96
+OVERALL                      1     17      78    78/97
 
 GRADE: [A / B / C / D / F]
   A (90%+):  Publication-ready. Minor improvements possible.
@@ -413,9 +432,14 @@ not just their quantity.
 
 Note: Category F applies only to impact assessments. Category J applies only
 to macro briefings. Categories K, N apply only to CBAs/business cases.
-Category L applies to CBAs and impact assessments. Categories M, O, P
-apply to all analytical documents. Categories not applicable are marked
-n/a and excluded from the score calculation.
+Category L applies to CBAs and impact assessments. Category R applies only
+to AU-framework documents. Categories M, O, P apply to all analytical
+documents. Categories not applicable are marked n/a and excluded from
+the score calculation.
+
+This audit covers economic methodology. For full Five Case Model
+completeness (Commercial, Financial, Management cases), use
+`/business-case --audit` which checks cross-case consistency.
 ```
 
 Then list each non-GREEN issue:
@@ -432,13 +456,12 @@ RED ISSUES (must fix)
 
 AMBER ISSUES (should address)
 -----------------------------
-[G3] The Do Nothing counterfactual is described as static.
-     The Green Book requires the counterfactual to project forward
-     including existing trends. For a bridge, this means modelling
-     growing congestion, deterioration costs, and committed policies.
-     SUGGESTION: Add 1-2 sentences describing what happens without
-     intervention over the appraisal period.
-     REF: Green Book (2022) Chapter 5, para 5.8
+[G3] The Do Nothing counterfactual description lacks specificity.
+     The narrative says "do nothing" without describing what specifically
+     happens without intervention over the appraisal period.
+     SUGGESTION: Add 1-2 sentences on deterioration, demand growth,
+     and committed policies under the counterfactual.
+     REF: Green Book (2026) Chapter 5
 
 [I1] Capital cost estimates are at risk of Reference Class Forecasting bias.
      Flyvbjerg et al. (2003) found average cost overruns of 28% for road
@@ -626,6 +649,17 @@ The audit draws on these sources. Cite them when flagging issues:
 **Academic (wider economic impacts):**
 - Venables, A.J. (2007). "Evaluating Urban Transport Improvements." Journal of Transport Economics and Policy, 41(2).
 - Graham, D.J. (2007). "Agglomeration, Productivity, and Transport Investment." Journal of Transport Economics and Policy, 41(3).
+
+**Australian frameworks:**
+- ABS (2026). "Australian National Accounts: Input-Output Tables, 2023-24."
+- Infrastructure Australia (2021). "Assessment Framework."
+- Victorian DTF (2025). "Investment Lifecycle and High Value High Risk Guidelines."
+- NSW Treasury (2024). "TPG23-08: NSW Government Guide to Cost-Benefit Analysis."
+- Gretton, P. (2013). "On input-output tables: uses and abuses." Productivity Commission Staff Research Note.
+- Lenzen, M. et al. (2017). "New multi-regional input-output databases for Australia." Economic Systems Research, 29(2).
+
+**EU frameworks:**
+- European Commission (2014). "Guide to Cost-Benefit Analysis of Investment Projects." DG Regio.
 
 ## Important Rules
 
