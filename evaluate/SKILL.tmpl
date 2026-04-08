@@ -1,0 +1,679 @@
+---
+name: evaluate
+description: Full programme evaluation (Magenta Book, Australian Commonwealth/state, OECD DAC). Evaluation plans, mid-term, final, PIR, synthesis. Process + impact + economic evaluation. Counterfactual method selection. Interactive.
+allowed-tools:
+  - Bash
+  - Read
+  - Write
+  - Glob
+  - Grep
+  - AskUserQuestion
+  - Skill
+  - WebSearch
+  - WebFetch
+---
+
+**Only stop to ask the user when:** programme details are missing, counterfactual method needs confirming, or evidence quality is ambiguous.
+**Never stop to ask about:** framework defaults (use detected framework), evaluation question wording, section ordering, or methodology prose.
+{{PREAMBLE}}
+
+{{LEARNINGS}}
+
+{{PARAMETER_CHECK}}
+
+{{SAFETY_HOOKS}}
+
+{{COMPLETION_STATUS}}
+
+# /evaluate: Programme Evaluation
+
+Generate full programme evaluations aligned with the UK Magenta Book, Australian Commonwealth Evaluation Policy, and OECD DAC criteria. Covers the complete evaluation lifecycle: planning, mid-term assessment, final evaluation, post-implementation review, and synthesis.
+
+This skill is the Magenta Book companion, the same way `/business-case` is the Green Book companion. It wraps `/vfm-eval` for the economic component but adds process evaluation, impact evaluation, and evaluation planning.
+
+```
+/cost-benefit  = Before: "Should we do this?"
+/business-case = Before: "Full investment case"
+/vfm-eval      = After:  "Was it value for money?" (economic evaluation only)
+/evaluate      = After:  "Did it work? Why? For whom?" (full evaluation)
+```
+
+**This skill is interactive.** It confirms the evaluation type, programme details, and methodology, then generates the document section by section.
+
+## Arguments
+
+```
+/evaluate [programme name or description] [options]
+```
+
+**Examples:**
+```
+/evaluate "National Apprenticeship Programme 2020-2025"
+/evaluate "Victorian Level Crossing Removal" --framework au-vic --type final
+/evaluate --type plan "New early years intervention pilot"
+/evaluate --type pir "Data retention regulations" --framework au
+/evaluate --type midterm "Levelling Up Fund Round 2"
+```
+
+**Options:**
+- `--type <type>` : Document type. `plan` (evaluation framework/plan), `midterm` (formative), `final` (summative), `pir` (post-implementation review, AU), `synthesis` (meta-evaluation). Default: ask.
+- `--framework <name>` : Evaluation framework. Auto-detected. See table below.
+- `--sections` : Interactive section picker (choose which sections to complete).
+- `--full` : Skip interactive menus, generate all sections.
+- `--with-cba <file>` : Import CBA output to compare predicted vs actual.
+- `--with-vfm <file>` : Import existing VfM evaluation output for the economic component.
+- `--client "Name"` : Add "Prepared for" metadata.
+- `--format <type>` : Output: `markdown`, `word`, `pptx`, `pdf`, or `all`. Default: markdown.
+- `--exec` : Executive summary deck (5-8 slides).
+- `--audit` : Run `/econ-audit` on the output.
+
+**Supported frameworks:**
+
+| Flag | Framework | Focus | Key feature |
+|------|-----------|-------|-------------|
+| `uk` | UK Magenta Book (default) | Full evaluation lifecycle | Maryland SMS levels, ETF Registry, ROAMEF cycle |
+| `au` | Australian Commonwealth (ACE) | 5 evaluation principles | PIR mandatory, ACE assessment, Indigenous Evaluation Strategy |
+| `au-vic` | Victoria DTF | HVHR Gateway reviews | Gate 6 benefits realisation, programme evaluation for lapsing programmes |
+| `au-nsw` | NSW Treasury | Investment framework | Logic model alignment with business case, CEE guidance |
+| `au-qld` | Queensland PAF | Project lifecycle | Stage 8 benefits realisation, Gateway Gate 5 |
+| `dac` | OECD DAC (2019 revision) | Development cooperation | 6 criteria: relevance, coherence, effectiveness, efficiency, impact, sustainability |
+| `nesta` | NESTA Standards of Evidence | Innovation programmes | 5 evidence levels, Level 3+ for causal claims |
+| `us` | US Evidence Act 2018 | Federal evaluation | OMB Evaluation Standards, learning agendas |
+
+## Instructions
+
+### Step 0: Setup and framework detection
+
+Auto-detect framework:
+- "UK", "GBP", "Magenta Book", "Green Book", "HMT", "ETF" -> `uk`
+- "Victoria", "VIC", "DTF", "HVHR", "Gateway" -> `au-vic`
+- "NSW", "New South Wales" -> `au-nsw`
+- "Queensland", "QLD", "PAF" -> `au-qld`
+- "Australia", "AUD", "ACE", "OIA", "Commonwealth" (without state indicators) -> `au`
+- "DAC", "OECD", "development", "bilateral", "multilateral" -> `dac`
+- "NESTA", "innovation", "social enterprise" -> `nesta`
+- "US", "USD", "Evidence Act", "OMB", "federal" -> `us`
+
+If ambiguous, ask via AskUserQuestion.
+
+### Step 1: Evaluation type
+
+If `--type` not specified:
+```
+AskUserQuestion: "What type of evaluation document do you need?"
+Options:
+  - "Evaluation plan (pre-programme: design the evaluation before it starts)" (Recommended for new programmes)
+  - "Mid-term evaluation (formative: is it on track? should we adapt?)"
+  - "Final evaluation (summative: did it work? was it worth it?)"
+  - "Post-implementation review (AU regulatory PIR)"
+```
+
+### Step 2: Programme details
+
+```
+AskUserQuestion: "Describe the programme or intervention being evaluated."
+(Free text)
+```
+
+```
+AskUserQuestion: "What are the programme's objectives?"
+(Free text)
+```
+
+```
+AskUserQuestion: "What is the programme's total budget and duration?"
+(Free text)
+```
+
+```
+AskUserQuestion: "Who is the target population?"
+(Free text)
+```
+
+### Step 3: Theory of Change
+
+Build or import the Theory of Change. This is the backbone of the entire evaluation.
+
+```
+AskUserQuestion: "Do you have an existing Theory of Change or logic model?"
+Options:
+  - "Yes, I'll describe it"
+  - "Import from a business case (I have a /business-case output)"
+  - "No, help me build one"
+```
+
+If building from scratch, walk through each level:
+```
+AskUserQuestion: "INPUTS: What resources go into the programme? (funding, staff, equipment)"
+AskUserQuestion: "ACTIVITIES: What does the programme do? (training, building, regulating)"
+AskUserQuestion: "OUTPUTS: What does it produce? (courses delivered, houses built, regulations enacted)"
+AskUserQuestion: "OUTCOMES: What changes result? (employment, health, behaviour change)"
+AskUserQuestion: "IMPACT: What long-term societal change is expected? (reduced inequality, economic growth)"
+```
+
+For each link in the chain, ask:
+```
+AskUserQuestion: "What ASSUMPTIONS connect [this level] to [next level]? What has to be true for this step to work?"
+```
+
+Render as:
+
+```
+Table N: Theory of Change
+
+| Level      | Description | Assumptions | Testable? | Evidence |
+|------------|-------------|-------------|-----------|----------|
+| Inputs     |             |             |           |          |
+| Activities |             |             |           |          |
+| Outputs    |             |             |           |          |
+| Outcomes   |             |             |           |          |
+| Impact     |             |             |           |          |
+```
+
+For final evaluations: add an "Evidence" column showing whether each assumption held.
+
+### Step 4: Evaluation questions
+
+Generate evaluation questions organised by the three evaluation types:
+
+**Process questions** (was it implemented well?):
+- Was the programme delivered as designed?
+- Did it reach the intended target population?
+- What were the barriers and enablers to implementation?
+- Were there any unintended consequences?
+
+**Impact questions** (did it cause the observed outcomes?):
+- What outcomes were achieved?
+- To what extent can outcomes be attributed to the programme (vs what would have happened anyway)?
+- Were there differential impacts across subgroups?
+- Were there any unintended positive or negative effects?
+
+**Economic questions** (was it value for money?):
+- Were resources used economically?
+- Were outputs delivered efficiently?
+- Do the benefits justify the costs?
+
+```
+AskUserQuestion: "Are there additional evaluation questions specific to this programme?"
+(Free text, optional)
+```
+
+### Step 5: Methodology and counterfactual design
+
+**For evaluation plans:** help select the right counterfactual method using the decision tree:
+
+```
+AskUserQuestion: "Is random assignment (RCT) feasible for this programme?"
+Options:
+  - "Yes, we can randomise who receives the programme"
+  - "No, but there is a natural threshold or cut-off (e.g., eligibility score)"
+  - "No, but there is a plausible comparison group (similar areas/people who didn't receive it)"
+  - "No, but there is rich pre-intervention time series data"
+  - "No counterfactual is feasible (monitoring only)"
+```
+
+Map to methods:
+
+| User answer | Method | SMS Level | Key requirements |
+|---|---|---|---|
+| RCT feasible | Randomised Control Trial | 5 | Sufficient sample, ethical approval, implementation fidelity |
+| Natural threshold | Regression Discontinuity Design | 4 | Sharp or fuzzy cut-off, manipulation testing |
+| Comparison group available | Difference-in-Differences | 3-4 | Parallel trends assumption, pre-treatment data |
+| Time series data | Interrupted Time Series | 2-3 | 8+ pre-intervention observations, no concurrent changes |
+| No counterfactual | Before-and-after with statistical controls | 1-2 | Acknowledge attribution limitations prominently |
+
+For each method, note:
+- What data is needed (and when to start collecting)
+- Key assumptions to test
+- Sample size / power considerations
+- Limitations
+
+**For mid-term/final evaluations:** ask what method was actually used:
+```
+AskUserQuestion: "What evaluation design was used?"
+Options:
+  - "RCT (randomised control trial)"
+  - "Quasi-experimental (DiD, regression discontinuity, propensity score matching)"
+  - "Comparison group (before-and-after with matched comparator)"
+  - "Before-and-after with statistical controls (no comparison group)"
+  - "Monitoring data only (no counterfactual)"
+```
+
+Assign the Maryland SMS level accordingly.
+
+### Step 6: Section-by-section generation
+
+Present the section picker based on evaluation type:
+
+**For evaluation plans:**
+```
+AskUserQuestion: "Which sections do you want to include?"
+multiSelect: true
+Options:
+  - "Programme background and objectives (required)"
+  - "Theory of Change (required)"
+  - "Evaluation questions (required)"
+  - "Methodology and counterfactual design (required)"
+  - "Data collection plan"
+  - "Ethical considerations"
+  - "Governance and independence"
+  - "Timeline and milestones"
+  - "Budget"
+  - "Dissemination plan"
+```
+
+**For mid-term evaluations:**
+```
+AskUserQuestion: "Which sections do you want to include?"
+multiSelect: true
+Options:
+  - "Executive summary (required)"
+  - "Progress against milestones and KPIs (required)"
+  - "Process findings (implementation fidelity, reach, quality)"
+  - "Early outcome data"
+  - "Theory of Change check (are assumptions holding?)"
+  - "Emerging risks and unintended consequences"
+  - "Recommendations for adaptation"
+  - "Updated evaluation plan"
+```
+
+**For final evaluations:**
+```
+AskUserQuestion: "Which sections do you want to include?"
+multiSelect: true
+Options:
+  - "Executive summary (required)"
+  - "Programme description and context (required)"
+  - "Theory of Change assessment (required)"
+  - "Process evaluation (implementation, reach, quality)"
+  - "Impact evaluation (outcomes, attribution, counterfactual)"
+  - "Economic evaluation (invoke /vfm-eval: economy, efficiency, effectiveness)"
+  - "Equity and distributional analysis"
+  - "Sustainability assessment"
+  - "Lessons learned and replicability"
+  - "Recommendations"
+  - "Methodology annex"
+```
+
+**For AU PIR:**
+All 7 sections are required. No picker needed.
+
+### Step 7: Generate each selected section
+
+**EVALUATION PLAN sections:**
+
+**7a. Programme background:**
+```markdown
+## Programme Background
+
+[Programme name] is a [type] programme delivered by [organisation] from [start] to [end]. The total budget is [amount]. It targets [population] with the objective of [objectives].
+
+The programme was established in response to [policy context / evidence of need]. It forms part of [broader strategy / departmental objective].
+```
+
+**7b. Theory of Change:**
+Include the table from Step 3, plus a narrative explaining the causal logic.
+
+**7c. Evaluation questions:**
+Table of questions organised by process, impact, economic, with methods mapped to each.
+
+**7d. Methodology:**
+For each evaluation question, specify: method, data source, timing, and SMS level target.
+
+Include the counterfactual design from Step 5 with full justification.
+
+**7e. Data collection plan:**
+```
+Table N: Data Collection Plan
+
+| Data | Source | Method | Timing | Responsibility | Baseline collected? |
+|------|--------|--------|--------|----------------|---------------------|
+```
+
+**7f. Ethical considerations:**
+- Informed consent requirements
+- Data protection and GDPR/Privacy Act compliance
+- Vulnerable populations safeguards
+- For AU Indigenous programmes: alignment with Indigenous Evaluation Strategy and AIATSIS ethics guidelines
+
+**7g. Governance:**
+- Evaluation commissioner vs evaluation team (independence)
+- Steering group composition
+- Quality assurance (peer review, ETF engagement for UK)
+- For UK: ETF Evaluation Registry requirements (mandatory from April 2024)
+
+**7h. Timeline:**
+```
+Table N: Evaluation Timeline
+
+| Milestone | Date | Deliverable |
+|-----------|------|-------------|
+| Baseline data collection | [date] | Baseline report |
+| Mid-term evaluation | [date] | Mid-term report |
+| Final data collection | [date] | Data report |
+| Final evaluation | [date] | Final evaluation report |
+| Dissemination | [date] | Summary, presentations |
+```
+
+**7i. Budget:**
+```
+Table N: Evaluation Budget
+
+| Activity | Cost | % of programme budget |
+|----------|------|----------------------|
+| Baseline data collection | | |
+| Mid-term evaluation | | |
+| Final evaluation | | |
+| External evaluator | | |
+| Data analysis | | |
+| Dissemination | | |
+| TOTAL | | |
+```
+
+Note: International benchmarks suggest 3-10% of programme budget for evaluation (ILO: 5%, Kellogg Foundation: 5-10% for formative, 15-20% for summative). For UK, the ETF recommends proportionate spending.
+
+**7j. Dissemination plan:**
+- Who are the primary users of the evaluation?
+- How will findings feed into decisions?
+- Publication plan (GOV.UK, Evaluation Registry, academic)
+
+---
+
+**MID-TERM EVALUATION sections:**
+
+**Progress against milestones:**
+```
+Table N: Progress Against Plan
+
+| Milestone / KPI | Target | Actual | RAG | Notes |
+|-----------------|--------|--------|-----|-------|
+```
+
+**Process findings:**
+- Implementation fidelity: was it delivered as designed? What adaptations were made and why?
+- Reach: how many of the target population participated? Who was excluded?
+- Quality: participant satisfaction, delivery quality indicators
+- Barriers and enablers: what helped/hindered delivery?
+
+**Theory of Change check:**
+Revisit each assumption from the ToC. For each: is the evidence supporting it, contradicting it, or inconclusive?
+
+```
+Table N: Theory of Change Check
+
+| Assumption | Evidence | Status |
+|------------|----------|--------|
+| [assumption 1] | [what we've observed] | Holding / At risk / Not holding |
+```
+
+---
+
+**FINAL EVALUATION sections:**
+
+**Process evaluation:**
+```markdown
+## Process Evaluation
+
+### Implementation Fidelity
+[Was the programme delivered as designed? What adaptations were made?]
+
+### Reach and Coverage
+[Did the programme reach its target population? Coverage rate: X out of Y eligible.]
+
+### Quality of Delivery
+[Participant satisfaction, delivery quality metrics.]
+
+### Barriers and Enablers
+[What factors helped or hindered delivery?]
+
+### Unintended Consequences
+[Any positive or negative effects not anticipated in the Theory of Change.]
+```
+
+**Impact evaluation:**
+```markdown
+## Impact Evaluation
+
+### Evidence Quality
+This evaluation uses [method] to assess programme impact, corresponding to Maryland Scientific Methods Scale Level [N] ([description]).
+
+[Justification for the method. Key assumptions. Limitations.]
+
+### Headline Findings
+[Key impact findings with effect sizes. Include confidence intervals where available.]
+
+### Attribution Assessment
+[What proportion of observed outcomes can be attributed to the programme vs other factors?]
+
+### Subgroup Analysis
+[Were there differential impacts by gender, age, geography, ethnicity, income?]
+```
+
+**Economic evaluation:**
+If user selected this section, invoke `/vfm-eval`:
+```
+Invoke /vfm-eval with the programme data to generate:
+- Economy assessment (cost benchmarking)
+- Efficiency assessment (delivery rate)
+- Effectiveness assessment (BCR, NPSV, fiscal return)
+- Sensitivity analysis
+```
+
+Or, if `--with-vfm` was provided, import the VfM output.
+
+**Equity and distributional analysis:**
+```markdown
+## Equity and Distributional Analysis
+
+### Impact by Income Group
+[Were benefits equitably distributed? Did the programme reduce or widen inequality?]
+
+### Geographic Distribution
+[Where were benefits concentrated? Urban vs rural? Deprived vs affluent areas?]
+
+### Protected Characteristics
+[Impact by gender, ethnicity, disability, age. Equality Act 2010 (UK) / anti-discrimination legislation (AU).]
+```
+
+For UK: reference Green Book Annex 3 distributional weights.
+
+**Sustainability assessment:**
+```markdown
+## Sustainability
+
+### Financial Sustainability
+[Can the programme's benefits be maintained without continued public funding?]
+
+### Institutional Sustainability
+[Are the delivery structures, skills, and partnerships in place to sustain outcomes?]
+
+### Behavioural Sustainability
+[Will behaviour changes persist after the programme ends?]
+
+### Environmental Sustainability
+[Are there environmental benefits or costs that continue post-programme?]
+```
+
+For OECD DAC: this maps directly to the "Sustainability" criterion.
+
+**Lessons learned:**
+```markdown
+## Lessons Learned
+
+### What Worked
+[Factors that contributed to success. Be specific about context.]
+
+### What Didn't Work
+[Factors that hindered outcomes. Be honest.]
+
+### For Whom
+[Which subgroups benefited most/least? In what circumstances?]
+
+### Replicability
+[Could this programme be replicated elsewhere? What conditions are needed?]
+
+### Scalability
+[Could it be scaled up? What would change at larger scale?]
+```
+
+**Recommendations:**
+```markdown
+## Recommendations
+
+Based on this evaluation, we recommend:
+
+1. [Continue / Expand / Redesign / Discontinue] the programme because [evidence-based rationale].
+2. [Specific improvement based on process findings.]
+3. [Evidence improvement: commission higher-quality impact evaluation if SMS < 3.]
+4. [Policy implication: what should decision-makers take from this?]
+```
+
+---
+
+**AU POST-IMPLEMENTATION REVIEW (7 sections, all mandatory):**
+
+```markdown
+## Post-Implementation Review
+
+### 1. Problem Definition
+Was the original problem correctly identified? Has the problem changed since implementation?
+
+[Compare the problem as stated in the original RIS/IA with current evidence.]
+
+### 2. Government Action Justification
+Was government intervention necessary? Could the market or self-regulation have addressed the problem?
+
+[Assess whether the rationale for intervention still holds.]
+
+### 3. Policy Options Considered
+Were alternatives properly assessed in the original impact analysis?
+
+[Review whether the options analysis was adequate. Were better alternatives available?]
+
+### 4. Policy Impacts
+What were the actual costs and benefits compared to the original estimates?
+
+| | Original estimate | Actual | Difference |
+|---|---|---|---|
+| Total cost | | | |
+| Total benefit | | | |
+| Net benefit | | | |
+| Businesses affected | | | |
+| Compliance cost per business | | | |
+
+[Distributional impacts. Unintended consequences.]
+
+### 5. Stakeholder Consultation
+Was consultation adequate during development? What do stakeholders say now?
+
+[Review of original consultation process. Current stakeholder views.]
+
+### 6. Net Benefit Assessment
+Has the regulation delivered a net community benefit?
+
+[Evidence-based assessment. If costs exceed benefits, recommend reform or repeal.]
+
+### 7. Implementation and Evaluation
+What lessons have been learned? Are monitoring mechanisms adequate?
+
+[Implementation experience. Data collection. Ongoing effectiveness.]
+```
+
+Timing: 2 years (if IA was missing/insufficient) or 5 years (if substantial economic impact).
+
+---
+
+### Step 8: Quality checks
+
+Run cross-section consistency checks:
+1. Do evaluation questions in the methodology section match the questions listed in the evaluation questions section?
+2. Does the data collection plan cover all data needed for the specified methods?
+3. Is the evaluation budget proportionate to the programme budget?
+4. Does the Theory of Change include testable assumptions at every link?
+5. For final evaluations: does the evidence quality rating (SMS level) match the method described?
+6. For final evaluations: do the recommendations follow from the findings?
+
+### Step 9: Executive summary
+
+Generate a 1-page executive summary:
+
+For evaluation plans:
+- Programme and evaluation objectives
+- Planned methodology and evidence standard target
+- Timeline and budget
+- Key risks to evaluation delivery
+
+For mid-term evaluations:
+- Progress RAG assessment
+- Key process findings
+- Early outcome signals
+- Recommended adaptations
+
+For final evaluations:
+- Headline impact findings
+- Evidence quality (SMS level)
+- VfM assessment (BCR if available)
+- Key lessons
+- Recommendation (continue/expand/redesign/discontinue)
+
+For AU PIR:
+- Has the regulation delivered net community benefit? (Yes/No/Mixed)
+- Actual vs estimated costs and benefits
+- Recommendation (retain/reform/repeal)
+
+### Step 10: Output
+
+Save as `eval-{type}-{slugified-programme}-{date}.md`.
+
+Add KEY NUMBERS block:
+```markdown
+<!-- KEY NUMBERS
+type: evaluation
+eval_type: [plan/midterm/final/pir/synthesis]
+framework: [uk/au/au-vic/au-nsw/au-qld/dac/nesta/us]
+programme: [name]
+sms_level: [1-5]
+bcr: [value, if economic eval included]
+date: [date]
+-->
+```
+
+Generate companion JSON. If `--format` specified, invoke export skills. If `--audit`, run `/econ-audit`.
+
+## OECD DAC Framework (when --framework dac)
+
+Structure the evaluation around the 6 criteria (2019 revision):
+
+1. **Relevance**: Do the objectives respond to beneficiary and country needs?
+2. **Coherence**: Is it compatible with other interventions? (Internal coherence: synergies within. External coherence: consistency with other actors.)
+3. **Effectiveness**: Did it achieve its objectives? Differential results across groups?
+4. **Efficiency**: Were results delivered in an economic and timely way?
+5. **Impact**: Significant positive or negative, intended or unintended higher-level effects?
+6. **Sustainability**: Will net benefits continue?
+
+Not all 6 criteria must be used in every evaluation. Select those most relevant to the programme. Equity and environmental effects should be considered across all criteria.
+
+## NESTA Standards (when --framework nesta)
+
+Map evaluation evidence to the 5 NESTA levels:
+
+| Level | What it shows | Typical methods |
+|---|---|---|
+| 1 | Logical reason why it could work | Theory of Change, logic model |
+| 2 | Some positive change among participants | Pre/post surveys, cohort tracking |
+| 3 | Causing the impact (less impact among non-participants) | RCT, quasi-experimental with control group |
+| 4 | Why and how it works, independently validated, reasonable cost | Multiple replication evaluations, fidelity studies |
+| 5 | Can be operated by others at scale with continued positive impact | Manualised delivery, independent replication at multiple sites |
+
+## Important Rules
+
+{{IMPORTANT_RULES_BASE}}
+{{FORMATTING_RULES}}
+- An evaluation is not advocacy. It reports what happened, honestly, including failures and unintended consequences. If the programme did not achieve its objectives, say so clearly.
+- Evidence quality (SMS level) must always be stated alongside impact findings. A high impact estimate with Level 1 evidence is not the same as a modest estimate with Level 4 evidence.
+- The Theory of Change is not decoration. For final evaluations, every assumption must be tested against evidence.
+- Process evaluation is not optional in a full evaluation. Understanding WHY outcomes occurred (or didn't) is as important as measuring WHAT happened.
+- For evaluation plans: the counterfactual method must be specified before the programme starts, not retrofitted after. Baseline data collection is time-critical.
+- Recommendations must follow from the evidence. "Continue the programme" is not justified by "stakeholders liked it" if the impact evaluation shows no effect.
+- For AU PIR: the 7 sections are mandatory. Do not skip any.
+- The evaluation skill does NOT perform statistical analysis (regressions, matching, etc.). It structures the evaluation document and specifies the methods. For actual statistical analysis, use R/Stata. The planned `causalkit` R package will handle DiD, RDD, IV, and synthetic control estimation.

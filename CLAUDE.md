@@ -17,6 +17,7 @@ Each skill has its own directory with a `SKILL.md` defining the workflow.
 - `la-profile/SKILL.md` : Local authority economic profile (UK, 391 areas)
 - `briefing-note/SKILL.md` : Policy briefing note (1-2 pages, UK GES / AU Treasury / consulting / think-tank formats)
 - `reg-impact/SKILL.md` : Regulatory Impact Assessment (UK Better Regulation, AU OIA RIS, EU, US OMB). Compliance costs, CBA per option, EANDCB, SaMBA, competition filter.
+- `evaluate/SKILL.md` : Full programme evaluation (Magenta Book, AU Commonwealth/state, OECD DAC). Plans, mid-term, final, PIR. Process + impact + economic evaluation.
 - `econ-audit/SKILL.md` : Methodology audit (124 checks across 17 categories, RED/AMBER/GREEN grading, includes AU framework checks)
 
 **Preamble tiers:** All 10 skills get update check, learnings, safety hooks, and completion status. 6 skills (cost-benefit, business-case, vfm-eval, io-report, mca, econ-audit) additionally get the parameter database check because they read from `~/econstack-data/parameters/`. The other 4 (macro-briefing, fiscal-briefing, la-profile, market-research) pull live data or LA-specific data and do not use the parameter database.
@@ -48,6 +49,7 @@ The skill has specialized workflows that produce better results than ad-hoc answ
 - Market size, industry, competition, M&A, Porter's Five Forces, HHI → invoke market-research
 - Economic impact, multiplier, jobs created, GVA, input-output → invoke io-report
 - Local authority, council area, area profile, LA data → invoke la-profile
+- Evaluation, "did it work", Magenta Book, evaluation plan, mid-term evaluation, PIR, process evaluation, impact evaluation → invoke evaluate
 - Briefing note, policy brief, ministerial brief, "write me a 2-pager", decision brief → invoke briefing-note
 - Regulatory impact, RIA, RIS, impact assessment, compliance cost, EANDCB, "new regulation" → invoke reg-impact
 - Audit, check methodology, review my numbers, "is this analysis right" → invoke econ-audit

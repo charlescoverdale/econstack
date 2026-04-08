@@ -1,8 +1,8 @@
 # econstack
 
-![Version](https://img.shields.io/badge/version-0.9.0-blue)
+![Version](https://img.shields.io/badge/version-0.10.0-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
-![Skills](https://img.shields.io/badge/skills-12-orange)
+![Skills](https://img.shields.io/badge/skills-13-orange)
 ![Parameters](https://img.shields.io/badge/parameters-45_files-purple)
 ![Frameworks](https://img.shields.io/badge/frameworks-8_countries-red)
 
@@ -10,17 +10,19 @@ Professional economic analysis, powered by AI.
 
 econstack is a set of [Claude Code](https://claude.ai/code) skills that handle the first 80% of economic analysis, so you can focus on the interpretation and key decisions. It knows the standard frameworks (Green Book, OMB A-4, EU Cohesion), the right parameters for each jurisdiction, and the business case logic that underpins professional appraisal. You provide the project context; econstack does the computation, structuring, and formatting.
 
-Built on 16 R packages on CRAN and a 45-file parameter database covering the UK, US, EU, Australia, World Bank, and ADB.
+Built on 17 R packages on CRAN and a 45-file parameter database covering the UK, US, EU, Australia (Commonwealth + 5 states), World Bank, and ADB.
 
 ### Who this is for
 
-- A transport economist running a Green Book CBA for a rail scheme
-- A consultant preparing an IO impact assessment for a new infrastructure project
-- An analyst pulling a macro briefing before a ministerial meeting or board paper
-- A local authority officer building an economic profile to support a funding bid
-- A banker preparing an industry and regional snapshot for an investment pitch deck
+- A government economist writing a Green Book CBA or Magenta Book evaluation
+- A consultant preparing an IO impact assessment or regulatory impact assessment
+- An analyst pulling a macro briefing before a ministerial meeting
+- A policy officer drafting a 2-page briefing note for a minister or board
+- A programme manager commissioning an evaluation and needing an evaluation plan
+- A local authority officer building an economic profile for a funding bid
+- A trade analyst assessing bilateral trade flows and comparative advantage
 
-If you spend time wrangling discount rates, formatting CBA spreadsheets, or copying ONS data into briefing templates, econstack automates the mechanical parts so you can focus on the judgment calls.
+If you spend time wrangling discount rates, writing up RIAs, formatting CBA spreadsheets, or structuring evaluation frameworks, econstack automates the mechanical parts so you can focus on the judgment calls.
 
 If you already have a report, model, or output format that you like, upload it or link to it and the skills will adapt to match your structure and style. Your previous work becomes the template for future analyses.
 
@@ -255,8 +257,9 @@ econstack/
 ├── io-report/           /io-report      Input-output impact (391 UK LAs)
 ├── la-profile/          /la-profile     Local authority profiles (391 UK LAs)
 ├── business-case/       /business-case  Business case (9 national frameworks)
+├── evaluate/            /evaluate       Programme evaluation (8 frameworks, Magenta Book)
 ├── briefing-note/       /briefing-note  Policy briefing note (4 templates)
-├── reg-impact/          /reg-impact     Regulatory Impact Assessment (4 frameworks)
+├── reg-impact/          /reg-impact     Regulatory Impact Assessment (9 frameworks)
 ├── econ-audit/          /econ-audit     Methodology audit (124 checks)
 ├── templates/
 │   └── blocks/          Shared template blocks (preamble, formatting, rules)
