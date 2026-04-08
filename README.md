@@ -3,14 +3,14 @@
 ![Version](https://img.shields.io/badge/version-0.10.0-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Skills](https://img.shields.io/badge/skills-13-orange)
-![Parameters](https://img.shields.io/badge/parameters-54_files-purple)
+![Parameters](https://img.shields.io/badge/parameters-57_files-purple)
 ![Frameworks](https://img.shields.io/badge/frameworks-8_countries-red)
 
 Professional economic analysis, powered by AI.
 
 econstack is a set of [Claude Code](https://claude.ai/code) skills that handle the first 80% of economic analysis, so you can focus on the interpretation and key decisions. It knows the standard frameworks (Green Book, OMB A-4, EU Cohesion), the right parameters for each jurisdiction, and the business case logic that underpins professional appraisal. You provide the project context; econstack does the computation, structuring, and formatting.
 
-Built on 17 R packages on CRAN and a 45-file parameter database covering the UK, US, EU, Australia (Commonwealth + 5 states), World Bank, and ADB.
+Built on 16 R packages on CRAN and a 57-file parameter database covering the UK, US, EU, Australia (Commonwealth + 5 states), World Bank, and ADB.
 
 ### Who this is for
 
@@ -69,7 +69,7 @@ It then works through costs using the latest government guidelines and market be
 /cost-benefit --exec                          # executive summary deck
 ```
 
-The skill includes 8 frameworks (UK Green Book, US OMB A-4, EU Cohesion, Australia, World Bank, NZ CBAx, EIB, ADB) and 45 audited parameter files with source citations and staleness detection.
+The skill includes 8 frameworks (UK Green Book, US OMB A-4, EU Cohesion, Australia, World Bank, NZ CBAx, EIB, ADB) and 57 audited parameter files with source citations and staleness detection.
 
 | Parameter | UK | US | EU | AU | WB | ADB |
 |-----------|:--:|:--:|:--:|:--:|:--:|:---:|
@@ -261,7 +261,7 @@ Letter grade A-F, with auto-fix option. **Options:** `--strict`, `--fix`, `--jso
 
 **Local authority data:** 391 UK LAs with 16 data files each (employment, earnings, IO multipliers, population, housing, GVA, deprivation, skills, commuting). At `~/econstack-data/src/data/`.
 
-**CBA and evaluation parameters:** 45 JSON files across UK (17), US (6), EU (6), AU (9), World Bank (2), ADB (2), OECD (2), and common (1). Includes unit costs (GMCA database), evidence standards (Maryland SMS), and VfM benchmarks alongside the CBA parameters. Discount rates, carbon values, VSL, QALY, VTTS, optimism bias, additionality, tax parameters, and more. Source citations, staleness detection, and validation script included. At `~/econstack-data/parameters/`. See the [parameters README](https://github.com/charlescoverdale/econstack-data/blob/main/parameters/README.md) for full documentation.
+**CBA and evaluation parameters:** 57 JSON files across UK (19), US (6), EU (6), AU (11), World Bank (2), ADB (2), OECD (2), common (1), and reference cases (8). Includes unit costs (GMCA database), evidence standards (Maryland SMS), and VfM benchmarks alongside the CBA parameters. Discount rates, carbon values, VSL, QALY, VTTS, optimism bias, additionality, tax parameters, and more. Source citations, staleness detection, and validation script included. At `~/econstack-data/parameters/`. See the [parameters README](https://github.com/charlescoverdale/econstack-data/blob/main/parameters/README.md) for full documentation.
 
 ---
 
@@ -292,7 +292,7 @@ econstack/
 └── README.md
 ```
 
-Backed by 16 R packages on [CRAN](https://cran.r-project.org/) and a [45-file parameter database](https://github.com/charlescoverdale/econstack-data).
+Backed by 16 R packages on [CRAN](https://cran.r-project.org/) and a [57-file parameter database](https://github.com/charlescoverdale/econstack-data) and 8 reference case templates.
 
 ---
 

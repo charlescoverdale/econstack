@@ -20,7 +20,7 @@ Each skill has its own directory with a `SKILL.md` defining the workflow.
 - `evaluate/SKILL.md` : Full programme evaluation (Magenta Book, AU Commonwealth/state, OECD DAC). Plans, mid-term, final, PIR. Process + impact + economic evaluation.
 - `econ-audit/SKILL.md` : Methodology audit (124 checks across 17 categories, RED/AMBER/GREEN grading, includes AU framework checks)
 
-**Preamble tiers:** All 10 skills get update check, learnings, safety hooks, and completion status. 6 skills (cost-benefit, business-case, vfm-eval, io-report, mca, econ-audit) additionally get the parameter database check because they read from `~/econstack-data/parameters/`. The other 4 (macro-briefing, fiscal-briefing, la-profile, market-research) pull live data or LA-specific data and do not use the parameter database.
+**Preamble tiers:** All 13 skills get update check, learnings, safety hooks, and completion status. 9 skills (cost-benefit, business-case, vfm-eval, evaluate, reg-impact, io-report, mca, econ-audit, briefing-note) additionally get the parameter database check because they read from `~/econstack-data/parameters/`. The other 4 (macro-briefing, fiscal-briefing, la-profile, market-research) pull live data or LA-specific data and do not use the parameter database.
 
 ## Important Rules
 
@@ -87,7 +87,7 @@ Econstack remembers per-project preferences across sessions. Learnings are store
 
 **AU IO data:** The io-report skill reads Australian SA4 multipliers from `~/econstack-data/src/data/au/sa4/` and national IO data from `~/econstack-data/src/data/au/national-io.json`.
 
-**CBA parameters:** The cost-benefit, business-case, io-report, mca, vfm-eval, evaluate, and econ-audit skills read structured parameter files from `~/econstack-data/parameters/`. 54 JSON files covering UK, US, EU, AU, World Bank, ADB, and common parameters: discount rates, carbon values, VSL, QALY, VTTS, optimism bias, additionality, tax parameters, distributional weights, construction benchmarks, unit costs for outcome monetisation, IO metadata, and 8 reference case templates for common asset types. Skills fall back to built-in defaults if parameter files are not found.
+**CBA parameters:** The cost-benefit, business-case, io-report, mca, vfm-eval, evaluate, and econ-audit skills read structured parameter files from `~/econstack-data/parameters/`. 57 JSON files covering UK, US, EU, AU, World Bank, ADB, and common parameters: discount rates, carbon values, VSL, QALY, VTTS, optimism bias, additionality, tax parameters, distributional weights, construction benchmarks, unit costs for outcome monetisation, IO metadata, and 8 reference case templates for common asset types. Skills fall back to built-in defaults if parameter files are not found.
 
 **Reference cases:** 8 asset-type templates in `~/econstack-data/parameters/reference-cases/` (schools, hospitals, roads, rail, housing, employment programmes, digital, AU transport). Each includes cost benchmarks, benefit categories, default parameters, published BCR ranges from real business cases, and typical risks. Used by `/cost-benefit` and `/business-case` to pre-populate inputs for common project types.
 
