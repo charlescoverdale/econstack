@@ -3,7 +3,7 @@
 ![Version](https://img.shields.io/badge/version-0.10.0-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Skills](https://img.shields.io/badge/skills-13-orange)
-![Parameters](https://img.shields.io/badge/parameters-45_files-purple)
+![Parameters](https://img.shields.io/badge/parameters-54_files-purple)
 ![Frameworks](https://img.shields.io/badge/frameworks-8_countries-red)
 
 Professional economic analysis, powered by AI.
