@@ -219,6 +219,27 @@ Interactive section picker: complete the whole business case or just the section
 
 ---
 
+### `/evaluate`
+
+The Magenta Book companion, the same way `/business-case` is the Green Book companion. Covers the full programme evaluation lifecycle: from designing the evaluation before the programme starts, through mid-term assessment, to final summative evaluation and post-implementation review.
+
+Five document types: evaluation plan (pre-programme), mid-term evaluation (formative), final evaluation (summative), post-implementation review (AU regulatory PIR), and evaluation synthesis (meta-evaluation). The final evaluation covers all three Magenta Book dimensions: process evaluation (was it implemented well?), impact evaluation (did it cause the outcomes?), and economic evaluation (was it value for money?, delegated to `/vfm-eval`).
+
+Includes a counterfactual method selection decision tree (RCT, DiD, RDD, PSM, synthetic control, ITS, plus theory-based methods: Contribution Analysis, Realist Evaluation, Process Tracing, QCA). Maryland SMS evidence quality grading. Theory of Change testing with assumption-by-assumption evidence assessment. Power and sample size guidance for experimental designs.
+
+```
+/evaluate "National Apprenticeship Programme" --type final
+/evaluate --type plan "New early years pilot"
+/evaluate --type pir "Data retention regulations" --framework au
+/evaluate --type midterm "Levelling Up Fund Round 2"
+```
+
+8 frameworks: UK Magenta Book, AU Commonwealth (ACE), AU Victoria (DTF), AU NSW, AU Queensland (PAF), OECD DAC (6 criteria), NESTA Standards, US Evidence Act 2018.
+
+**Options:** `--type`, `--framework`, `--sections`, `--with-cba`, `--with-vfm`, `--full`, `--exec`, `--audit`, `--client`, `--format`, `--from`
+
+---
+
 ### `/econ-audit`
 
 Think of it as a senior partner and an economics professor going through your work and poking holes in it. Full methodology audit of any output from the skills above, or any economic analysis you point it at. Runs 124 checks across 17 categories and produces a RAG (red, amber, green) rating on how your methods and assumptions compare to best practice. Agnostic to region or asset class: it draws on government guidance (Green Book 2026, Aqua Book, OMB A-4, EC CBA Guide) and published academic literature (Flyvbjerg, Moretti, Flegg) to assess numerical consistency, discount rates, additionality, multiplier plausibility, double counting, framing, Five Case Model completeness, distributional analysis, Aqua Book RIGOUR compliance, and strategic misrepresentation patterns.
