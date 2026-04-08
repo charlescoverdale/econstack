@@ -96,6 +96,12 @@ This skill is the Magenta Book companion, the same way `/business-case` is the G
 
 **This skill is interactive.** It confirms the evaluation type, programme details, and methodology, then generates the document section by section.
 
+**What this skill does NOT do:**
+- Does not run statistical analysis (DiD regressions, PSM, RCTs). That is R/Stata territory. The planned `causalkit` R package will handle estimation.
+- Does not collect primary data (surveys, interviews, focus groups). It structures the plan for data collection.
+- Does not replace a qualified evaluator. It automates the mechanical 80% (structure, templates, method selection, quality checks) so the evaluator can focus on interpretation and judgment.
+- Does not assess the quality of existing evaluation evidence. For that, use `/econ-audit`.
+
 ## Arguments
 
 ```
@@ -122,6 +128,7 @@ This skill is the Magenta Book companion, the same way `/business-case` is the G
 - `--format <type>` : Output: `markdown`, `word`, `pptx`, `pdf`, or `all`. Default: markdown.
 - `--exec` : Executive summary deck (5-8 slides).
 - `--audit` : Run `/econ-audit` on the output.
+- `--from <file.json>` : Import all inputs from JSON, skip interactive questions. Use `--from schema` to print expected schema.
 
 **Supported frameworks:**
 
@@ -226,7 +233,9 @@ Table N: Theory of Change
 | Impact     |             |             |           |          |
 ```
 
-For final evaluations: add an "Evidence" column showing whether each assumption held.
+For evaluation plans: the "Evidence" column should show the pre-existing baseline evidence supporting each assumption. If no evidence exists, mark as "To be tested" and flag this as a key evaluation risk.
+
+For final evaluations: the "Evidence" column shows whether each assumption held, with supporting data.
 
 ### Step 4: Evaluation questions
 
@@ -259,30 +268,77 @@ AskUserQuestion: "Are there additional evaluation questions specific to this pro
 **For evaluation plans:** help select the right counterfactual method using the decision tree:
 
 ```
-AskUserQuestion: "Is random assignment (RCT) feasible for this programme?"
+AskUserQuestion: "What evaluation approach is most appropriate for this programme?"
 Options:
-  - "Yes, we can randomise who receives the programme"
-  - "No, but there is a natural threshold or cut-off (e.g., eligibility score)"
-  - "No, but there is a plausible comparison group (similar areas/people who didn't receive it)"
-  - "No, but there is rich pre-intervention time series data"
-  - "No counterfactual is feasible (monitoring only)"
+  - "RCT (we can randomise who receives the programme)"
+  - "Quasi-experimental (natural threshold, comparison group, or time series available)"
+  - "Theory-based (complex programme where isolating a single causal effect is inappropriate)"
+  - "Monitoring only (no counterfactual feasible)"
 ```
 
-Map to methods:
+If quasi-experimental, follow up:
+```
+AskUserQuestion: "Which quasi-experimental method?"
+Options:
+  - "Difference-in-Differences (treatment and comparison groups with pre/post data)"
+  - "Regression Discontinuity (eligibility threshold or cut-off score)"
+  - "Propensity Score Matching (comparison group matched on observable characteristics)"
+  - "Interrupted Time Series (rich pre-intervention time series, no comparison group)"
+  - "Synthetic Control (single treated area, donor pool of comparators)"
+```
 
-| User answer | Method | SMS Level | Key requirements |
-|---|---|---|---|
-| RCT feasible | Randomised Control Trial | 5 | Sufficient sample, ethical approval, implementation fidelity |
-| Natural threshold | Regression Discontinuity Design | 4 | Sharp or fuzzy cut-off, manipulation testing |
-| Comparison group available | Difference-in-Differences | 3-4 | Parallel trends assumption, pre-treatment data |
-| Time series data | Interrupted Time Series | 2-3 | 8+ pre-intervention observations, no concurrent changes |
-| No counterfactual | Before-and-after with statistical controls | 1-2 | Acknowledge attribution limitations prominently |
+If theory-based, follow up:
+```
+AskUserQuestion: "Which theory-based approach?"
+Options:
+  - "Contribution Analysis (assess the contribution of the programme to observed outcomes)"
+  - "Realist Evaluation (Context-Mechanism-Outcome configurations: what works, for whom, in what circumstances)"
+  - "Process Tracing (trace causal mechanisms through detailed case analysis)"
+  - "Qualitative Comparative Analysis (QCA: identify necessary and sufficient conditions across cases)"
+```
+
+Map to methods and evidence quality:
+
+| Method | SMS Level | Key requirements |
+|---|---|---|
+| Randomised Control Trial | 5 | Sufficient sample, ethical approval, implementation fidelity |
+| Regression Discontinuity Design | 4 | Sharp or fuzzy cut-off, manipulation testing |
+| Difference-in-Differences | 3-4 | Parallel trends assumption, pre-treatment data |
+| Propensity Score Matching | 3 | Rich pre-treatment observables, common support assumption |
+| Synthetic Control | 3-4 | Single treated unit, large donor pool, good pre-treatment fit |
+| Interrupted Time Series | 2-3 | 8+ pre-intervention observations, no concurrent changes |
+| Contribution Analysis | 2-3 | Strong theory of change, multiple evidence streams |
+| Realist Evaluation | 2-3 | CMO configurations, iterative theory testing |
+| Process Tracing | 2 | Detailed case knowledge, within-case evidence |
+| Before-and-after (monitoring only) | 1-2 | Acknowledge attribution limitations prominently |
 
 For each method, note:
 - What data is needed (and when to start collecting)
 - Key assumptions to test
 - Sample size / power considerations
 - Limitations
+
+**Power and sample size guidance (for RCTs and quasi-experimental designs):**
+
+Estimate the minimum detectable effect size (MDES) given the expected sample:
+- For a 2-group RCT with 80% power and 5% significance: ~400 per group to detect a 0.2 SD effect, ~65 per group for 0.5 SD.
+- For cluster-randomised designs (common in area-based policies): inflate by the design effect: DE = 1 + (m-1) x ICC, where m is cluster size and ICC is the intra-cluster correlation (typically 0.01-0.05 for education/health outcomes).
+- For DiD: power depends on the number of pre/post periods and the expected effect size relative to pre-treatment variation.
+- Flag if the expected sample is too small for the chosen method.
+
+**Fallback method:** After selecting the primary method, ask:
+```
+AskUserQuestion: "What is your fallback if the primary method proves infeasible? (e.g., if parallel trends don't hold for DiD, fall back to ITS)"
+(Free text, optional)
+```
+
+**RCT ethics (if RCT selected):**
+Address in the ethical considerations section:
+- Clinical equipoise: is there genuine uncertainty about which option is better?
+- Informed consent for randomisation
+- Plan for control group: waitlist design, delayed treatment, alternative treatment, or business-as-usual
+- Circumstances where randomisation is ethically inappropriate: emergency response, fundamental rights, existing legal entitlements
+- Reference: Magenta Book Annex A, Section A1.1
 
 **For mid-term/final evaluations:** ask what method was actually used:
 ```
@@ -639,6 +695,42 @@ Timing: 2 years (if IA was missing/insufficient) or 5 years (if substantial econ
 
 ---
 
+**EVALUATION SYNTHESIS / META-EVALUATION:**
+
+For portfolio-level assessment across multiple evaluations.
+
+```markdown
+## Evaluation Synthesis
+
+### 1. Scope and Methodology
+[How many evaluations were reviewed? What search strategy was used? What quality criteria were applied for inclusion?]
+
+### 2. Quality Assessment
+[Grade each included evaluation using SMS levels and/or NESTA standards.]
+
+Table N: Quality of Included Evaluations
+
+| Evaluation | Programme | SMS Level | Method | Key finding | Quality notes |
+|------------|-----------|-----------|--------|-------------|---------------|
+
+### 3. Synthesis of Findings
+[What do the evaluations collectively tell us? Identify consistent findings, contradictory evidence, and effect sizes across studies.]
+
+### 4. Common Themes
+[Cross-cutting patterns: what implementation factors predict success? what programme characteristics are associated with larger effects?]
+
+### 5. Evidence Gaps
+[What questions remain unanswered? Where is the evidence base weak? What types of evaluations are needed?]
+
+### 6. Implications for Policy
+[Based on the body of evidence, what should decision-makers do? What confidence level for each recommendation?]
+
+### 7. Implications for Future Evaluation
+[What evaluation methods should be prioritised? Where should evaluation investment focus?]
+```
+
+---
+
 ### Step 8: Quality checks
 
 Run cross-section consistency checks:
@@ -688,13 +780,71 @@ type: evaluation
 eval_type: [plan/midterm/final/pir/synthesis]
 framework: [uk/au/au-vic/au-nsw/au-qld/dac/nesta/us]
 programme: [name]
-sms_level: [1-5]
+programme_budget: [value]
+evaluation_budget_pct: [value]
+counterfactual_method: [rct/did/rdd/psm/its/sc/contribution/realist/monitoring]
+sms_level: [1-5, target for plans, actual for finals]
 bcr: [value, if economic eval included]
+n_participants: [value]
+recommendation: [continue/expand/redesign/discontinue]
 date: [date]
 -->
 ```
 
-Generate companion JSON. If `--format` specified, invoke export skills. If `--audit`, run `/econ-audit`.
+Generate companion JSON with this schema:
+```json
+{
+  "programme": {"name": "", "budget": 0, "duration": "", "target_population": ""},
+  "evaluation": {"type": "", "framework": "", "sms_level": 0, "method": ""},
+  "theory_of_change": [{"level": "", "description": "", "assumptions": "", "evidence": ""}],
+  "evaluation_questions": {"process": [""], "impact": [""], "economic": [""]},
+  "findings": {"process": "", "impact": "", "economic": {"bcr": 0, "npsv": 0}},
+  "recommendations": [""],
+  "metadata": {"generated": "", "evaluator": "", "framework_version": ""}
+}
+```
+
+**References (include in every evaluation output):**
+
+For UK framework:
+```markdown
+## References
+
+- HM Treasury (2020, updated 2025). "The Magenta Book: Central Government Guidance on Evaluation."
+- HM Treasury (2022, updated 2026). "The Green Book: Central Government Guidance on Appraisal and Evaluation."
+- Evaluation Task Force (2022). "ETF Strategy 2022-2025."
+- What Works Centre for Local Economic Growth. "Maryland Scientific Methods Scale Guide."
+- Bloom, H. (2006). "The Core Analytics of Randomized Experiments for Social Research." MDRC Working Paper.
+- Pawson, R. and Tilley, N. (1997). "Realistic Evaluation." Sage.
+```
+
+For AU framework:
+```markdown
+## References
+
+- Australian Centre for Evaluation (2023). "Commonwealth Evaluation Policy."
+- Office of Impact Analysis (2023). "Post-Implementation Review Guidance."
+- Productivity Commission (2023). "Indigenous Evaluation Strategy."
+- Victorian DTF (2025). "Investment Lifecycle and HVHR Guidelines."
+- NSW Treasury (2016, updated). "NSW Government Program Evaluation Guidelines."
+```
+
+For OECD DAC:
+```markdown
+## References
+
+- OECD DAC Network on Development Evaluation (2019). "Better Criteria for Better Evaluation."
+- OECD (2021). "Applying Evaluation Criteria Thoughtfully."
+```
+
+For NESTA:
+```markdown
+## References
+
+- NESTA (2013). "Standards of Evidence: An Approach that Balances the Need for Evidence with Innovation."
+```
+
+If `--format` specified, invoke export skills. If `--audit`, run `/econ-audit`.
 
 ## OECD DAC Framework (when --framework dac)
 
@@ -708,6 +858,22 @@ Structure the evaluation around the 6 criteria (2019 revision):
 6. **Sustainability**: Will net benefits continue?
 
 Not all 6 criteria must be used in every evaluation. Select those most relevant to the programme. Equity and environmental effects should be considered across all criteria.
+
+## Victorian DTF Framework (when --framework au-vic)
+
+For HVHR projects: align evaluation with the Gateway review process. Gate 6 (Benefits Realisation) occurs 6-18 months after project completion. Gate 6 evaluation reports must be released to DTF. All red/amber recommendations must be reported to the Treasurer with an action plan.
+
+For lapsing programmes (seeking additional Budget funding): evaluation evidence is required. Programmes over AUD 20 million must commission external evaluation. Align evaluation timeline with the Victorian Budget cycle. Use DTF programme evaluation templates where available.
+
+## US Evidence Act Framework (when --framework us)
+
+The Foundations for Evidence-Based Policymaking Act (2018) requires federal agencies to:
+1. Develop **Learning Agendas** (multi-year strategic plans for evidence building)
+2. Produce **Annual Evaluation Plans** (specific evaluations planned for the year)
+3. Designate an **Evaluation Officer** (senior official responsible for evaluation)
+4. Maintain an **evidence-building capacity assessment**
+
+Follow OMB Memorandum M-21-27 evaluation standards: relevance and utility, rigor, independence and objectivity, transparency, ethics. For detailed US federal evaluation templates, refer to the OMB Evidence Team guidance and agency-specific Learning Agendas.
 
 ## NESTA Standards (when --framework nesta)
 
