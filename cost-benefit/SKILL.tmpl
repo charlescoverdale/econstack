@@ -367,7 +367,23 @@ Costs and benefits will be tagged to these groups in the next step.
 
 ### Step 2: Cost and benefit entry
 
-Ask using AskUserQuestion:
+**Longlist handoff check.** Before entering numbers, check whether the user has a clear longlist of benefit streams, cost categories, and beneficiaries. Run a quick glob for any existing longlist JSON in the working directory:
+
+```bash
+ls longlist-*.json 2>/dev/null
+```
+
+If a `longlist-*.json` file exists, offer to load it:
+
+> "I can see a `/longlist` file in this directory. Want me to use it as the starting point? I'll pull in every item marked as a Strong or Moderate CBA contender and let you review before we put numbers on anything."
+
+If no longlist file exists AND the user is vague ("some benefits", "a few costs", "not sure what to include") or has only named 1-2 benefits for a non-trivial project, offer to run `/longlist` first:
+
+> "Before we put numbers on anything, it might be worth running `/longlist` to brainstorm all the benefit streams, beneficiaries, and cost categories systematically. It produces a Strong/Moderate/Weak contender rating for each item, which gives us a clean shortlist to work from. Want to do that first, or do you already have a list?"
+
+Skip this prompt silently if the user passed `--from` or their initial description already enumerates benefits and costs in detail.
+
+Then ask using AskUserQuestion:
 
 **Question:** "How do you want to enter costs and benefits?"
 

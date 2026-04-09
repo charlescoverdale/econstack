@@ -1,8 +1,8 @@
 # econstack
 
-![Version](https://img.shields.io/badge/version-0.10.0-blue)
+![Version](https://img.shields.io/badge/version-0.11.0-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
-![Skills](https://img.shields.io/badge/skills-13-orange)
+![Skills](https://img.shields.io/badge/skills-14-orange)
 ![Parameters](https://img.shields.io/badge/parameters-57_files-purple)
 ![Frameworks](https://img.shields.io/badge/frameworks-8_countries-red)
 
@@ -240,6 +240,35 @@ Includes a counterfactual method selection decision tree (RCT, DiD, RDD, PSM, sy
 
 ---
 
+### `/longlist`
+
+The messy-whiteboard-phase skill. Before you run a CBA, a business case, or an RIA, you need to know what benefits to measure and what costs to include. `/longlist` is a structured brainstorm that helps you think through both, systematically, using six lenses: stakeholder mapping, market failure framing, Theory of Change, framework taxonomy, sector library, and a commonly-missed checklist (with Flyvbjerg reference-class forecasting prompts on both cost and benefit optimism). It runs an equivalent five-lens exercise for costs: direct project, indirect/induced, compliance (Standard Cost Model), costs to other parties, and risk costs.
+
+Generates a full longlist, then classifies every item across twelve axes (description, beneficiary, direct/indirect, primary/secondary, monetisation, materiality, deadweight risk, dependencies, timing, evidence, quantification method, CBA inclusion) and synthesises a simple **Strong / Moderate / Weak CBA contender** rating for each. The headline output is a six-column table of benefits and costs: number, name, plain-English description, how to quantify / monetise, contender rating, and why.
+
+**How to quantify / monetise: the bridge to monetisation.** Every item gets a suggested estimation method pulled from the built-in Quantification Method Library. The library covers five method types: published unit values with named data sources and URLs (DfT TAG, DESNZ carbon, GMCA unit costs, NHS Reference Costs, Home Office HORR99, MHCLG Land Value Estimates, BCIS, Rawlinsons, PSSRU, ONS ASHE, Defra ENCA, and more), analytical approaches (hedonic pricing, contingent valuation, revealed preference, structural models, difference-in-differences), primary research (interviews, stratified surveys, Delphi panels, focus groups, case studies), benchmarking against published ex-post evaluations, and modelled estimates (IO multipliers, RICS whole-life carbon). For items with no defensible monetisation route, the field records "Qualitative only, narrative treatment". The library is framework-aware: UK projects get TAG and GMCA; Australian projects get ATAP and RoGS; EU projects get the Better Regulation Toolbox; US projects get OMB A-4 and BenMAP.
+
+Recognises the three classic double-counting traps and flags them automatically: construction employment + capital cost, journey time savings + land value uplift, and gross earnings + tax revenue. Excludes sunk costs by default. Splits carbon into embodied (construction) and operational (in-use). Does not adjust carbon benefits for additionality (per Green Book / DESNZ guidance).
+
+Framework-aware: align to Green Book benefit categories, Better Regulation Framework compliance costs, MHCLG Appraisal Guide, Australian OIA, Victorian DTF, EU Better Regulation Toolbox, or OECD DAC. Hands off a structured JSON longlist (with a nested `quantification_method` object for every item, including data source URLs and parameter file references) that `/cost-benefit`, `/business-case`, `/vfm-eval`, and `/reg-impact` can read directly via `--from`, so the suggested method flows straight into the monetisation step without retyping.
+
+**Output formats:** Markdown (default), Word (.docx with hyperlinked data sources and a References section), Excel (.xlsx with five sheets including a Summary and a References tab, conditional formatting on contender ratings, clickable hyperlinks on every data source URL), PowerPoint (.pptx summary deck), PDF. Every format includes a headline table and a full-detail table for both benefits and costs.
+
+```
+/longlist "New secondary school in Leeds"
+/longlist "Climate disclosure regulation" --framework uk-brg
+/longlist "Victorian Level Crossing Removal" --framework au-vic
+/longlist "Employment programme in Glasgow" --format xlsx,word
+/longlist --costs-only                              # cost brainstorm only
+/longlist --quick                                   # 3 lenses instead of 6
+```
+
+8 framework profiles: UK Green Book (default), UK Better Regulation Framework, UK MHCLG, AU OIA, AU Victoria, EU BRT, OECD DAC, agnostic.
+
+**Options:** `--framework`, `--scope`, `--sector`, `--lens`, `--costs-only`, `--benefits-only`, `--quick`, `--full`, `--exec`, `--audit`, `--client`, `--format`, `--from`
+
+---
+
 ### `/econ-audit`
 
 Think of it as a senior partner and an economics professor going through your work and poking holes in it. Full methodology audit of any output from the skills above, or any economic analysis you point it at. Runs 124 checks across 17 categories and produces a RAG (red, amber, green) rating on how your methods and assumptions compare to best practice. Agnostic to region or asset class: it draws on government guidance (Green Book 2026, Aqua Book, OMB A-4, EC CBA Guide) and published academic literature (Flyvbjerg, Moretti, Flegg) to assess numerical consistency, discount rates, additionality, multiplier plausibility, double counting, framing, Five Case Model completeness, distributional analysis, Aqua Book RIGOUR compliance, and strategic misrepresentation patterns.
@@ -281,6 +310,7 @@ econstack/
 ├── evaluate/            /evaluate       Programme evaluation (8 frameworks, Magenta Book)
 ├── briefing-note/       /briefing-note  Policy briefing note (4 templates)
 ├── reg-impact/          /reg-impact     Regulatory Impact Assessment (9 frameworks)
+├── longlist/            /longlist       Pre-appraisal benefits and costs longlist (8 frameworks)
 ├── econ-audit/          /econ-audit     Methodology audit (124 checks)
 ├── templates/
 │   └── blocks/          Shared template blocks (preamble, formatting, rules)

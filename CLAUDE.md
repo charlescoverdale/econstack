@@ -18,9 +18,10 @@ Each skill has its own directory with a `SKILL.md` defining the workflow.
 - `briefing-note/SKILL.md` : Policy briefing note (1-2 pages, UK GES / AU Treasury / consulting / think-tank formats)
 - `reg-impact/SKILL.md` : Regulatory Impact Assessment (UK Better Regulation, AU OIA RIS, EU, US OMB). Compliance costs, CBA per option, EANDCB, SaMBA, competition filter.
 - `evaluate/SKILL.md` : Full programme evaluation (Magenta Book, AU Commonwealth/state, OECD DAC). Plans, mid-term, final, PIR. Process + impact + economic evaluation.
+- `longlist/SKILL.md` : Pre-appraisal longlist builder. Brainstorms benefits and costs across 6 benefit lenses (stakeholder, market failure, ToC, framework taxonomy, sector library, Flyvbjerg-informed commonly-missed checklist) and 5 cost lenses (direct, indirect/induced, compliance/SCM, other parties, risk). Classifies each item as Strong/Moderate/Weak CBA contender. Framework-aware. Hands off a structured JSON shortlist to `/cost-benefit`, `/business-case`, `/vfm-eval`, or `/reg-impact`.
 - `econ-audit/SKILL.md` : Methodology audit (124 checks across 17 categories, RED/AMBER/GREEN grading, includes AU framework checks)
 
-**Preamble tiers:** All 13 skills get update check, learnings, safety hooks, and completion status. 9 skills (cost-benefit, business-case, vfm-eval, evaluate, reg-impact, io-report, mca, econ-audit, briefing-note) additionally get the parameter database check because they read from `~/econstack-data/parameters/`. The other 4 (macro-briefing, fiscal-briefing, la-profile, market-research) pull live data or LA-specific data and do not use the parameter database.
+**Preamble tiers:** All 14 skills get update check, learnings, safety hooks, and completion status. 10 skills (cost-benefit, business-case, vfm-eval, evaluate, reg-impact, io-report, mca, econ-audit, briefing-note, longlist) additionally get the parameter database check because they read from `~/econstack-data/parameters/`. The other 4 (macro-briefing, fiscal-briefing, la-profile, market-research) pull live data or LA-specific data and do not use the parameter database.
 
 ## Important Rules
 
@@ -52,6 +53,7 @@ The skill has specialized workflows that produce better results than ad-hoc answ
 - Evaluation, "did it work", Magenta Book, evaluation plan, mid-term evaluation, PIR, process evaluation, impact evaluation → invoke evaluate
 - Briefing note, policy brief, ministerial brief, "write me a 2-pager", decision brief → invoke briefing-note
 - Regulatory impact, RIA, RIS, impact assessment, compliance cost, EANDCB, "new regulation" → invoke reg-impact
+- Brainstorm benefits, longlist, what costs should I include, beneficiary mapping, "what am I missing", benefit streams, benefits register, pre-CBA scoping, pre-appraisal scoping → invoke longlist
 - Audit, check methodology, review my numbers, "is this analysis right" → invoke econ-audit
 
 ## Versioning

@@ -955,19 +955,37 @@ AskUserQuestion: "Are there additional project-specific Critical Success Factors
 (Free text, optional)
 ```
 
-Build the benefits register interactively:
+Build the benefits register interactively.
+
+**Longlist handoff check.** Before asking the user to list benefits cold, check whether a `/longlist` file exists in the working directory:
+
+```bash
+ls longlist-*.json 2>/dev/null
+```
+
+If a `longlist-*.json` file exists, offer to load it:
+
+> "I can see a `/longlist` file in this directory. Want me to use it as the starting point for the benefits register? I'll pull in every item marked as a Strong or Moderate CBA contender. You can still add, remove, or edit items before we finalise."
+
+If the user has not run `/longlist` and the project is non-trivial (capex > GBP 5m, or a policy/programme with multiple beneficiary groups), offer to run it first:
+
+> "For a project this size, it's usually worth running `/longlist` first to brainstorm all the benefit streams and beneficiaries systematically before we build the register. It applies stakeholder mapping, market failure, Theory of Change, and Flyvbjerg reference-class forecasting, and it produces a Strong/Moderate/Weak contender rating for each item. Want to do that first?"
+
+Skip the prompt silently if the user already listed detailed benefits in their initial description, or passed `--from` with an existing register.
+
+Then ask:
 ```
 AskUserQuestion: "List the expected benefits of this investment."
-(Free text — parse into individual benefits)
+(Free text: parse into individual benefits. If a /longlist file was loaded, pre-populate the list from it using the Strong and Moderate contenders.)
 ```
 
 For each benefit, ask:
 ```
 AskUserQuestion: "For benefit '[name]': what category?"
 Options:
-  - "Cash releasing — direct financial savings"
-  - "Non-cash releasing quantifiable — measurable but not direct savings"
-  - "Qualitative — important but cannot be quantified"
+  - "Cash releasing: direct financial savings"
+  - "Non-cash releasing quantifiable: measurable but not direct savings"
+  - "Qualitative: important but cannot be quantified"
 ```
 
 Render as:
