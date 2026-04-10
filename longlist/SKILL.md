@@ -1,6 +1,6 @@
 ---
 name: longlist
-description: Brainstorm a longlist of benefit streams, cost categories, and beneficiaries for a project. Applies multiple lenses (stakeholder mapping, Theory of Change, market failure, sector templates) to generate the longlist. Classifies by direct/indirect, primary/secondary, monetisable/qualitative, materiality H/M/L, and deadweight risk. Hands off to cost-benefit, business-case, vfm-eval, or reg-impact. Framework-aware.
+description: Brainstorm a longlist of benefit streams, cost categories, and beneficiaries for a project. Applies stakeholder mapping, Theory of Change, market failure, and sector template lenses. Classifies by materiality and deadweight risk. Hands off to cost-benefit, business-case, vfm-eval, or reg-impact.
 allowed-tools:
   - Bash
   - Read
