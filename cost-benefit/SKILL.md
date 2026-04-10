@@ -166,6 +166,7 @@ If `--from <file.json>` is specified, read and parse the JSON file. The expected
   "project": "Project name",
   "framework": "uk",
   "perspective": "social | investor | fiscal | local",
+  "sponsor": "government | private | blended | philanthropic",
   "referent_group": "All UK residents",
   "stakeholder_groups": [
     { "name": "Central government", "in_referent_group": true },
@@ -180,6 +181,8 @@ If `--from <file.json>` is specified, read and parse the JSON file. The expected
   "prices": "real",
   "optimism_bias_pct": null,
   "discount_rate": null,
+  "financial_discount_rate": null,
+  "debt": { "share_of_capex": 0.7, "tenor_years": 25, "interest_rate": 0.055, "repayment": "annuity | bullet | sculpted" },
   "options": [
     {
       "name": "Do Nothing",
@@ -219,6 +222,8 @@ If `--from <file.json>` is specified, read and parse the JSON file. The expected
 Null values use framework defaults. Validate all required fields (project, framework, options with at least 2 entries). If any required field is missing, list the missing fields and stop.
 
 If `perspective` is provided, use it (skip the interactive perspective question in Step 1b). If omitted, default to `"social"`. If `referent_group` is provided, use it. If omitted, default based on perspective and framework (e.g. "All UK residents" for UK social CBA). If `stakeholder_groups` is provided, use it to classify cost bearers and benefit recipients as referent or non-referent. If omitted, treat all stakeholders as within the referent group.
+
+If `sponsor` is provided, use it for the financial case computation. If omitted, default to `"government"`. If `financial_discount_rate` is provided (as a decimal, e.g. 0.045 for 4.5%), use it for the financial case. If omitted, default by sponsor type: government 0.045, private 0.10, blended weighted average, philanthropic 0.00. If a `debt` block is provided, compute DSCR; otherwise skip the DSCR computation.
 
 If `--from schema` is specified, print the schema above and stop.
 
@@ -423,19 +428,31 @@ Costs and benefits will be tagged to these groups in the next step.
 
 ### Step 2: Cost and benefit entry
 
-**Longlist handoff check.** Before entering numbers, check whether the user has a clear longlist of benefit streams, cost categories, and beneficiaries. Run a quick glob for any existing longlist JSON in the working directory:
+**Longlist handoff check.** Before entering numbers, check whether the user has a `/longlist` markdown file in the working directory:
 
 ```bash
-ls longlist-*.json 2>/dev/null
+ls longlist-*.md 2>/dev/null
 ```
 
-If a `longlist-*.json` file exists, offer to load it:
+If a `longlist-*.md` file exists, read it and parse the two tables (Benefits, Costs) plus the header block. The longlist format has seven columns per table: `# | Item | Description | Materiality | Cash flow | Quantification method | Monetisation method`.
 
-> "I can see a `/longlist` file in this directory. Want me to use it as the starting point? I'll pull in every item marked as a Strong or Moderate CBA contender and let you review before we put numbers on anything."
+Extract for each item:
+- Name (column 2)
+- Description (column 3)
+- Materiality tag (column 4: H / M / L)
+- **Cash flow tag** (column 5: "Cash in" / "Cash out" / "Non-cash"). Store this as `cash_flow_type` on every item. It drives the Financial NPV computation in Step 4.
+- Quantification method (column 6)
+- Monetisation method (column 7)
+
+Also extract the sponsor from the header block (e.g. `**Framework**: uk-gb · **Sponsor**: government`). If the sponsor tag is missing (older longlist file), default to government and warn the user once.
+
+Offer to load it:
+
+> "I can see `longlist-[slug]-[date].md` in this directory. Want me to use it as the starting point? I will pull in every H and M materiality item, carry the Cash flow tags through to the Financial NPV, and let you review before putting numbers on anything."
 
 If no longlist file exists AND the user is vague ("some benefits", "a few costs", "not sure what to include") or has only named 1-2 benefits for a non-trivial project, offer to run `/longlist` first:
 
-> "Before we put numbers on anything, it might be worth running `/longlist` to brainstorm all the benefit streams, beneficiaries, and cost categories systematically. It produces a Strong/Moderate/Weak contender rating for each item, which gives us a clean shortlist to work from. Want to do that first, or do you already have a list?"
+> "Before we put numbers on anything, it might be worth running `/longlist` first. It produces a clean two-table longlist with materiality and Cash flow tags, which lets this skill compute both Economic NPV (all items) and Financial NPV (cash items only) from the same input. Want to do that first?"
 
 Skip this prompt silently if the user passed `--from` or their initial description already enumerates benefits and costs in detail.
 
@@ -802,10 +819,10 @@ PV_costs = sum over t of [adjusted_cost(t) * discount_factor(t)]
 PV_benefits = sum over t of [adjusted_benefit(t) * discount_factor(t)]
 ```
 
-**Summary metrics:**
+**Summary metrics (economic case):**
 ```
-NPV = PV_benefits - PV_costs
-BCR = PV_benefits / PV_costs
+Economic_NPV = PV_benefits - PV_costs
+Economic_BCR = PV_benefits / PV_costs
 
 VfM category (UK Green Book):
   BCR < 1.0  -> Poor
@@ -817,6 +834,86 @@ VfM category (UK Green Book):
 For non-UK frameworks, use NPV as the primary metric and note that
 VfM categories are a UK-specific convention.
 ```
+
+**Financial case (cash flow to the sponsor):**
+
+The financial case is a parallel computation using ONLY the items tagged as `Cash in` or `Cash out` on the longlist (or flagged as cash during interactive entry). Non-cash items are excluded entirely: they do not pay back debt and do not appear on anyone's books.
+
+The financial case uses a different discount rate to the economic case. Where the economic discount rate is the social time preference rate (e.g. 3.5% declining in the UK Green Book), the financial discount rate is the sponsor's cost of capital:
+
+- **Government sponsor**: default 4.5% real (government WACC). Override if the user specifies.
+- **Private investor**: default 8-12% real. Ask for the specific hurdle rate.
+- **Blended**: use the weighted average of the sources, weighted by their share of capex.
+- **Philanthropic / grant-funded**: set to 0% (grants are not repaid) and skip DSCR.
+
+Compute:
+
+```
+For each item in the longlist tagged cash_in or cash_out:
+  If item is tagged Cash in:
+    cash_inflow(t) += item_value(t)
+  If item is tagged Cash out:
+    cash_outflow(t) += item_value(t)
+
+Net_cash_flow(t) = cash_inflow(t) - cash_outflow(t)
+
+Financial_NPV = sum over t of [Net_cash_flow(t) / (1 + r_financial)^t]
+  where r_financial is the sponsor's cost of capital (flat, not declining)
+
+Cumulative_cash_flow(t) = sum over s=0 to t of Net_cash_flow(s)
+
+Payback period = smallest t such that Cumulative_cash_flow(t) >= 0
+  (If never, report "Does not pay back within the appraisal period")
+
+Financial_IRR = the r_financial value that makes Financial_NPV = 0
+  (Compute numerically. If no real positive root, report "IRR undefined; cash inflows insufficient")
+
+Total_funding_requirement = max over t of [-Cumulative_cash_flow(t)]
+  (The peak financing need: how much money the sponsor must commit before any net inflow appears)
+```
+
+**DSCR (only if debt is involved):**
+
+Ask the user: "Does this project involve project finance debt? (y/n)" If no, skip DSCR. If yes, ask:
+- Debt amount (as share of capex)
+- Debt tenor in years
+- Interest rate (nominal or real, matching the price base of the analysis)
+- Repayment profile (annuity, bullet, sculpted)
+
+Then compute:
+
+```
+For each year t in the debt term:
+  Operating_cash_flow_for_debt(t) = cash_inflow(t) - (cash_outflow(t) excluding capex and debt service)
+  Debt_service(t) = scheduled interest + scheduled principal per the repayment profile
+  DSCR(t) = Operating_cash_flow_for_debt(t) / Debt_service(t)
+
+Minimum_DSCR = min over debt term of DSCR(t)
+Average_DSCR = mean over debt term of DSCR(t)
+```
+
+Report minimum and average DSCR. Flag if minimum DSCR < 1.2 (typical lender covenant): "Minimum DSCR of [val] is below the typical 1.2x lender covenant. The project cannot support this debt structure. Either reduce gearing, extend tenor, or find non-debt funding for the shortfall."
+
+**Headline verdict:**
+
+Compose a one-line summary of the economic and financial cases and emit it at the top of every output:
+
+```
+economic_sign   = "positive" if Economic_NPV > 0 else "negative"
+financial_sign  = "positive" if Financial_NPV > 0 else "negative"
+
+Verdict string:
+  If economic positive AND financial positive:
+    "Both cases positive. Project is socially worthwhile AND financially self-sustaining. Viable for commercial or blended funding."
+  If economic positive AND financial negative:
+    "Economic case positive, financial case negative. Project is socially worthwhile but requires public subsidy, grant, or philanthropic backing. Not viable for commercial debt on standalone cash flows."
+  If economic negative AND financial positive:
+    "Economic case negative, financial case positive. Project generates cash for the sponsor but destroys social value (often through displacement or unpriced external costs). Reconsider before proceeding."
+  If economic negative AND financial negative:
+    "Both cases negative. Do not proceed on these numbers."
+```
+
+The verdict appears immediately under the headline metrics block in the output, before any detailed tables.
 
 **Referent group analysis (Campbell-Brown identity check):**
 
@@ -1137,7 +1234,7 @@ Options:
 - Distributional analysis (who bears costs, who receives benefits; welfare weights if applied)
 - Place-based context (levelling up, IMD ranking, local priorities; UK only)
 - Monte Carlo / probabilistic analysis (probability distribution of NPV outcomes)
-- Financial analysis (cash flow to the investing entity, separate from economic/social CBA)
+- Financial case: cash flow to the sponsor (auto-included when a longlist with Cash flow tags is loaded; computed from Cash in and Cash out items only, at the sponsor's cost of capital)
 - Appraisal summary table (one-page consolidated view)
 - Methodology note (discount rate, optimism bias, additionality assumptions)
 - Risk register (project-specific risks with likelihood, impact, mitigation)
@@ -1171,15 +1268,23 @@ Markdown is always generated regardless of selection. If the user selects nothin
 <!-- KEY NUMBERS
 framework: [framework name]
 perspective: [social/investor/fiscal/local]
+sponsor: [government/private/blended/philanthropic]
 referent_group: [description]
 project: [project name]
 preferred_option: [option name]
-npv_m: [val]
+economic_npv_m: [val]
 referent_group_npv_m: [val]
 bcr: [val]
 vfm: [category]
 pv_costs_m: [val]
 pv_benefits_m: [val]
+financial_npv_m: [val]
+financial_discount_rate: [val]
+total_funding_requirement_m: [val]
+payback_years: [val]
+financial_irr_pct: [val]
+min_dscr: [val or "n/a"]
+avg_dscr: [val or "n/a"]
 switching_value_benefits_pct: [val]
 switching_value_costs_pct: [val]
 optimism_bias_pct: [val]
@@ -1241,19 +1346,41 @@ Additionality adjustments: [X]% deadweight, [X]% displacement, [X]% leakage (net
 - [Benefit described qualitatively with direction and estimated magnitude]
 ```
 
-**NPV and BCR:**
+**Headline verdict (always emitted as the first section after the KEY NUMBERS comment):**
 ```markdown
-## Value for Money
+## Headline
+
+**Sponsor**: [government/private/blended/philanthropic]
+**Economic NPV**: [currency][val]m (at [social discount rate]% real, declining)
+**Financial NPV**: [currency][val]m (at [financial discount rate]% real, flat)
+**Verdict**: [one-line verdict string from the Step 4 compose rule]
+
+| | Economic case | Financial case |
+|---|---|---|
+| NPV | [val] | [val] |
+| BCR / IRR | [BCR] | [IRR]% |
+| Discount rate | [social rate] | [financial rate] |
+| Includes | All items | Cash in and Cash out only (Non-cash excluded) |
+| Interpretation | Societal welfare | Sponsor cash position |
+```
+
+This headline block is mandatory. It frames the report and gives the decision-maker the dual read without having to scroll.
+
+**Economic case (formerly Value for Money):**
+```markdown
+## Economic case: Value for Money
+
+All items at shadow prices. Cash and non-cash benefits and costs are treated equivalently. Discounted at the [framework] social time preference rate.
 
 | Metric | Do Nothing | [Option 2] | [Option 3] |
 |--------|-----------|------------|------------|
 | PV Costs (£m) | 0 | [val] | [val] |
 | PV Benefits (£m) | 0 | [val] | [val] |
-| **NPV (£m)** | **0** | **[val]** | **[val]** |
+| **Economic NPV (£m)** | **0** | **[val]** | **[val]** |
 | **BCR** | - | **[val]** | **[val]** |
 | **VfM category** | - | **[category]** | **[category]** |
 
-[Preferred option] has an NPV of £[val]m and a BCR of [val], representing [category] value for money. [If non-monetised benefits are significant: "Accounting for non-monetised benefits (described above), the overall VfM case is [stronger/weaker] than the BCR alone suggests."]
+[Preferred option] has an economic NPV of £[val]m and a BCR of [val], representing [category] value for money. [If non-monetised benefits are significant: "Accounting for non-monetised benefits (described above), the overall VfM case is [stronger/weaker] than the BCR alone suggests."]
 
 Note: BCR thresholds are indicative, not deterministic. The Green Book (2026) states that a BCR below 1 may still represent value for money if non-monetised benefits are sufficiently strong.
 ```
@@ -1388,25 +1515,42 @@ Carbon values are not subject to additionality adjustments (they are global exte
 
 **Financial analysis (if requested):**
 ```markdown
-## Financial Analysis
+## Financial case: cash flow to the sponsor
 
-This section presents the financial (cash flow) case for the investing entity, separate from the economic (societal welfare) analysis above. The financial analysis:
-- Includes taxes, grants, and transfers (which cancel in social CBA)
-- Uses a financial discount rate (cost of capital to the investing entity)
-- Shows the funding requirement and financial sustainability
+This section presents the financial (cash flow) case from the sponsor's perspective, separate from the economic case above. Only items tagged `Cash in` or `Cash out` on the longlist are counted. Non-cash items (avoided deaths, WELLBYs, carbon, biodiversity, air quality, fundamental rights) are excluded entirely. They cannot service debt and do not appear on the sponsor's books.
 
-| Year | Capital outlay | Operating costs | Revenue/funding | Net cash flow | Cumulative cash flow |
-|------|---------------|----------------|-----------------|---------------|---------------------|
-| [year-by-year rows] |
+**Discount rate**: [X]% real, flat (sponsor cost of capital). This is different from the social time preference rate used in the economic case. For a government sponsor the default is 4.5% real; for private investors 8-12% real is typical.
+
+### Cash flow profile
+
+| Year | Cash in | Cash out | Net cash flow | Cumulative cash flow |
+|------|---------|----------|---------------|---------------------|
+| [year-by-year rows derived from the longlist Cash in and Cash out items] |
+
+### Financial metrics
 
 | Metric | Value |
 |--------|-------|
-| Total funding requirement | £[val]m |
-| Financial NPV (at [X]% cost of capital) | £[val]m |
-| Financial rate of return (FRR) | [val]% |
-| Payback period | [val] years |
+| Total funding requirement (peak financing need) | [currency][val]m |
+| Financial NPV | [currency][val]m |
+| Financial IRR | [val]% or "undefined" |
+| Payback period | [val] years or "does not pay back within appraisal period" |
+| Minimum DSCR (if debt) | [val] or "n/a" |
+| Average DSCR (if debt) | [val] or "n/a" |
 
-[Note: A negative financial NPV is common for public infrastructure. It means the project requires public subsidy to be financially viable, which is the rationale for public investment. The economic case (positive societal NPV) provides the justification.]
+### Interpretation
+
+[Auto-generate based on the Financial NPV sign and the verdict rules in Step 4. Possible strings:
+
+- **Positive Financial NPV + positive Economic NPV**: "This project is both socially worthwhile and financially self-sustaining. It can support commercial debt or blended finance."
+- **Positive Economic NPV + negative Financial NPV**: "This project is socially worthwhile but does not generate sufficient cash to service debt. Public subsidy, grant funding, or philanthropic backing is required. The economic case justifies the public contribution."
+- **Positive Financial NPV + negative Economic NPV**: "This project generates cash for the sponsor but destroys social value. Reconsider before proceeding. Common pattern when unpriced externalities (carbon, displacement, congestion) are material."
+- **Both negative**: "Do not proceed on these numbers. Revisit the benefit estimates, cost assumptions, and counterfactual."
+]
+
+[If minimum DSCR < 1.2: "Minimum DSCR of [val] is below the typical 1.2x lender covenant. The current debt structure is not bankable. Reduce gearing, extend tenor, or find non-debt funding for the shortfall."]
+
+[If no cash inflows at all: "There are no Cash in items on the longlist. This is a pure subsidy project: all benefits are non-cash social value and all costs are cash out. Fund via government budget, grant, or philanthropic capital. Commercial debt is not applicable."]
 ```
 
 **Stakeholder analysis and distributional analysis:**
