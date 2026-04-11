@@ -207,7 +207,7 @@ Framework-aware: align to UK Green Book benefit categories, EU Better Regulation
 
 Regulatory Impact Assessment for proposed legislation, policy, or regulatory change. Applies the Standard Cost Model for compliance costs, runs the framework-specific tests (EANDCB and Small and Micro Business Impact for UK, SME test and Fundamental Rights screening for EU, Regulatory Change Measurement for Victoria), and produces a compact RIA with a single recommendation.
 
-The output covers problem definition, market failure, options compared (including Do Nothing), cost-benefit summary per option, framework tests, sensitivity, post-implementation review plan, and a one-line verdict. Supports UK Better Regulation Framework (using Green Book methodology), EU Better Regulation Guidelines, and Victorian RIS (not HVHR — HVHR is for infrastructure). World Bank and ADB are not supported because they produce project economic analyses, not regulatory impact assessments; use `/cost-benefit --framework wb` or `--framework adb` for those.
+The output covers problem definition, market failure, options compared (including Do Nothing), cost-benefit summary per option, framework tests, sensitivity, post-implementation review plan, and a one-line verdict.
 
 ```
 /reg-impact "Mandatory climate risk disclosure for listed companies"
@@ -232,8 +232,6 @@ Two-page policy briefing note for ministers, boards, committees, and internal de
 ### `/econ-audit`
 
 Think of it as a senior partner and an economics professor going through your work and poking holes in it. Full methodology audit of any output from the skills above, or any economic analysis you point it at. Runs 124 checks across 17 categories and produces a RAG (red, amber, green) rating on how your methods and assumptions compare to best practice. Agnostic to region or asset class: it draws on government guidance (Green Book 2026, Aqua Book, EU Better Regulation Toolbox, World Bank Guidance Note) and published academic literature (Flyvbjerg, Moretti, Flegg) to assess numerical consistency, discount rates, additionality, multiplier plausibility, double counting, framing, Five Case Model completeness, distributional analysis, Aqua Book RIGOUR compliance, and strategic misrepresentation patterns.
-
-New in 2026: checks against the Green Book 2026 updates (BCR misuse, health discount rate, carbon pre-discounting, wellbeing), the 2025 Green Book Review distributional requirements, and the Aqua Book RIGOUR framework (Repeatable, Independent, Grounded, Objective, Uncertainty-managed, Robust). Detects Flyvbjerg-style strategic misrepresentation indicators (cost/benefit asymmetry, scope near thresholds, low contingencies, demand optimism).
 
 When it finds issues, it gives you a structured step-by-step plan to fix them and updates the methodology accordingly. Designed to improve over time as the rest of the repo evolves: as the parameter database and skill coverage expand, so does the audit's ability to cross-check your work.
 
