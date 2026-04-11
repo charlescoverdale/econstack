@@ -3,14 +3,12 @@
 ![Version](https://img.shields.io/badge/version-0.12.0-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Skills](https://img.shields.io/badge/skills-11-orange)
-![Parameters](https://img.shields.io/badge/parameters-57_files-purple)
-![Frameworks](https://img.shields.io/badge/frameworks-5-red)
 
 Professional economic analysis, powered by AI.
 
-econstack is a set of [Claude Code](https://claude.ai/code) skills that handle the first 80% of economic analysis, so you can focus on the interpretation and key decisions. It knows the standard frameworks (Green Book, EU Better Regulation, World Bank, ADB, Victorian HVHR), the right parameters for each jurisdiction, and the business case logic that underpins professional appraisal. You provide the project context; econstack does the computation, structuring, and formatting.
+econstack is a set of [Claude Code](https://claude.ai/code) skills that handle the first 80% of economic analysis, so you can focus on the interpretation and key decisions. It knows the standard frameworks (HM Treasury Green Book, EU Better Regulation, World Bank, Asian Development Bank, and Australian Treasury (Victoria)), the right parameters for each jurisdiction, and the business case logic that underpins professional appraisal. You provide the project context; econstack does the computation, structuring, and formatting.
 
-Built on 16 R packages on CRAN and a 57-file parameter database covering the UK, EU, Australia, World Bank, and ADB.
+Built on 16 R packages on CRAN and a parameter database covering the UK, EU, Australia, World Bank, and Asian Development Bank.
 
 ### Who this is for
 
@@ -40,9 +38,9 @@ git clone https://github.com/charlescoverdale/econstack.git ~/.claude/skills/eco
 git clone https://github.com/charlescoverdale/econstack-data.git ~/econstack-data
 ```
 
-Your information doesn't leave your machine.
+Everything installs locally: the skills, the parameter database, and the 391 UK local authority datasets are cloned to your own machine. There is no central econstack server, no database, no telemetry. The skills read files from your local drive through Claude Code's normal file access, so your project notes, costings, and client materials stay on your device. The only information that travels to Anthropic is what Claude itself reads during each invocation, the same as any other Claude Code workflow.
 
-Point Claude to your project documents so it can read the context, or tell it bespoke considerations you'd like it to factor in.
+You can come to econstack with zero project documents and start from a one-line description, or you can point it to wherever your existing materials live: costings, design briefs, brainstorming notes, prior business cases, stakeholder correspondence. The skill reads them automatically and factors the bespoke context into the analysis, so you do not need to retype anything you have already captured elsewhere.
 
 ---
 
@@ -89,6 +87,40 @@ Every analysis starts by establishing who the decision-maker represents (the ref
 
 ```
 /cost-benefit "New secondary school in Leeds" --framework uk-gb --format xlsx,word
+```
+
+---
+
+### `/longlist`
+
+The messy-whiteboard-phase skill. Before you run a CBA, a business case, or an RIA, you need to know what benefits to measure and what costs to include. `/longlist` is a structured brainstorm that helps you think through both, systematically, using multiple lenses (stakeholder mapping, Theory of Change, framework taxonomy, sector template, commonly-missed checklist). It runs the brainstorm internally and shows you the result: two clean tables of benefits and costs that you can hand straight to `/cost-benefit`.
+
+The headline output is a seven-column table of benefits and costs: number, name, plain-English description, materiality rating (H/M/L), cash flow tag (Cash in / Cash out / Non-cash), how to quantify, and how to monetise.
+
+**The cash flow tag is the bridge to the financial case.** Every item is tagged from the sponsor's perspective: cash in (real money onto the sponsor's books), cash out (real money off the sponsor's books), or non-cash (social value with no money attached, like heat deaths avoided, WELLBYs, biodiversity). This drives `/cost-benefit`'s financial case: only cash in and cash out items count for the Financial NPV, while the full set counts for the Economic NPV. That's how the skill tells you whether a project is socially worthwhile AND financially self-sustaining in one go.
+
+**How to quantify / monetise: the bridge to the NPV.** Every item gets a suggested estimation method, either a published unit value from a named data source, an analytical approach, or "qualitative only" if no defensible monetisation exists. The downstream CBA starts with a clear method per line, not a blank cell.
+
+Recognises the three classic double-counting traps and flags them automatically: construction employment + capital cost, journey time savings + land value uplift, and gross earnings + tax revenue. Excludes sunk costs by default. Splits carbon into embodied (construction) and operational (in-use). Does not adjust carbon benefits for additionality (per Green Book / DESNZ guidance).
+
+Framework-aware: align to UK Green Book benefit categories, EU Better Regulation impacts, World Bank OP 10.04 lens, Asian Development Bank poverty and gender disaggregation, or Australian Treasury (Victoria) Investment Logic Map. Hands off a markdown longlist that `/cost-benefit`, `/business-case`, and `/reg-impact` can read directly via `--from`, so the suggested method and cash flow tags flow straight through without retyping.
+
+```
+/longlist "New secondary school in Leeds" --framework uk-gb --format xlsx,word
+```
+
+---
+
+### `/business-case`
+
+Draft a complete business case in the Five Case Model structure (Strategic, Economic, Commercial, Financial, Management). Delegates the CBA computation to `/cost-benefit` and adjusts depth by stage (SOC/OBC/FBC) and proportionality (under GBP 1m to over GBP 100m).
+
+Guides you through the structured thinking: options vs counterfactual, preferred option selection, consistency across the five cases. The **Strategic Case** frames the problem, the options considered, and the Critical Success Factors. The **Economic Case** delegates to `/cost-benefit` for the NPV/BCR numbers. The **Commercial Case** covers procurement strategy, risk allocation, and contractual terms. The **Financial Case** covers funding sources and the year-by-year affordability profile. The **Management Case** covers governance, programme plan, risk register, and benefits realisation plan.
+
+Cross-case consistency checks flag mismatches between financial and economic costs, benefits register and realisation plan, risk register and economic case contingency, and the preferred option across all five cases. Cash flow tags from the longlist flow through unchanged to keep the economic and financial cases internally consistent. Supports `--with-cba` to import an existing CBA output and `--from` to import a longlist.
+
+```
+/business-case "New hospital wing in Greater Manchester" --framework uk-gb --stage fbc --format docx,pdf
 ```
 
 ---
@@ -161,48 +193,6 @@ Economic snapshot for any of the 391 UK local authorities. Covers demographics, 
 
 ---
 
-### `/business-case`
-
-Draft a complete business case in the Five Case Model structure (Strategic, Economic, Commercial, Financial, Management). Delegates the CBA computation to `/cost-benefit` and adjusts depth by stage (SOC/OBC/FBC) and proportionality (under GBP 1m to over GBP 100m).
-
-Guides you through the structured thinking: options vs counterfactual, preferred option selection, consistency across the five cases. The **Strategic Case** frames the problem, the options considered, and the Critical Success Factors. The **Economic Case** delegates to `/cost-benefit` for the NPV/BCR numbers. The **Commercial Case** covers procurement strategy, risk allocation, and contractual terms. The **Financial Case** covers funding sources and the year-by-year affordability profile. The **Management Case** covers governance, programme plan, risk register, and benefits realisation plan.
-
-Cross-case consistency checks flag mismatches between financial and economic costs, benefits register and realisation plan, risk register and economic case contingency, and the preferred option across all five cases. Cash flow tags from the longlist flow through unchanged to keep the economic and financial cases internally consistent. Supports `--with-cba` to import an existing CBA output and `--from` to import a longlist.
-
-```
-/business-case "New hospital wing in Greater Manchester" --stage obc
-/business-case --framework au-vic --stage fbc
-/business-case --section strategic,economic
-/business-case --from longlist-schools-2026-04-10.md
-/business-case --with-cba cba-schools-2026-04-10.md --format docx,pdf
-```
-
----
-
-### `/longlist`
-
-The messy-whiteboard-phase skill. Before you run a CBA, a business case, or an RIA, you need to know what benefits to measure and what costs to include. `/longlist` is a structured brainstorm that helps you think through both, systematically, using multiple lenses (stakeholder mapping, Theory of Change, framework taxonomy, sector template, commonly-missed checklist). It runs the brainstorm internally and shows you the result: two clean tables of benefits and costs that you can hand straight to `/cost-benefit`.
-
-The headline output is a seven-column table of benefits and costs: number, name, plain-English description, materiality rating (H/M/L), cash flow tag (Cash in / Cash out / Non-cash), how to quantify, and how to monetise.
-
-**The cash flow tag is the bridge to the financial case.** Every item is tagged from the sponsor's perspective: cash in (real money onto the sponsor's books), cash out (real money off the sponsor's books), or non-cash (social value with no money attached, like heat deaths avoided, WELLBYs, biodiversity). This drives `/cost-benefit`'s financial case: only cash in and cash out items count for the Financial NPV, while the full set counts for the Economic NPV. That's how the skill tells you whether a project is socially worthwhile AND financially self-sustaining in one go.
-
-**How to quantify / monetise: the bridge to the NPV.** Every item also gets a suggested estimation method pulled from the built-in method library: published unit values with named data sources (DfT TAG, DESNZ carbon, GMCA unit costs, NHS Reference Costs, BCIS, ATAP PV5, EU ETS, DG MOVE External Costs Handbook, ADB shadow wages, World Bank shadow carbon, Italian VSL, and more), analytical approaches (hedonic pricing, contingent valuation, revealed preference, difference-in-differences), primary research (interviews, stratified surveys, Delphi panels), benchmarking against published ex-post evaluations, and modelled estimates (IO multipliers, RICS whole-life carbon). For items with no defensible monetisation route, the field records "Qualitative only, narrative treatment".
-
-Recognises the three classic double-counting traps and flags them automatically: construction employment + capital cost, journey time savings + land value uplift, and gross earnings + tax revenue. Excludes sunk costs by default. Splits carbon into embodied (construction) and operational (in-use). Does not adjust carbon benefits for additionality (per Green Book / DESNZ guidance).
-
-Framework-aware: align to UK Green Book benefit categories, EU Better Regulation impacts, World Bank OP 10.04 lens, ADB poverty and gender disaggregation, or Victorian HVHR Investment Logic Map. Hands off a markdown longlist that `/cost-benefit`, `/business-case`, `/vfm-eval`, and `/reg-impact` can read directly via `--from`, so the suggested method and cash flow tags flow straight through without retyping.
-
-```
-/longlist "New secondary school in Leeds"
-/longlist "Climate adaptation via city greening, Milan" --framework eu-brg
-/longlist "Victorian Level Crossing Removal" --framework au-vic
-/longlist "Rural water supply project, Indonesia" --framework adb
-/longlist --section benefits                     # benefits table only
-```
-
----
-
 ### `/reg-impact`
 
 Regulatory Impact Assessment for proposed legislation, policy, or regulatory change. Applies the Standard Cost Model for compliance costs, runs the framework-specific tests (EANDCB and Small and Micro Business Impact for UK, SME test and Fundamental Rights screening for EU, Regulatory Change Measurement for Victoria), and produces a compact RIA with a single recommendation.
@@ -246,9 +236,9 @@ Letter grade A-F, with auto-fix option.
 
 ## Data
 
-**Local authority data:** 391 UK LAs with 16 data files each (employment, earnings, IO multipliers, population, housing, GVA, deprivation, skills, commuting). At `~/econstack-data/src/data/`.
+econstack comes preloaded with the data you need for most economic analysis work: discount rates, carbon values, VSL, QALYs, shadow wages, optimism bias tables, additionality conventions, tax parameters, and more. It also carries 391 UK local authority datasets covering employment, earnings, IO multipliers, population, housing, GVA, deprivation, skills, and commuting. All of this lives in the second repo you clone during install (`~/econstack-data/`) and is versioned, source-cited, and checked for staleness so you can trust the numbers without chasing them down yourself.
 
-**CBA and evaluation parameters:** 57 JSON files across UK (19), EU (6), AU (11), World Bank (2), ADB (2), OECD (2), common (1), and reference cases (8). Includes unit costs (GMCA database), evidence standards (Maryland SMS), and VfM benchmarks alongside the CBA parameters. Discount rates, carbon values, VSL, QALY, VTTS, optimism bias, additionality, tax parameters, and more. Source citations, staleness detection, and validation script included. At `~/econstack-data/parameters/`. See the [parameters README](https://github.com/charlescoverdale/econstack-data/blob/main/parameters/README.md) for full documentation.
+You can always override any parameter or bring your own data. If you have in-house unit costs, bespoke discount assumptions, or project-specific inputs, point the skill at them and it will use yours instead of the defaults. For the full list of parameters, source citations, and vintage dates, see the [parameters README](https://github.com/charlescoverdale/econstack-data/blob/main/parameters/README.md).
 
 ---
 
