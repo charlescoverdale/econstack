@@ -1,296 +1,230 @@
 # econstack
 
-![Version](https://img.shields.io/badge/version-0.11.0-blue)
+![Version](https://img.shields.io/badge/version-0.12.0-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Skills](https://img.shields.io/badge/skills-14-orange)
-![Parameters](https://img.shields.io/badge/parameters-57_files-purple)
-![Frameworks](https://img.shields.io/badge/frameworks-8_countries-red)
+![Frameworks](https://img.shields.io/badge/frameworks-5-red)
 
-Professional economic analysis, powered by AI.
+Economic analysis skills for Claude Code.
 
-econstack is a set of [Claude Code](https://claude.ai/code) skills that handle the first 80% of economic analysis, so you can focus on the interpretation and key decisions. It knows the standard frameworks (Green Book, OMB A-4, EU Cohesion), the right parameters for each jurisdiction, and the business case logic that underpins professional appraisal. You provide the project context; econstack does the computation, structuring, and formatting.
+econstack is a set of [Claude Code](https://claude.ai/code) skills for professional economic analysis: cost-benefit analysis, business cases, evaluations, regulatory impact assessments, multi-criteria analysis, and macro briefings. You describe your project; the skill does the structuring, computation, and formatting. You review and edit from there.
 
-Built on 16 R packages on CRAN and a 57-file parameter database covering the UK, US, EU, Australia (Commonwealth + 5 states), World Bank, and ADB.
-
-### Who this is for
-
-- A government economist writing a Green Book CBA or Magenta Book evaluation
-- A consultant preparing an IO impact assessment or regulatory impact assessment
-- An analyst pulling a macro briefing before a ministerial meeting
-- A policy officer drafting a 2-page briefing note for a minister or board
-- A programme manager commissioning an evaluation and needing an evaluation plan
-- A local authority officer building an economic profile for a funding bid
-- A trade analyst assessing bilateral trade flows and comparative advantage
-
-If you spend time wrangling discount rates, writing up RIAs, formatting CBA spreadsheets, or structuring evaluation frameworks, econstack automates the mechanical parts so you can focus on the judgment calls.
-
-If you already have a report, model, or output format that you like, upload it or link to it and the skills will adapt to match your structure and style. Your previous work becomes the template for future analyses.
-
----
+Built on 16 R packages on CRAN and a local parameter database covering the UK, EU, World Bank, ADB, and Victorian Treasury frameworks. Everything runs locally through Claude Code. No API keys. No uploads. Your inputs and outputs stay on your machine.
 
 ## Quick start
 
 ```bash
-# Install the skills
 git clone https://github.com/charlescoverdale/econstack.git ~/.claude/skills/econstack
-
-# Get the data (391 UK local authority datasets + CBA parameter database)
 git clone https://github.com/charlescoverdale/econstack-data.git ~/econstack-data
 ```
 
-No npm, no API keys, no configuration. Claude Code discovers skills in `~/.claude/skills/` automatically. econstack runs entirely on your machine through Claude Code. Your data, inputs, and outputs stay local and are never uploaded or shared.
+Claude Code discovers the skills automatically. Install and start typing: `/longlist "New secondary school in Leeds"` or `/cost-benefit` or `/macro-briefing --country uk`.
 
-If you have your own preferences or style (a preferred framework, custom discount rate, specific formatting), econstack notes these on your local machine so they're there for all future analyses. No setup required: preferences are learned automatically as you work and stored at `~/.econstack/projects/` on your device. Nothing is transmitted to any server.
-
-Install econstack in Claude Code and start talking to it about your analysis. Describe your project and the skill integrates with whatever you're building, whether that's a report, a model, a slide deck, or a policy brief. Generate a full analysis or just the sections you need, then export to Markdown, HTML, Word, PowerPoint, PDF, or Excel.
-
-Every skill supports `--exec` to generate a management consulting-style executive summary deck: 5-8 slides with action titles (a sentence stating the insight, not a topic label), 3-4 evidence bullets per slide, and optional charts. The kind of deck you'd present to a board, minister, or investment committee.
+If you already have a report, model, or output format you like, point the skill at it and it will adapt to match your structure and style. Your previous work becomes the template for future analyses.
 
 ---
 
-## Skills
+## Frameworks
 
-### `/cost-benefit`
+Every appraisal skill supports the same five frameworks. You pick via `--framework` or the skill auto-detects from your project description.
 
-Cost-benefit analysis that meets you where you are. Come with a one-line description ("I'm building a bridge in Melbourne") or a detailed set of inputs (costing schedules, theory of change, benefit streams by beneficiary group). The skill walks you through what it needs, fills in the framework-specific parameters automatically, and asks the right questions based on your project type and location.
+| Flag | Framework | Use when |
+|---|---|---|
+| `uk-gb` | UK HM Treasury Green Book (2022, with Wellbeing supplementary 2021) | Default. UK public investment, programmes, infrastructure, place-based interventions. |
+| `eu-brg` | EU Better Regulation Guidelines (2021, SWD(2021) 305) | EU regulations, directives, EU-level interventions. SME test, fundamental rights, REFIT. |
+| `wb` | World Bank Economic Analysis of Investment Operations (OP 10.04, 2023 guidance) | World Bank-financed projects. Economic rate of return, distributional incidence, poverty impact. |
+| `adb` | Asian Development Bank Guidelines for the Economic Analysis of Projects (2017) | ADB-financed projects. 9% EIRR hurdle (6% for climate, health, education), poverty and gender disaggregation. |
+| `au-vic` | Victorian Treasury High Value High Risk (HVHR) | Victorian Government projects above the HVHR threshold. Investment Logic Map, Benefit Management Plan, six-gate assurance. |
 
-If you have a similar CBA or business case for a comparable asset that you like (the format, the benefit streams, the structure), upload it and tell econstack to use it as a reference. It will incorporate that framing when building your new analysis.
+Framework defaults are applied automatically: the right discount rate, the right unit values (VSL, QALY, shadow wages, carbon prices), the right additionality conventions, and the right optimism bias uplift for the jurisdiction.
 
-Whether you've finalised the exact location, scale, and beneficiary groups or you're still at the back-of-envelope stage, the skill adapts. It follows standard business case logic: establishing a baseline (what happens without the project), developing options, and ensuring all benefit calculations are marginal compared to that baseline. It helps you think through scenario development and options selection before jumping to the numbers.
-
-Every analysis starts by establishing who the decision-maker represents (the referent group) and what perspective to take (social, investor, fiscal, or local). This follows the Campbell & Brown multiple account framework: costs and benefits are tagged to stakeholder groups, disaggregated into referent and non-referent flows, and verified with the identity check (Referent Group NPV + Non-Referent NPV = Efficiency NPV). The result is a CBA where you can see exactly whose costs are being weighed against whose benefits.
-
-It then works through costs using the latest government guidelines and market benchmarks, provides defensible estimates, and lets you override anything. The output is a structured CBA model and associated documentation that's 80% done: correct discounting, optimism bias, sensitivity analysis, switching values, Monte Carlo, and a full stakeholder-level multiple account table. Ready for a business case submission, client report, or internal appraisal. You edit from there.
-
-```
-/cost-benefit
-/cost-benefit --framework us
-/cost-benefit --from assumptions.json --full --format xlsx,pdf
-/cost-benefit --exec                          # executive summary deck
-```
-
-The skill includes 8 frameworks (UK Green Book, US OMB A-4, EU Cohesion, Australia, World Bank, NZ CBAx, EIB, ADB) and 57 audited parameter files with source citations and staleness detection.
-
-| Parameter | UK | US | EU | AU | WB | ADB |
-|-----------|:--:|:--:|:--:|:--:|:--:|:---:|
-| Discount rates | 3.5% declining | 2% (OMB A-4) | 3% / 5% | 7% (4%/10%) | 6% ERR | 9-12% ERR |
-| Carbon values | DESNZ | EPA SC-GHG | EIB shadow | ACCU | $40-80/tCO2 | MDB joint |
-| VSL | GBP 2.35M | $12.5-13.7M | EUR 3.6M | AUD 5.87M | By income group | Transfer method |
-| Shadow pricing | | | Conversion factors | | SERF, SCF, SWRF | SERF, SCF, SWRF |
-| Health (QALY) | GBP 70,000 | $190-250K | EUR 40-100K | AUD 50-70K | | |
-| VTTS | TAG Data Book | DOT wage-% | | ATAP formula | | |
-| Optimism bias | 6 types x 3 stages | | | | | |
-
-**Options:** `--framework`, `--from`, `--full`, `--exec`, `--audit`, `--client`, `--format`
+**Note**: `/reg-impact` supports only `uk-gb`, `eu-brg`, and `au-vic` (regulatory impact statement version, not HVHR). World Bank and ADB do not produce regulatory impact assessments.
 
 ---
 
-### `/mca`
+## Output formats
 
-Multi-criteria analysis and MCDA for options appraisal. Describe your decision problem and the skill generates tailored criteria, builds scoring scales with descriptors specific to each criterion (not generic "good/medium/bad"), and walks you through weighting and scoring. Three methods: standard MCA (default, flexible scale and weighting), Green Book MCDA (0-100 scoring, swing weighting, Decision Conference format), and AHP (pairwise comparisons with consistency check).
+Every skill generates markdown by default, and can also export to Excel, Word, PowerPoint, or PDF via `--format`.
 
-Links to `/cost-benefit` via `--with-cba` to cover non-monetised benefits without double counting. Outputs an IB-quality Excel scoring matrix with blue input cells, plus summary tables in Word/PPT/Markdown/PDF. Built-in sensitivity analysis: weight thresholds, equal-weights check, score sensitivity, remove-a-criterion test.
+| Format | Flag | Use |
+|---|---|---|
+| Markdown | default | Always generated. Plain text you can paste into any editor, issue tracker, or wiki. |
+| Excel | `--format xlsx` | Spreadsheet workbook with blue input cells, linked formulas, conditional formatting on ratings, and scenario toggles. Re-run scenarios without re-invoking the skill. |
+| Word | `--format word` | Formatted document for editing in Microsoft Word. Hyperlinked references. |
+| PowerPoint | `--format pptx` | Slide deck with action titles (sentences stating the insight) and 3-4 evidence bullets per slide. The kind of deck you'd take to a board, minister, or investment committee. |
+| PDF | `--format pdf` | Consulting-quality PDF rendered through Quarto. |
+| All | `--format all` | All of the above. |
 
-```
-/mca "Choosing between 3 sites for a new hospital in Leeds"
-/mca "Evaluate 5 renewable energy technologies" --scale 5
-/mca "Longlist transport options" --method mcda --exec
-/mca --from criteria.json --format xlsx,word
-```
-
-**Options:** `--method`, `--scale`, `--with-cba`, `--full`, `--exec`, `--client`, `--format`, `--from`
-
----
-
-### `/vfm-eval`
-
-The companion to `/cost-benefit`. Where `/cost-benefit` asks "should we do this?" (ex-ante), `/vfm-eval` asks "did it work? was it worth it?" (ex-post). Walks you through the Magenta Book 3Es framework (economy, efficiency, effectiveness), benchmarks your programme costs against the GMCA Unit Cost Database, applies additionality adjustments with optional multiplier effects, discounts multi-year benefits using the Green Book STPR schedule with persistence/decay modelling, computes BCR and RPSC (Return on Public Sector Cost), and grades the evidence quality using the Maryland Scientific Methods Scale.
-
-Mandatory sensitivity analysis on every evaluation: scenarios across discount rates, additionality, and benefit duration, plus switching value analysis showing where the VfM conclusion flips. Computes fiscal return (discounted) by mapping outcomes to published unit cost savings (crime, employment, health, education, housing). Supports WELLBY valuation for wellbeing programmes per Green Book supplementary guidance. Price base year checks with GDP deflator adjustment.
-
-8 evaluation frameworks: UK 3Es, FCDO 4Es (adding equity), Australia 4Es (adding ethics), EC Better Regulation (5 criteria), US GAO/OMB, World Bank IEG (6-point outcome rating), OECD DAC (6 criteria including coherence), and NZ Living Standards Framework (12 domains, 4 capitals). Also has a lighter "Spending Review narrative" mode with optimism bias guidance for forward-looking projections.
-
-Outputs to Markdown, HTML, Excel (IB-style workbook with cover page, RAG dashboard, sensitivity sheet, and assumption sheets), Word, PowerPoint, or PDF.
-
-```
-/vfm-eval
-/vfm-eval --framework dac
-/vfm-eval --mode narrative
-/vfm-eval --full --format xlsx,pdf
-```
-
-**Options:** `--mode`, `--framework`, `--full`, `--exec`, `--client`, `--audit`, `--format`
+Combine formats with commas: `--format xlsx,word,pptx`.
 
 ---
 
-### `/macro-briefing`
+## Section selection
 
-Up-to-date macroeconomic reports for the UK, US, Euro area, and Australia. Tell it what you care about most (CPI, GDP growth, labour market, yield curves) or let it pick for you. Pulls live data from official government databases (ONS, FRED, ECB, ABS), structures it into a professional briefing following each central bank's reporting conventions, and lets you tailor the output to the indicators that matter for your work. Every number is traceable: full methodology, data sources, and vintage dates included.
+The default output for each skill is one clean deliverable: all the sections a first-time user needs, nothing they don't. Power users can select just the sub-components they want via `--section`.
 
+For example:
 ```
-/macro-briefing                     # UK (BoE MPR structure, 27 indicators)
-/macro-briefing --country us        # US (FOMC structure, 27 indicators)
-/macro-briefing --country eu        # Euro area (ECB Bulletin, 17 indicators)
-/macro-briefing --country au        # Australia (RBA SoMP, 12+ indicators via readabs)
-/macro-briefing --international     # Add 30-country comparison tables
+/mca ... --section matrix       # just the scoring table, not the full MCA
+/cost-benefit ... --section verdict,sensitivity   # headline and sensitivity only
+/vfm-eval ... --section scorecard      # just the 4 E's scorecard
 ```
 
-Traffic-light macro assessment (GREEN/AMBER/RED) with quantitative thresholds. Outputs to Markdown, HTML, Word, PowerPoint, or PDF. **Options:** `--country`, `--full`, `--focus`, `--international`, `--exec`, `--audit`, `--client`, `--format`
+Every skill lists its supported sub-components in its own `--help` or SKILL.md. Combinable with commas.
 
 ---
 
-### `/fiscal-briefing`
+## The skills
 
-Up-to-date public finances reports for the UK, US, and Australia. Pulls live data from official sources (ONS, OBR, FRED, ABS), covers borrowing, debt, receipts by tax, spending by category, and fiscal rules or sustainability context. Every number is traceable: full methodology, data sources, and vintage dates included. Optionally add a debt sustainability analysis powered by the `debtkit` R package.
+The skills fall into four groups: **brainstorming and appraisal**, **wrapping and evaluation**, **briefings and market analysis**, and **audit**.
 
-```
-/fiscal-briefing                    # UK: PSNB, PSND, OBR forecasts, fiscal rules
-/fiscal-briefing --country us       # US: federal deficit, debt, receipts/outlays
-/fiscal-briefing --country au       # Australia: UCB, net debt, revenue/expenses
-/fiscal-briefing --dsa              # Add debt sustainability analysis via debtkit
-```
+### Brainstorming and appraisal
 
-Outputs to Markdown, HTML, Word, PowerPoint, or PDF. **Options:** `--country`, `--full`, `--dsa`, `--exec`, `--audit`, `--client`, `--format`
-
----
-
-### `/market-research`
-
-Industry and market analysis for any sector or product. Combines official statistics (ONS, BLS, Eurostat), regulatory data (CMA, FTC, EC), company filings, trade data (HMRC, UN Comtrade, Comext), and trade sources into a structured, source-cited research report. Covers market sizing, market segmentation, key players, M&A activity, pricing trends, market structure (HHI, CR4, contestability), Porter's Five Forces, PESTLE macro-environment, regulatory environment, supply chains, trade flows, demand drivers, industry history, and outlook with scenario analysis.
-
-Supports UK, US, EU, Australia, and global scope. Multiple geographies can be combined for cross-market comparison (e.g. `--geo uk,us`). Adapts writing style to the client and audience (GOV.UK, European Commission, academic, board, public). Lets you specify preferred data sources or bring your own data. All data points are source-cited with full references.
+**`/longlist` — the messy-whiteboard phase before any appraisal.** Describe your project and it brainstorms every benefit and cost you should consider, classifies each by materiality (High / Medium / Low), suggests how to quantify and monetise each, and tags each item as `Cash in`, `Cash out`, or `Non-cash` from the sponsor's perspective (so the downstream CBA can distinguish economic welfare from financial viability). Output is two clean tables you can hand straight to `/cost-benefit`.
 
 ```
-/market-research "UK grocery retail"
-/market-research semiconductors --geo global --exec
-/market-research "residential mortgages" --geo uk,us --format word,pdf
-/market-research "UK childcare" --focus regulation --depth quick
+/longlist "Climate adaptation via parks and green corridors in Milan"
+/longlist "Rural water supply project, Indonesia" --framework adb
 ```
 
-**Options:** `--geo`, `--sic`, `--depth`, `--full`, `--focus`, `--exec`, `--client`, `--audit`, `--format`
-
----
-
-### `/io-report` (UK and Australia)
-
-Quantitative economic impact assessment for 391 UK local authorities and 88 Australian SA4 regions. Input an investment amount or jobs number in a specific sector and location, and the skill builds regional input-output tables from the latest national IO data (ONS Blue Book 2025 for UK, ABS IO Tables 2023-24 for AU), computes direct and indirect (supply chain) multipliers via FLQ regionalization, and estimates the net additional impact on output, employment, and GVA. Auto-detects country from location name and currency.
-
-Allows you to choose between Type I and Type II multipliers, adjust for additionality (deadweight, displacement, leakage) with sensitivities, and benchmark your results against comparable areas. All additionality assumptions are aligned with HM Treasury Green Book guidance. Full report output includes detailed methodology and an honest discussion of the limitations of IO models.
+**`/cost-benefit` — develops NPV models at both economic and financial level.** Takes a longlist (or a rough project description) and produces two parallel answers. The **economic case** is a Green Book-style NPV with BCR, optimism bias, additionality adjustments, and sensitivity analysis. The **financial case** uses only the cash items (cash in minus cash out, at the sponsor's cost of capital) to compute Financial NPV, payback period, total funding requirement, and DSCR if the project takes on debt. The headline verdict tells you in one line whether the project is socially worthwhile **and** financially self-sustaining. A public park has a positive economic NPV but a negative financial NPV: the skill spells out exactly why, and tells you how much public subsidy the project needs.
 
 ```
-/io-report £10m in Manufacturing in Manchester
-/io-report 500 jobs in Construction in Glasgow --type2
+/cost-benefit                                    # interactive walkthrough
+/cost-benefit --from longlist-schools-2026-04-10.md
+/cost-benefit --framework wb --format xlsx,pptx
 ```
 
-**Options:** `--type2`, `--conservative`/`--optimistic`, `--full`, `--exec`, `--audit`, `--client`, `--format`
-
----
-
-### `/la-profile` (UK)
-
-Economic snapshot for any of the 391 UK local authorities. Covers demographics, labour market, earnings, industry structure, housing, business activity, productivity, skills, and deprivation. All indicators are benchmarked against the LA's own country average (England, Scotland, or Wales) and can be compared side-by-side with other local authorities. Pick the sections you need and export to Markdown, HTML, Word, PowerPoint, or PDF.
+**`/mca` — multi-criteria analysis when you can't (or shouldn't) monetise everything.** You describe your decision problem, the skill either takes your own criteria and scores or helps you brainstorm criteria with descriptors specific to your context. It then scores each option, applies weights, and outputs one ranked scoring matrix with a one-line verdict and a sensitivity paragraph. Good for early-stage option sifting, site selection, technology choice, or anything where the main trade-offs are environmental, social, or strategic. Use `--rigorous` for Green Book MCDA compliance (0-100 scale, swing weighting).
 
 ```
-/la-profile Manchester
-/la-profile Leeds --compare Birmingham
+/mca "Choose between 3 sites for a new hospital in Leeds"
+/mca "5 renewable energy technologies for a rural council" --format xlsx
+/mca "Compare 4 regulatory options for online safety" --rigorous
 ```
 
-**Options:** `--compare`, `--focus`, `--full`, `--exec`, `--audit`, `--client`, `--format`
-
----
-
-### `/business-case`
-
-Draft a complete business case in the structure and language of the selected national framework. Covers all five cases (Strategic, Economic, Commercial, Financial, Management) with framework-native headings: Victoria DTF's 10-chapter Investment Case / Delivery Case, NSW's component model, Queensland's 20-chapter BCDF, NZ Better Business Cases with Te Tiriti o Waitangi, or the UK Five Case Model. Delegates the CBA computation to `/cost-benefit` and adjusts depth by stage (SOC/OBC/FBC) and proportionality (under 1m to over 100m).
-
-Interactive section picker: complete the whole business case or just the sections you know. Skipped sections get placeholders noting what's needed at the next stage. Cross-case consistency checks flag mismatches between financial and economic costs, benefits register and realisation plan, and risk register and economic case risk costs. Supports `--with-cba` to import an existing CBA.
+**`/business-case` — guides you through a full Five Case Model business case.** Walks you through the structured thinking: options vs counterfactual, preferred option selection, consistency across the five cases. The **Strategic Case** frames the problem and options. The **Economic Case** delegates to `/cost-benefit` for the numbers. The **Commercial Case** covers deliverability and procurement. The **Financial Case** covers affordability. The **Management Case** covers the plan to deliver. Cross-case consistency checks flag any mismatches between the financial and economic costs, the benefits register and realisation plan, and the risk register and economic case risk costs. Scales by stage (Strategic OC, Outline BC, Full BC) and proportionality (under GBP 1m to over GBP 100m).
 
 ```
 /business-case "New hospital wing in Greater Manchester" --stage obc
-/business-case --framework au-vic --stage fbc --full
-/business-case --case strategic,economic
-/business-case --sections                    # interactive picker
-/business-case --from inputs.json --format docx,pdf
+/business-case --framework au-vic --stage fbc
+/business-case --from longlist-schools-2026-04-10.md
 ```
 
-9 frameworks: UK Green Book, AU Commonwealth (RMG 308), AU Victoria (HVHR), AU NSW (TPG24-29), AU Queensland (PAF/BCDF), NZ Better Business Cases, EU Better Regulation, World Bank PAD, US OMB.
+**`/reg-impact` — regulatory impact assessment for proposed legislation.** Applies the Standard Cost Model for compliance costs, runs the framework-specific tests (EANDCB and Small and Micro Business Impact for UK, SME test and Fundamental Rights for EU, Regulatory Change Measurement for Victoria), and produces a compact RIA with a single recommendation. The output covers problem definition, options (including Do Nothing), cost-benefit summary per option, framework tests, sensitivity, post-implementation review plan, and a one-line verdict. Not supported under `wb` or `adb` (they do project appraisal, not regulatory impact).
 
-**Options:** `--stage`, `--framework`, `--case`, `--sections`, `--proportionality`, `--with-cba`, `--full`, `--exec`, `--audit`, `--client`, `--format`, `--from`
+```
+/reg-impact "Mandatory climate risk disclosure for listed companies"
+/reg-impact "Ban on single-use plastics" --framework eu-brg
+```
 
----
+### Wrapping and evaluation
 
-### `/evaluate`
+**`/vfm-eval` — ex-post value for money evaluation.** Where `/cost-benefit` asks "should we do this?" (ex-ante), `/vfm-eval` asks "did it work? was it worth the money?" (ex-post). Produces a 4 E's scorecard (Economy, Efficiency, Effectiveness, Equity) with a headline VfM rating, one paragraph per dimension, a sensitivity paragraph, and a recommendation. Can import a `/cost-benefit` output via `--with-cba` to inherit the BCR.
 
-The Magenta Book companion, the same way `/business-case` is the Green Book companion. Covers the full programme evaluation lifecycle: from designing the evaluation before the programme starts, through mid-term assessment, to final summative evaluation and post-implementation review.
+```
+/vfm-eval "DESNZ Industrial Energy Transformation Fund, GBP 500m"
+/vfm-eval --with-cba cba-ietf-2026-04-10.md
+/vfm-eval --section narrative          # Spending Review style narrative
+```
 
-Five document types: evaluation plan (pre-programme), mid-term evaluation (formative), final evaluation (summative), post-implementation review (AU regulatory PIR), and evaluation synthesis (meta-evaluation). The final evaluation covers all three Magenta Book dimensions: process evaluation (was it implemented well?), impact evaluation (did it cause the outcomes?), and economic evaluation (was it value for money?, delegated to `/vfm-eval`).
-
-Includes a counterfactual method selection decision tree (RCT, DiD, RDD, PSM, synthetic control, ITS, plus theory-based methods: Contribution Analysis, Realist Evaluation, Process Tracing, QCA). Maryland SMS evidence quality grading. Theory of Change testing with assumption-by-assumption evidence assessment. Power and sample size guidance for experimental designs.
+**`/evaluate` — design a programme evaluation before, during, or after the programme runs.** Covers evaluation plan (pre-programme), mid-term (formative), final (summative), and post-implementation review. Includes a counterfactual method decision tree (RCT, DiD, RDD, PSM, synthetic control, ITS, plus theory-based methods like Contribution Analysis and Realist Evaluation) and Theory of Change testing with assumption-by-assumption evidence assessment.
 
 ```
 /evaluate "National Apprenticeship Programme" --type final
 /evaluate --type plan "New early years pilot"
-/evaluate --type pir "Data retention regulations" --framework au
-/evaluate --type midterm "Levelling Up Fund Round 2"
 ```
 
-8 frameworks: UK Magenta Book, AU Commonwealth (ACE), AU Victoria (DTF), AU NSW, AU Queensland (PAF), OECD DAC (6 criteria), NESTA Standards, US Evidence Act 2018.
+### Briefings and market analysis
 
-**Options:** `--type`, `--framework`, `--sections`, `--with-cba`, `--with-vfm`, `--full`, `--exec`, `--audit`, `--client`, `--format`, `--from`
+**`/macro-briefing` — structured macroeconomic briefing.** Pulls live data for UK, US, Euro area, or Australia from official sources (ONS, FRED, ECB, ABS), follows each central bank's reporting structure (BoE MPR, FOMC, ECB Bulletin, RBA SoMP), and produces a one-page briefing with a traffic-light assessment. Good before a ministerial meeting, investment committee, or exam.
+
+```
+/macro-briefing                          # UK by default
+/macro-briefing --country us
+/macro-briefing --international          # add cross-country comparison
+```
+
+**`/fiscal-briefing` — structured public finances briefing.** Borrowing, debt, receipts by tax, spending by category, fiscal rules, outlook. Supports UK, US, and Australia. Optional debt sustainability analysis via the `debtkit` R package.
+
+```
+/fiscal-briefing                         # UK
+/fiscal-briefing --country au --dsa
+```
+
+**`/market-research` — industry and market analysis with source citations.** Market sizing, segmentation, key players, HHI and CR4 concentration, Porter's Five Forces, PESTLE macro-environment, regulatory environment, trade flows, and outlook with scenario analysis. Supports UK, US, EU, Australia, and global scope. Multi-geography comparisons (e.g. `--geo uk,us`) are supported.
+
+```
+/market-research "UK grocery retail"
+/market-research "semiconductors" --geo global
+/market-research "residential mortgages" --geo uk,us
+```
+
+**`/io-report` — regional economic impact assessment.** Input an investment amount or jobs number in a specific sector and location; the skill builds regional input-output tables and computes direct and indirect multipliers via FLQ regionalization, applies additionality adjustments (deadweight, displacement, leakage), and estimates net economic impact on output, employment, and GVA. Supports 391 UK local authorities and 88 Australian SA4 regions.
+
+```
+/io-report "GBP 10m in Manufacturing in Manchester"
+/io-report "500 jobs in Construction in Glasgow"
+```
+
+**`/la-profile` — UK local authority economic snapshot.** Demographics, labour market, earnings, industry structure, housing, business activity, productivity, skills, and deprivation. Benchmarked against the LA's country average, with optional side-by-side comparison against another LA. Good for funding bid context or place-based policy work.
+
+```
+/la-profile "Manchester"
+/la-profile "Leeds" --compare "Birmingham"
+```
+
+**`/briefing-note` — two-page policy briefing note.** Problem, analysis, options, recommendation. Four templates covering minister submissions, board papers, committee briefings, and internal memos. This is the skill to use when you need to put something in front of a decision-maker quickly.
+
+```
+/briefing-note "Public transport fare cap policy"
+```
+
+### Audit
+
+**`/econ-audit` — a senior partner and an economics professor reviewing your work.** Runs methodology checks across any econstack output or any economic analysis you point it at. Checks include the common Green Book / Aqua Book errors (double counting, missing counterfactual, transfers as benefits, unit costs not benchmarked), Flyvbjerg-style optimism indicators (cost-benefit asymmetry, scope near thresholds, low contingencies), and distributional gaps. Returns a RAG rating with issues ranked by severity and an optional auto-fix mode.
+
+```
+/econ-audit cba-schools-2026-04-10.md
+/econ-audit . --strict --fix
+```
 
 ---
 
-### `/longlist`
-
-The messy-whiteboard-phase skill. Before you run a CBA, a business case, or an RIA, you need to know what benefits to measure and what costs to include. `/longlist` is a structured brainstorm that helps you think through both, systematically, using six lenses: stakeholder mapping, market failure framing, Theory of Change, framework taxonomy, sector library, and a commonly-missed checklist (with Flyvbjerg reference-class forecasting prompts on both cost and benefit optimism). It runs an equivalent five-lens exercise for costs: direct project, indirect/induced, compliance (Standard Cost Model), costs to other parties, and risk costs.
-
-Generates a full longlist, then classifies every item across twelve axes (description, beneficiary, direct/indirect, primary/secondary, monetisation, materiality, deadweight risk, dependencies, timing, evidence, quantification method, CBA inclusion) and synthesises a simple **Strong / Moderate / Weak CBA contender** rating for each. The headline output is a six-column table of benefits and costs: number, name, plain-English description, how to quantify / monetise, contender rating, and why.
-
-**How to quantify / monetise: the bridge to monetisation.** Every item gets a suggested estimation method pulled from the built-in Quantification Method Library. The library covers five method types: published unit values with named data sources and URLs (DfT TAG, DESNZ carbon, GMCA unit costs, NHS Reference Costs, Home Office HORR99, MHCLG Land Value Estimates, BCIS, Rawlinsons, PSSRU, ONS ASHE, Defra ENCA, and more), analytical approaches (hedonic pricing, contingent valuation, revealed preference, structural models, difference-in-differences), primary research (interviews, stratified surveys, Delphi panels, focus groups, case studies), benchmarking against published ex-post evaluations, and modelled estimates (IO multipliers, RICS whole-life carbon). For items with no defensible monetisation route, the field records "Qualitative only, narrative treatment". The library is framework-aware: UK projects get TAG and GMCA; Australian projects get ATAP and RoGS; EU projects get the Better Regulation Toolbox; US projects get OMB A-4 and BenMAP.
-
-Recognises the three classic double-counting traps and flags them automatically: construction employment + capital cost, journey time savings + land value uplift, and gross earnings + tax revenue. Excludes sunk costs by default. Splits carbon into embodied (construction) and operational (in-use). Does not adjust carbon benefits for additionality (per Green Book / DESNZ guidance).
-
-Framework-aware: align to Green Book benefit categories, Better Regulation Framework compliance costs, MHCLG Appraisal Guide, Australian OIA, Victorian DTF, EU Better Regulation Toolbox, or OECD DAC. Hands off a structured JSON longlist (with a nested `quantification_method` object for every item, including data source URLs and parameter file references) that `/cost-benefit`, `/business-case`, `/vfm-eval`, and `/reg-impact` can read directly via `--from`, so the suggested method flows straight into the monetisation step without retyping.
-
-**Output formats:** Markdown (default), Word (.docx with hyperlinked data sources and a References section), Excel (.xlsx with five sheets including a Summary and a References tab, conditional formatting on contender ratings, clickable hyperlinks on every data source URL), PowerPoint (.pptx summary deck), PDF. Every format includes a headline table and a full-detail table for both benefits and costs.
+## How the skills fit together
 
 ```
-/longlist "New secondary school in Leeds"
-/longlist "Climate disclosure regulation" --framework uk-brg
-/longlist "Victorian Level Crossing Removal" --framework au-vic
-/longlist "Employment programme in Glasgow" --format xlsx,word
-/longlist --costs-only                              # cost brainstorm only
-/longlist --quick                                   # 3 lenses instead of 6
+Pre-appraisal    →   Appraisal          →    Wrapping          →    Evaluation
+/longlist            /cost-benefit            /business-case         /vfm-eval
+                     /mca                                            /evaluate
+                     /reg-impact
+
+Context and background:          Audit at any point:
+/macro-briefing                  /econ-audit
+/fiscal-briefing
+/market-research
+/io-report
+/la-profile
+/briefing-note
 ```
 
-8 framework profiles: UK Green Book (default), UK Better Regulation Framework, UK MHCLG, AU OIA, AU Victoria, EU BRT, OECD DAC, agnostic.
+A typical workflow:
 
-**Options:** `--framework`, `--scope`, `--sector`, `--lens`, `--costs-only`, `--benefits-only`, `--quick`, `--full`, `--exec`, `--audit`, `--client`, `--format`, `--from`
-
----
-
-### `/econ-audit`
-
-Think of it as a senior partner and an economics professor going through your work and poking holes in it. Full methodology audit of any output from the skills above, or any economic analysis you point it at. Runs 124 checks across 17 categories and produces a RAG (red, amber, green) rating on how your methods and assumptions compare to best practice. Agnostic to region or asset class: it draws on government guidance (Green Book 2026, Aqua Book, OMB A-4, EC CBA Guide) and published academic literature (Flyvbjerg, Moretti, Flegg) to assess numerical consistency, discount rates, additionality, multiplier plausibility, double counting, framing, Five Case Model completeness, distributional analysis, Aqua Book RIGOUR compliance, and strategic misrepresentation patterns.
-
-New in 2026: checks against the Green Book 2026 updates (BCR misuse, health discount rate, carbon pre-discounting, wellbeing), the 2025 Green Book Review distributional requirements, and the Aqua Book RIGOUR framework (Repeatable, Independent, Grounded, Objective, Uncertainty-managed, Robust). Detects Flyvbjerg-style strategic misrepresentation indicators (cost/benefit asymmetry, scope near thresholds, low contingencies, demand optimism).
-
-When it finds issues, it gives you a structured step-by-step plan to fix them and updates the methodology accordingly. Designed to improve over time as the rest of the repo evolves: as the parameter database and skill coverage expand, so does the audit's ability to cross-check your work.
-
-```
-/econ-audit io-report-manchester-2026-04-03.md --strict
-/econ-audit . --fix
-```
-
-Letter grade A-F, with auto-fix option. **Options:** `--strict`, `--fix`, `--json`, `--framework`, `--full`, `--exec`, `--client`, `--format`
+1. **`/longlist`** — brainstorm benefits and costs for the project, with cash flow tags.
+2. **`/cost-benefit`** — monetise and compute economic + financial NPV.
+3. **`/business-case`** — wrap in the Five Case Model for a spending bid.
+4. **`/vfm-eval`** — (later, after delivery) evaluate whether it actually worked.
+5. **`/econ-audit`** — run at any point to check the analysis for common errors.
 
 ---
 
 ## Data
 
-**Local authority data:** 391 UK LAs with 16 data files each (employment, earnings, IO multipliers, population, housing, GVA, deprivation, skills, commuting). At `~/econstack-data/src/data/`.
+**CBA and evaluation parameters**: audited JSON files with source citations and staleness detection. Discount rates, carbon values, VSL, QALY, shadow wages, optimism bias tables, additionality conventions, and more. Covers UK, EU, World Bank, ADB, and Victorian Treasury. Lives at `~/econstack-data/parameters/`.
 
-**CBA and evaluation parameters:** 57 JSON files across UK (19), US (6), EU (6), AU (11), World Bank (2), ADB (2), OECD (2), common (1), and reference cases (8). Includes unit costs (GMCA database), evidence standards (Maryland SMS), and VfM benchmarks alongside the CBA parameters. Discount rates, carbon values, VSL, QALY, VTTS, optimism bias, additionality, tax parameters, and more. Source citations, staleness detection, and validation script included. At `~/econstack-data/parameters/`. See the [parameters README](https://github.com/charlescoverdale/econstack-data/blob/main/parameters/README.md) for full documentation.
+**Local authority data**: 391 UK local authorities with 16 data files each (employment, earnings, IO multipliers, population, housing, GVA, deprivation, skills, commuting). Lives at `~/econstack-data/src/data/`.
+
+See the [parameters README](https://github.com/charlescoverdale/econstack-data/blob/main/parameters/README.md) for full documentation.
 
 ---
 
@@ -298,37 +232,28 @@ Letter grade A-F, with auto-fix option. **Options:** `--strict`, `--fix`, `--jso
 
 ```
 econstack/
-├── cost-benefit/        /cost-benefit   CBA (8 frameworks, referent group analysis)
-├── mca/                 /mca            Multi-criteria analysis (MCA + MCDA + AHP)
-├── vfm-eval/            /vfm-eval       Value for Money evaluation (8 frameworks)
-├── macro-briefing/      /macro-briefing Macroeconomic monitor (UK, US, EU, AU)
-├── fiscal-briefing/     /fiscal-briefing Public finances (UK, US, AU)
-├── market-research/     /market-research Industry and market analysis (multi-geo)
-├── io-report/           /io-report      Input-output impact (391 UK LAs)
-├── la-profile/          /la-profile     Local authority profiles (391 UK LAs)
-├── business-case/       /business-case  Business case (9 national frameworks)
-├── evaluate/            /evaluate       Programme evaluation (8 frameworks, Magenta Book)
-├── briefing-note/       /briefing-note  Policy briefing note (4 templates)
-├── reg-impact/          /reg-impact     Regulatory Impact Assessment (9 frameworks)
-├── longlist/            /longlist       Pre-appraisal benefits and costs longlist (8 frameworks)
-├── econ-audit/          /econ-audit     Methodology audit (124 checks)
-├── templates/
-│   └── blocks/          Shared template blocks (preamble, formatting, rules)
-├── scripts/
-│   ├── gen-skill-docs.sh  Generate SKILL.md from SKILL.tmpl + blocks
-│   └── render-report.sh   PDF rendering via Quarto
-├── bin/
-│   └── econstack-update-check
+├── longlist/           /longlist       Benefits and costs brainstorm
+├── cost-benefit/       /cost-benefit   CBA with economic + financial NPV
+├── business-case/      /business-case  Five Case Model
+├── mca/                /mca            Multi-criteria analysis
+├── reg-impact/         /reg-impact     Regulatory Impact Assessment
+├── vfm-eval/           /vfm-eval       4 E's value for money evaluation
+├── evaluate/           /evaluate       Programme evaluation
+├── macro-briefing/     /macro-briefing Macro monitor (UK, US, EU, AU)
+├── fiscal-briefing/    /fiscal-briefing Public finances (UK, US, AU)
+├── market-research/    /market-research Industry and market analysis
+├── io-report/          /io-report      Regional IO impact
+├── la-profile/         /la-profile     UK local authority profile
+├── briefing-note/      /briefing-note  Policy briefing note
+├── econ-audit/         /econ-audit     Methodology audit
+├── templates/blocks/                   Shared template blocks
+├── scripts/gen-skill-docs.sh           Generate SKILL.md from SKILL.tmpl
 └── README.md
 ```
 
-Backed by 16 R packages on [CRAN](https://cran.r-project.org/) and a [57-file parameter database](https://github.com/charlescoverdale/econstack-data) and 8 reference case templates.
-
----
-
 ## Contributing
 
-Create `<skill-name>/SKILL.md`, follow the format of existing skills, and open a PR.
+Edit the relevant `<skill>/SKILL.tmpl` and run `scripts/gen-skill-docs.sh <skill>` to regenerate the SKILL.md. Follow the format of existing skills. Open a PR.
 
 ## License
 
