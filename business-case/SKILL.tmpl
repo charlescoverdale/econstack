@@ -146,7 +146,7 @@ Walk through the five cases internally. For each case, generate the content and 
 - Risk register: top 5-10 risks with likelihood, impact, owner, mitigation.
 - Benefits realisation plan: owner, baseline, target, measurement method, realisation timeframe per benefit.
 - Change management, stakeholder engagement, communications.
-- Monitoring and evaluation plan (points to `/evaluate` for the full evaluation design).
+- Monitoring and evaluation plan (high-level).
 
 ### Step 3: Apply stage-based depth
 
@@ -370,7 +370,7 @@ Table: Annual net impact on sponsor budget ([currency]m).
 
 ### 5.5 Monitoring and evaluation
 
-[One paragraph: evaluation plan at a glance. Defer to /evaluate for the full evaluation design.]
+[One paragraph: how the delivered project will be monitored and reviewed. Metrics, cadence, review points, governance.]
 
 ## Cross-case consistency
 
@@ -391,7 +391,6 @@ Table: Annual net impact on sponsor budget ([currency]m).
 ## Next step
 
 - Run `/econ-audit bc-[slug]-[stage]-[date].md --strict` to check for common errors.
-- `/evaluate --type plan "[project]"` to design the evaluation plan.
 - `/cost-benefit --from longlist-[slug]-[date].md --stage fbc` to refresh the CBA at FBC stage.
 ```
 
@@ -426,7 +425,7 @@ Saved:
   bc-[slug]-[stage]-[date].md
   [other formats if requested]
 
-Next: /econ-audit for error checking, or /evaluate for the evaluation plan.
+Next: /econ-audit for error checking.
 ```
 
 ## Framework-specific rules
@@ -496,7 +495,5 @@ Next: /econ-audit for error checking, or /evaluate for the evaluation plan.
 
 - `/longlist` produces the input markdown file. Use `--from longlist-[slug]-[date].md` to carry benefits, costs, and Cash flow tags through.
 - `/cost-benefit` is called internally for the Economic Case. Use `--with-cba` to pass in a pre-computed CBA output.
-- `/vfm-eval` is the ex-post companion: run it after delivery to evaluate whether the business case was realised.
-- `/evaluate` produces the evaluation plan referenced in the Management Case.
 - `/econ-audit` audits this skill's output for common business case errors (cross-case inconsistency, missing counterfactual, circular Strategic Case logic, overclaimed benefits).
 - `/reg-impact` is the regulatory counterpart for policy changes rather than investment projects.
