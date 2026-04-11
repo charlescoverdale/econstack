@@ -154,7 +154,10 @@ Industry and market analysis for any sector or product. Combines official statis
 Supports UK, US, EU, Australia, and global scope. Multiple geographies can be combined for cross-market comparison (e.g. `--geo uk,us`). Adapts writing style to the client and audience (GOV.UK, European Commission, academic, board, public). Lets you specify preferred data sources or bring your own data. All data points are source-cited with full references.
 
 ```
-/market-research "UK grocery retail" --format docx,pdf
+/market-research "UK grocery retail"
+/market-research "semiconductors" --geo global
+/market-research "residential mortgages" --geo uk,us
+/market-research "UK childcare" --focus regulation --depth quick
 ```
 
 ---
@@ -166,7 +169,8 @@ Quantitative economic impact assessment for 391 UK local authorities and 88 Aust
 Allows you to choose between Type I and Type II multipliers, adjust for additionality (deadweight, displacement, leakage) with sensitivities, and benchmark your results against comparable areas. All additionality assumptions are aligned with HM Treasury Green Book guidance. Full report output includes detailed methodology and an honest discussion of the limitations of IO models.
 
 ```
-/io-report "GBP 10m in Manufacturing in Manchester" --format xlsx
+/io-report "GBP 10m in Manufacturing in Manchester"
+/io-report "500 jobs in Construction in Glasgow" --type2
 ```
 
 ---
@@ -176,7 +180,8 @@ Allows you to choose between Type I and Type II multipliers, adjust for addition
 Economic snapshot for any of the 391 UK local authorities. Covers demographics, labour market, earnings, industry structure, housing, business activity, productivity, skills, and deprivation. All indicators are benchmarked against the LA's own country average (England, Scotland, or Wales) and can be compared side-by-side with other local authorities. Pick the sections you need and export to Markdown, Word, PowerPoint, or PDF.
 
 ```
-/la-profile "Manchester" --format pdf
+/la-profile "Manchester"
+/la-profile "Leeds" --compare "Birmingham"
 ```
 
 ---
@@ -188,7 +193,10 @@ Regulatory Impact Assessment for proposed legislation, policy, or regulatory cha
 The output covers problem definition, market failure, options compared (including Do Nothing), cost-benefit summary per option, framework tests, sensitivity, post-implementation review plan, and a one-line verdict.
 
 ```
-/reg-impact "Mandatory climate risk disclosure for listed companies" --framework uk-gb --format docx,pdf
+/reg-impact "Mandatory climate risk disclosure for listed companies"
+/reg-impact "Ban on single-use plastics in food packaging" --framework uk-gb
+/reg-impact "New data protection requirements for AI systems" --framework eu-brg
+/reg-impact "Short-term rental regulation" --framework au-vic
 ```
 
 ---
@@ -198,7 +206,8 @@ The output covers problem definition, market failure, options compared (includin
 Two-page policy briefing note for ministers, boards, committees, and internal decision-makers. Problem, analysis, options, recommendation. Four templates covering minister submissions, board papers, committee briefings, and internal memos. This is the skill to use when you need to put something in front of a decision-maker quickly, with the right level of formality for the audience.
 
 ```
-/briefing-note "Public transport fare cap policy" --format docx
+/briefing-note "Public transport fare cap policy"
+/briefing-note "Response to consultation on XYZ"
 ```
 
 ---
@@ -210,7 +219,8 @@ Think of it as a senior partner and an economics professor going through your wo
 When it finds issues, it gives you a structured step-by-step plan to fix them and updates the methodology accordingly. Designed to improve over time as the rest of the repo evolves: as the parameter database and skill coverage expand, so does the audit's ability to cross-check your work.
 
 ```
-/econ-audit cba-schools-2026-04-10.md --strict
+/econ-audit io-report-manchester-2026-04-03.md --strict
+/econ-audit . --fix
 ```
 
 Letter grade A-F, with auto-fix option.
