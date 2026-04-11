@@ -1,6 +1,6 @@
 ---
 name: longlist
-description: Brainstorm a longlist of benefits and costs for a project. Outputs two clean tables (benefits and costs), each with materiality (H/M/L), a cash flow tag (cash in / cash out / non-cash), a quantification method, and a monetisation method. Supports HMT Green Book, EU Better Regulation Guidelines, and the Victorian Treasury High Value High Risk (HVHR) framework. Hands off to /cost-benefit.
+description: Brainstorm a longlist of benefits and costs for a project. Outputs two clean tables (benefits and costs), each with materiality (H/M/L), a cash flow tag (cash in / cash out / non-cash), a quantification method, and a monetisation method. Supports HMT Green Book, EU Better Regulation Guidelines, World Bank, Asian Development Bank, and the Victorian Treasury High Value High Risk (HVHR) framework. Hands off to /cost-benefit.
 allowed-tools:
   - Bash
   - Read
@@ -47,15 +47,17 @@ The output is two tables. That is the whole skill.
 /longlist "Climate adaptation via city greening, Milan"
 /longlist "Mandatory climate disclosure for large EU firms" --framework eu-brg
 /longlist "Victorian level crossing removal" --framework au-vic
+/longlist "Rural water supply project, Indonesia" --framework adb
+/longlist "Urban transport upgrade, Nairobi" --framework wb
 /longlist "Rural broadband rollout" --benefits-only
 ```
 
 **Options:**
-- `--framework <name>` : `uk-gb` (default), `eu-brg`, or `au-vic`. Auto-detected from context if not set.
+- `--framework <name>` : `uk-gb` (default), `eu-brg`, `wb`, `adb`, or `au-vic`. Auto-detected from context if not set.
 - `--sponsor <type>` : `government` (default), `private`, `blended`, `philanthropic`. Drives the Cash flow column. Anchors what counts as cash on whose books. See Step 1.
-- `--benefits-only` : Skip costs.
-- `--costs-only` : Skip benefits.
-- `--format <type>` : `markdown` (default), `xlsx`, `word`. Markdown is always generated.
+- `--section <name>` : Emit only one sub-component. Options: `full` (default), `benefits` (benefits table only), `costs` (costs table only), `summary` (cash flow summary only). Combinable with commas.
+- `--benefits-only` / `--costs-only` : Legacy aliases. Equivalent to `--section benefits` and `--section costs`.
+- `--format <type>` : Output format(s). Options: `markdown` (default, always generated), `xlsx`, `word`, `pptx`, `pdf`, or `all`. Comma-separate for multiple.
 - `--client "Name"` : Add "Prepared for" metadata to the output.
 
 ## Supported frameworks
@@ -64,10 +66,14 @@ The output is two tables. That is the whole skill.
 |------|-----------|----------|
 | `uk-gb` | UK HM Treasury Green Book (2022, with Wellbeing supplementary 2021) | Default. Public investment, infrastructure, programmes, place-based interventions. Categories: cash-releasing, non-cash quantifiable, qualitative, distributional, wellbeing, carbon. |
 | `eu-brg` | EU Better Regulation Guidelines (2021, SWD(2021) 305) | Regulations and EU-level interventions. Categories: economic, social, environmental, fundamental rights, SMEs, competitiveness. Compliance costs via Standard Cost Model. Companion methodology in the Better Regulation Toolbox. |
+| `wb` | World Bank Economic Analysis of Investment Operations (OP 10.04; 2023 Technical Note) | World Bank-financed projects in low and middle income countries. Economic rate of return (ERR), economic NPV at country-specific discount rate, distributional incidence, poverty impact, incremental approach. Standard shadow pricing for tradables, non-tradables, labour. |
+| `adb` | Asian Development Bank Guidelines for the Economic Analysis of Projects (2017 revision) | ADB-financed projects in Asia and the Pacific. Economic internal rate of return (EIRR), 9% hurdle rate (reducible to 6% for climate, health, education), poverty and distributional analysis, willingness-to-pay for non-traded outputs. |
 | `au-vic` | Victorian Treasury High Value High Risk (HVHR) framework | Victorian Government projects above the HVHR threshold (typically AUD 100m capital, or otherwise designated high risk). Six-gate assurance process. Benefits expressed against an Investment Logic Map (ILM) and a Benefit Management Plan with named owners, KPIs, baselines, targets, and realisation timeframes. Disbenefits captured explicitly. ATAP M1 applies for transport sub-cases. |
 
 **Auto-detection rules:**
-- Mentions of "HVHR", "High Value High Risk", "Investment Logic Map", "ILM", "Victorian Government", "Victoria", "VIC", "Melbourne", "Geelong", or AUD with Victorian context -> `au-vic`
+- Mentions of "HVHR", "Investment Logic Map", "ILM", "Victorian Government", "Victoria", "Melbourne", "Geelong", or AUD with Victorian context -> `au-vic`
+- Mentions of "ADB", "Asian Development Bank", or Asian DMC context (Pakistan, Bangladesh, Indonesia, Philippines, Vietnam, Nepal, Sri Lanka, Pacific Islands) with project finance framing -> `adb`
+- Mentions of "World Bank", "IBRD", "IDA", "IFC project", or Africa / Latin America public investment context -> `wb`
 - Mentions of "regulation", "RIA", "compliance cost", "directive", "EU", "EUR", "Member State", "SMEs", "Brussels", "EC", "ESMA" -> `eu-brg`
 - Everything else -> `uk-gb`
 
@@ -118,6 +124,24 @@ Silently walk through these lenses to surface candidates. Do not show the workin
 - Social impacts (employment, equality, health, social inclusion)
 - Environmental impacts (climate, biodiversity, resources)
 - Fundamental rights and territorial impacts
+
+**For `wb` (World Bank), the categories are:**
+- Incremental project benefits (with-project minus without-project, consistent with the counterfactual)
+- Direct economic benefits to intended beneficiaries (user time savings, yield uplift, avoided cost, improved health outcomes)
+- Distributional incidence by income decile and poverty headcount impact
+- Environmental externalities (local and global, with carbon at shadow price)
+- Fiscal effects (changes to government revenue and spending, relevant to sustainability)
+- Willingness-to-pay for non-marketed outputs
+- Risk and sensitivity (since Bank guidance emphasises scenario testing over optimism bias uplift)
+
+**For `adb` (Asian Development Bank), the categories are:**
+- Economic benefits quantified against the without-project counterfactual using shadow prices for tradables and non-tradables
+- Willingness-to-pay for incremental output, with consumer surplus where demand curves can be estimated
+- Resource cost savings (avoided imports, avoided electricity generation, avoided user cost)
+- Poverty impact, distributional analysis, and gender-disaggregated benefits where material
+- Climate co-benefits and carbon priced at the ADB shadow carbon price
+- Labour benefits valued at shadow wage rates (urban and rural skilled / unskilled)
+- Sensitivity and switching values (ADB requires switching values on headline variables)
 
 **For `au-vic` (HVHR), the categories follow the Investment Logic Map and Benefit Management Plan structure:**
 - Strategic benefits (alignment with the ILM problem-benefit logic, government priorities)
@@ -244,9 +268,23 @@ date: [YYYY-MM-DD]
 
 That is the entire output. No methodology section. No shortlist section. No detail tables. No JSON companion.
 
-**Format exports** (only if `--format` is set):
-- **Excel (.xlsx)**: invoke the `xlsx` skill. Two sheets: `Benefits` and `Costs`. Same seven columns each. Conditional formatting on the materiality column (green H, amber M, grey L) and on the Cash flow column (green "Cash in", red "Cash out", grey "Non-cash"). Save as `longlist-[slug]-[date].xlsx`.
-- **Word (.docx)**: invoke the `docx` skill. One document, the two tables, header block at top. Save as `longlist-[slug]-[date].docx`.
+**Sub-component selection** (via `--section`): if the user wants only part of the output, emit only those parts. In all modes include the header block.
+
+- `full` (default): header + both tables + Excluded + Cash flow summary + next step
+- `benefits`: header + benefits table only
+- `costs`: header + costs table only
+- `summary`: header + cash flow summary only
+- `benefits,costs`: both tables without summary / excluded / next step
+
+Always include the KEY NUMBERS comment at the bottom.
+
+**Format exports** (multi-format via `--format`):
+- **Markdown (.md)**: always generated.
+- **Excel (.xlsx)**: invoke the `xlsx` skill. Two sheets: `Benefits` and `Costs`, seven columns each. Conditional formatting on the materiality column (green H, amber M, grey L) and on the Cash flow column (green "Cash in", red "Cash out", grey "Non-cash"). Save as `longlist-[slug]-[date].xlsx`.
+- **Word (.docx)**: invoke the `docx` skill. One document: header block, benefits table, costs table, excluded list, cash flow summary. Save as `longlist-[slug]-[date].docx`.
+- **PowerPoint (.pptx)**: invoke the `pptx` skill. Four slides: title / counterfactual, benefits table, costs table, cash flow summary. Action titles. Save as `longlist-[slug]-[date].pptx`.
+- **PDF**: render markdown through the econstack Quarto template. Save as `longlist-[slug]-[date].pdf`.
+- **`all`**: expand to all five formats.
 
 Tell the user:
 ```
@@ -303,6 +341,38 @@ This is a lookup the skill uses internally. Do not show it to the user. Pick the
 | Environmental (biodiversity, water) | Affected hectares / volumes | EC Natural Capital Accounting where available, otherwise qualitative | Non-cash |
 | Compliance and enforcement (public sector) | FTEs × annual cost | Eurostat labour costs | Cash out |
 | EU grant / structural funds inflow | Award × draw-down profile | Grant agreement (e.g. NextGenerationEU, ERDF, LIFE) | Cash in |
+
+### World Bank defaults (`wb`)
+
+| Item type | Quantification | Monetisation | Cash flow (gov sponsor) |
+|-----------|----------------|--------------|:-----------------------:|
+| Travel time savings (transport) | Hours saved × users × trips per year | Shadow wage rate (typically 30-50% of market wage for non-working time in low-income contexts); or local VOT study | Non-cash |
+| Yield uplift (agriculture) | Δ yield (t/ha) × area × farmgate price | FAO price database or country MAFF farmgate prices | Cash in (to farmers, or farmer-owned cooperatives) |
+| Reduced water fetching time | Hours saved × affected population | Shadow wage for women / children (often 0.5x adult wage) | Non-cash |
+| Health outcomes (DALYs / reduced morbidity) | DALYs avoided | GDP per capita × DALYs × 1.0-3.0 GDP multiplier (WHO CHOICE), or country-specific cost-per-DALY | Non-cash |
+| Education (additional years of schooling) | Δ years × cohort × Mincer return | Mincerian earnings function, country-specific coefficient | Non-cash (unless cost-of-schooling avoided) |
+| Electrification (grid or off-grid) | kWh delivered × consumers | Willingness-to-pay studies, or cost of next-best alternative (kerosene, diesel) | Cash in if tariff revenue; else Non-cash |
+| Avoided emissions | tCO2e | World Bank shadow carbon price (USD 40-80/t, rising to USD 50-100 by 2030) | Non-cash |
+| Avoided environmental damage | Physical units × damage cost | World Bank Environmental Economics values, or benefit transfer from peer studies | Non-cash |
+| Operational and maintenance costs | Annual by project type | Country-specific unit costs, or %-of-capex benchmarks | Cash out |
+| Capital costs | BoQ × unit rates | Country construction cost databases, or regional comparables | Cash out |
+
+### ADB defaults (`adb`)
+
+| Item type | Quantification | Monetisation | Cash flow (gov sponsor) |
+|-----------|----------------|--------------|:-----------------------:|
+| Transport: travel time savings | Hours saved × users × trips per year | ADB shadow wage rate by country and skill level | Non-cash |
+| Transport: VOC savings | Vehicle-km by type | ADB Transport Appraisal Note VOC formulae, or HDM-4 output | Non-cash |
+| Irrigation yield uplift | Δ yield (t/ha) × area × farmgate price | ADB Economic Analysis reference values; FAO prices adjusted for distortions | Cash in (farmers) |
+| Power generation | kWh produced × net | Willingness-to-pay; or avoided cost of next-best plant; or tariff revenue | Cash in (if tariff revenue retained by sponsor) |
+| Water supply | m³ delivered × consumers | Willingness-to-pay studies (ADB Compendium); or avoided cost of private water vendors | Cash in (if tariff revenue); else Non-cash |
+| Health: DALYs avoided | Cohort × per-person DALY gain | 1-3x GDP per capita per DALY, country-specific | Non-cash |
+| Education: wage premium | Graduates × wage premium × deadweight discount | Country-specific Mincerian returns | Non-cash |
+| Carbon benefits | tCO2e | ADB shadow carbon price (USD 36.30/t from 2017, rising) | Non-cash |
+| Gender-specific benefits | Women / girls affected × benefit per person | Same as above, disaggregated and reported separately | Non-cash |
+| Capital costs | BoQ × country construction rates | ADB country construction cost benchmarks, Rawlinsons (regional) | Cash out |
+| Operating and maintenance | Whole-of-life annual estimate | Country-specific benchmarks; typically 2-5% of capex per year | Cash out |
+| Sensitivity and switching values | Required by ADB for all major variables | ADB guidelines specify +/-20% scenarios and switching value computation | n/a |
 
 ### Victoria HVHR defaults (`au-vic`)
 

@@ -1,20 +1,18 @@
 ---
 name: reg-impact
-description: Regulatory Impact Assessment (UK Better Regulation, AU OIA RIS, EU Better Regulation Toolbox, US OMB). Compliance costs, CBA per option, small business test, competition filter. Interactive.
+description: Regulatory Impact Assessment (RIA). Produces a single compact RIA covering problem, options, compliance costs (Standard Cost Model), benefits, framework-specific tests, and a one-line recommendation. Supports UK Better Regulation Framework, EU Better Regulation Guidelines, and Victorian Regulatory Impact Statement. Hands off to /cost-benefit for deeper CBA on the preferred option.
 allowed-tools:
   - Bash
   - Read
   - Write
   - Glob
-  - Grep
   - AskUserQuestion
   - Skill
-  - WebSearch
-  - WebFetch
 ---
 
-**Only stop to ask the user when:** the regulation is unclear, the affected population is unknown, or compliance cost data is missing and cannot be estimated.
-**Never stop to ask about:** template structure (use the detected framework), discount rate (use framework default), or which sections to include (include all required sections for the stage).
+**Only stop to ask the user when:** the regulation is undescribed, affected population is completely unknown, or there are fewer than 2 options (including do-nothing).
+**Never stop to ask about:** stage, framework-specific tests, discount rate, sensitivity method, output filename, or formatting. Pick sensible defaults.
+
 {{PREAMBLE}}
 
 {{LEARNINGS}}
@@ -27,11 +25,17 @@ allowed-tools:
 
 # /reg-impact: Regulatory Impact Assessment
 
-Generate a Regulatory Impact Assessment (RIA) or Regulatory Impact Statement (RIS) for a proposed regulation, policy, or legislative change. Covers 9 frameworks: UK Better Regulation, Australian Commonwealth OIA, five Australian state frameworks (QLD, VIC, NSW, SA, WA), EU Better Regulation Toolbox, and US OMB Circular A-4.
+Generate a compact Regulatory Impact Assessment (RIA) for a proposed regulation, policy, or legislative change. One deliverable, opinionated structure, no section menus.
 
-The RIA is distinct from a CBA (which is one section within it) and distinct from a business case (which covers delivery and management, not regulatory compliance). An RIA answers: what is the problem, why should government intervene, what are the options, what are the costs and benefits of each, and how will we know if it worked?
+```
+/reg-impact     = "What is the problem, the options, and the regulatory case?"
+     ↓
+/cost-benefit   = "Now compute detailed NPV for the preferred option"
+     ↓
+/business-case  = "Wrap in the Five Case Model if the regulation needs funded delivery"
+```
 
-**This skill is interactive.** It walks through each section, pulling data where available and asking for inputs where needed.
+The output is one structured RIA document. First-time users get a complete answer from one invocation. Power users can select sub-components via `--section`.
 
 ## Arguments
 
@@ -42,532 +46,251 @@ The RIA is distinct from a CBA (which is one section within it) and distinct fro
 **Examples:**
 ```
 /reg-impact "Mandatory climate risk disclosure for listed companies"
-/reg-impact "Ban on single-use plastics in food packaging" --framework uk
-/reg-impact "Increase minimum wage to $25/hour" --framework au
-/reg-impact "New short-term rental regulations" --framework au-vic
-/reg-impact "Changes to mining rehabilitation bonds" --framework au-qld
-/reg-impact "New data protection requirements for AI systems" --framework eu
-/reg-impact --from inputs.json
+/reg-impact "Ban on single-use plastics in food packaging" --framework uk-gb
+/reg-impact "New data protection requirements for AI systems" --framework eu-brg
+/reg-impact "Short-term rental regulation in Victoria" --framework au-vic
+/reg-impact --from inputs.md
 ```
 
 **Options:**
-- `--framework <name>` : Regulatory framework. Auto-detected from context. `uk` (Better Regulation Framework), `au` (OIA Regulatory Impact Statement), `eu` (Better Regulation Toolbox), `us` (OMB Circular A-4/A-94).
-- `--stage <name>` : Assessment stage. `screening` (quick check: is a full RIA needed?), `consultation` (draft for public consultation), `final` (submission to regulatory oversight body). Default: `final`.
+- `--framework <name>` : `uk-gb` (default, UK Better Regulation Framework using Green Book methodology), `eu-brg` (EU Better Regulation Guidelines), or `au-vic` (Victorian Regulatory Impact Statement). Auto-detected from context if not set.
+- `--stage <name>` : `screening` (quick check: is a full RIA needed?), `consultation` (draft for public consultation), or `final` (submission to regulatory oversight body). Default: `final`.
 - `--with-cba <file>` : Import an existing CBA output from `/cost-benefit` for the economic analysis section.
-- `--full` : Skip interactive menus, generate all sections.
+- `--section <name>` : Emit only one sub-component. Options: `full` (default), `problem` (problem and rationale only), `options` (options table only), `cba` (cost-benefit section only), `tests` (framework-specific tests only), `pir` (post-implementation review plan only), `verdict` (recommendation only). Combinable with commas.
+- `--format <type>` : Output format(s). `markdown` (default, always generated), `xlsx`, `word`, `pptx`, `pdf`, or `all`. Comma-separate for multiple.
 - `--client "Name"` : Add "Prepared for" metadata.
-- `--format <type>` : Output format: `markdown`, `word`, `pptx`, `pdf`, or `all`. Default: markdown.
-- `--exec` : Generate executive summary deck (5-6 slides).
-- `--audit` : Run `/econ-audit` on the output.
-- `--from <file.json>` : Import all inputs from JSON. Use `--from schema` to print expected schema.
+- `--from <file.md>` : Import problem, options, costs, and benefits from a markdown file.
 
-**Supported frameworks:**
+## Supported frameworks
 
-| Flag | Framework | Oversight body | Discount rate | Key features |
-|------|-----------|---------------|--------------|-------------|
-| `uk` | UK Better Regulation Framework | Regulatory Policy Committee (RPC) | 3.5% | EANDCB, Small Business Impact Test, competition filter, post-implementation review |
-| `au` | Australian Commonwealth OIA | Office of Impact Analysis (OIA) | 7% | 7 RIS questions, preliminary assessment, net benefit test, mandatory review |
-| `au-qld` | Queensland Impact Analysis Statement | OBPR (QPC/Treasury) | 7% | IAS (not RIS), Exclusion/Summary/Full tiers, fundamental legislative principles test, 28-day consultation |
-| `au-vic` | Victorian RIS / LIA | Commissioner for Better Regulation | 4% or 7% | $2M/$8M thresholds, RIS (subordinate) + LIA (primary), Regulatory Change Measurement, $500M red tape target |
-| `au-nsw` | NSW Better Regulation Statement | NSW Treasury | 7% (3%, 10% sensitivity) | Seven Better Regulation Principles, BRS/RIS dual system, Licensing Framework test |
-| `au-sa` | South Australia RIS | Cabinet Office (DPC) | 7% | Multi-agency gatekeeping (DTF, DTED, DFC, DENR), family/societal impact domain |
-| `au-wa` | Western Australia CRIS/DRIS | Better Regulation Unit (DTF) | 7% | Two-stage CRIS/DRIS, Executive Director sign-off, BRU Letter of Advice |
-| `eu` | EU Better Regulation Toolbox | Regulatory Scrutiny Board (RSB) | 3%/5% | Proportionality, subsidiarity, SME test, stakeholder consultation, REFIT |
-| `us` | US OMB Circular A-4 | OIRA | 2% | Baseline analysis, break-even analysis, transfer analysis |
+| Flag | Framework | Oversight body | Key features |
+|------|-----------|---------------|-------------|
+| `uk-gb` | UK Better Regulation Framework (using Green Book methodology) | Regulatory Policy Committee (RPC) | EANDCB (Equivalent Annual Net Direct Cost to Business), Small and Micro Business Impact Assessment, competition filter, Standard Cost Model, post-implementation review |
+| `eu-brg` | EU Better Regulation Guidelines (2021, SWD(2021) 305) | Regulatory Scrutiny Board (RSB) | SME test, proportionality, subsidiarity, stakeholder consultation, REFIT, Standard Cost Model, fundamental rights impact |
+| `au-vic` | Victorian Regulatory Impact Statement framework | Commissioner for Better Regulation (CBR) | AUD 2m / AUD 8m significance thresholds, RIS for subordinate legislation, LIA for primary legislation, Regulatory Change Measurement, 60-day public consultation |
+
+**Note on framework scope**: `wb` and `adb` are not supported in this skill. World Bank and ADB produce project economic analyses, not regulatory impact assessments. Use `/cost-benefit --framework wb` or `/cost-benefit --framework adb` for those contexts.
+
+**Auto-detection rules:**
+- Mentions of "Victoria", "Victorian", "CBR", "Regulatory Change Measurement", Victorian legislation references → `au-vic`
+- Mentions of "directive", "regulation", "EU", "Member State", "SMEs", "Brussels", "EC", "ESMA", "ECB", "REFIT", "RSB" → `eu-brg`
+- Everything else → `uk-gb`
 
 ## Instructions
 
-### Step 0: Framework detection and setup
+### Step 1: Get the regulation, options, and affected population
 
-Auto-detect framework from context:
-- "UK", "GBP", "RPC", "EANDCB" -> `uk`
-- "Queensland", "QLD", "QPC", "IAS" -> `au-qld`
-- "Victoria", "VIC", "BRV", "Commissioner for Better Regulation", "LIA" -> `au-vic`
-- "NSW", "New South Wales", "BRS", "Better Regulation Statement" -> `au-nsw`
-- "South Australia", "SA", "DPC" (in AU context) -> `au-sa`
-- "Western Australia", "WA", "BRU", "CRIS", "DRIS" -> `au-wa`
-- "Australia", "AUD", "OIA", "Commonwealth" (without state indicators) -> `au`
-- "EU", "EUR", "RSB", "subsidiarity", "REFIT" -> `eu`
-- "US", "USD", "OIRA", "OMB", "A-4" -> `us`
+Ask in ONE `AskUserQuestion` batch. If the command-line argument already contains a description, skip to parsing and only ask for what is missing.
 
-If ambiguous (e.g., "Australian regulation" without a state), ask:
-```
-AskUserQuestion: "Which Australian jurisdiction?"
-Options:
-  - "Commonwealth (federal, OIA)" (Recommended)
-  - "Queensland (QPC/OBPR)"
-  - "Victoria (Better Regulation Victoria)"
-  - "New South Wales (NSW Treasury)"
-```
+**Required inputs:**
+1. **Regulation**: one or two sentences describing what is being proposed. Free text.
+2. **Options**: the alternatives being compared. Must include "Do nothing" (the counterfactual). Typically 3-4 options: do nothing, non-regulatory alternative, partial regulation, full regulation.
+3. **Affected population**: rough count or range of affected entities. Either number of businesses, households, consumers, or a qualitative range (e.g. "all ~5,000 UK-listed companies").
 
-Load parameters from the parameter database:
-```bash
-PARAMS_DIR="$HOME/econstack-data/parameters"
-cat "$PARAMS_DIR/${FRAMEWORK}/discount-rates.json"
-```
+Do NOT ask framework-specific tests, discount rate, stage, or format. Detect framework from context; default to `final` stage; default to markdown format.
 
-### Step 1: Problem definition
+If no counterfactual is provided, ask once for clarification.
 
-```
-AskUserQuestion: "Describe the regulation or policy change in 2-3 sentences."
-```
+### Step 2: Silently build the RIA (do NOT narrate to the user)
 
-```
-AskUserQuestion: "What is the problem this regulation addresses?"
-Options:
-  - "Market failure (externality, information asymmetry, public good, market power)"
-  - "Regulatory failure (existing regulation is ineffective or outdated)"
-  - "Government objective (equity, safety, environment, international obligation)"
-  - "Risk mitigation (emerging risk that current framework does not address)"
-```
+Walk through these internally. The output is the deliverable, not the working.
 
-```
-AskUserQuestion: "What evidence exists for this problem? (Data, reports, incidents, international comparisons)"
-(Free text)
-```
+1. **Problem definition**: what market failure or policy gap does the regulation address? (externality, information asymmetry, coordination failure, public good, distributional, market power). Identify the primary failure.
+2. **Rationale for intervention**: why government rather than market, why regulation rather than information, tax, subsidy, or voluntary agreement. Brief.
+3. **Objectives**: one SMART objective per intended outcome. Three at most.
+4. **Options compared**: structured against the counterfactual. For each, capture scope, instrument, affected parties, and implementation mechanism.
+5. **Compliance costs (Standard Cost Model)**: for each option, compute `affected businesses × hours per business × hourly wage × frequency + direct costs`. Use framework-specific wages (UK ONS ASHE median wage for `uk-gb`, Eurostat for `eu-brg`, ABS for `au-vic`).
+6. **Direct and consumer benefits**: quantify where possible (safety improvements, price reductions, externality reduction). Use framework-specific unit values (e.g. VPF for safety, DESNZ carbon price, EEA air quality damage costs).
+7. **Framework-specific tests**: run all required tests for the detected framework. Results captured in one table, not narrated.
+8. **Sensitivity**: report what would flip the recommendation. One paragraph, not a whole section.
+9. **Post-implementation review plan**: one short plan: review date, indicators, data sources.
+10. **Recommendation**: one-line verdict identifying the preferred option.
 
-For UK framework: this feeds into the RPC's "evidence of the problem" assessment. The RPC will red-rate an RIA that asserts a problem without evidence.
+### Step 3: Apply framework-specific tests (internal)
 
-For AU framework: this maps to RIS Question 1 ("What is the problem you are trying to solve?") and Question 2 ("Why is government action needed?").
+**For `uk-gb` (UK Better Regulation Framework)**:
+- **EANDCB**: compute Equivalent Annual Net Direct Cost to Business in 2026 prices. Report as a single figure.
+- **Small and Micro Business Impact Assessment**: if affected businesses include small / micro firms, compute cost share borne by them. Flag if disproportionate.
+- **Competition filter**: will the regulation reduce the number of suppliers, raise barriers to entry, or reduce incentives to compete? Yes / no per CMA checklist.
+- **Post-implementation review**: mandatory within 5 years for qualifying regulations. State review date.
 
-### Step 2: Rationale for intervention
+**For `eu-brg` (EU Better Regulation Guidelines)**:
+- **SME test**: compute cost per SME. Apply SME-specific mitigations where costs are disproportionate.
+- **Proportionality check**: is the measure the least burdensome to achieve the objective? Yes / no.
+- **Subsidiarity check**: is EU action justified over Member State action? Yes / no with reason.
+- **Fundamental rights impact**: any material impact on EU Charter rights? List any.
+- **REFIT simplification**: does this reduce existing regulatory burden? Quantify if so.
 
-```
-AskUserQuestion: "Why is government action (specifically regulation) needed? Why can't the market, industry self-regulation, or existing laws solve this?"
-(Free text)
-```
+**For `au-vic` (Victorian RIS framework)**:
+- **Significance threshold**: is the annual burden above AUD 2m (RIS required) or AUD 8m (full LIA required)? Report the threshold applicable.
+- **Regulatory Change Measurement**: compute the net change in regulatory burden in AUD.
+- **Competition policy check**: any competition restrictions that need Victorian Competition and Efficiency Commission review? Yes / no.
+- **Public consultation plan**: 60-day minimum. State dates.
 
-For UK: reference the Green Book market failure framework. If the intervention is not addressing a market failure, the rationale must be especially strong.
+Report all tests in one compact table under the CBA section. Do not narrate the reasoning.
 
-For AU: the OIA requires demonstration that non-regulatory alternatives have been considered. Ask:
-```
-AskUserQuestion: "Have non-regulatory alternatives been considered?"
-Options:
-  - "Yes, but they are insufficient (explain why)"
-  - "No, regulation is the only viable approach (explain why)"
-  - "Self-regulation was tried and failed"
-  - "International obligations require legislation"
-```
+### Step 4: Write the output
 
-### Step 3: Objectives
+Save `ria-[slug]-[YYYY-MM-DD].md` with this exact structure. Nothing more, nothing less.
 
-```
-AskUserQuestion: "What are the objectives of this regulation? (What outcome should it achieve?)"
-(Free text)
-```
-
-Check: are the objectives SMART? (Specific, Measurable, Achievable, Relevant, Time-bound). Flag if they are vague.
-
-### Step 4: Options
-
-Every RIA requires at least three options:
-
-**Option 0: Do nothing / status quo.** What happens if no new regulation is introduced? This is the baseline against which all other options are measured.
-
-**Option 1: Non-regulatory / voluntary approach.** Self-regulation, industry codes, guidance, information campaigns.
-
-**Option 2+: Regulatory options.** Different levels of intervention (light-touch vs prescriptive), different scope (all businesses vs large only), different mechanisms (ban vs tax vs standard vs disclosure).
-
-```
-AskUserQuestion: "List the regulatory options being considered (2-4 options beyond do-nothing)."
-(Free text)
-```
-
-For each option, ask:
-```
-AskUserQuestion: "For Option [N]: briefly describe what it involves, who it affects, and how it would be enforced."
-(Free text)
-```
-
-### Step 5: Cost-benefit analysis per option
-
-This is the core economic section. For each option (including do-nothing as the baseline):
-
-**Costs to business (compliance costs):**
-
-Use the Standard Cost Model (SCM) where applicable:
-```
-Compliance cost = Number of affected businesses
-                  x Cost per business (time + direct costs)
-                  x Frequency per year
-```
-
-```
-AskUserQuestion: "How many businesses or organisations are affected by this regulation?"
-```
-
-```
-AskUserQuestion: "What are the main compliance activities? (e.g., reporting, training, equipment, testing, record-keeping)"
-(Free text)
-```
-
-For each compliance activity, estimate:
-- Staff time (hours per occurrence x hourly cost)
-- Direct costs (equipment, testing, certification fees)
-- One-off setup costs vs ongoing annual costs
-- Familiarisation costs (reading and understanding the new regulation)
-
-**Costs to government:**
-- Administration and enforcement costs
-- Monitoring and inspection costs
-
-**Benefits:**
-- Monetise where possible (health outcomes, environmental improvements, accident reduction, consumer savings)
-- Quantify-but-not-monetise where monetisation is speculative
-- Describe qualitatively where quantification is not feasible
-
-**CBA computation:**
-
-If `--with-cba` provided: import the CBA output and summarise.
-
-Otherwise, invoke the `/cost-benefit` skill internally:
-```
-Invoke /cost-benefit with:
-  --framework [current framework]
-  Appraisal period: [regulation lifetime, typically 10 years]
-  Options: [from Step 4]
-```
-
-Or, for simpler regulations, compute directly:
-
-```
-NPV per option = PV(benefits) - PV(costs)
-BCR per option = PV(benefits) / PV(costs)
-```
-
-Using framework-appropriate discount rates:
-- UK: 3.5% (Green Book STPR)
-- AU Commonwealth: 7% (OIA standard)
-- AU-QLD: 7% (Queensland Treasury)
-- AU-VIC: 4% or 7% (Victorian DTF, report both for high-impact RIS)
-- AU-NSW: 7% central, with 3% and 10% sensitivity (TPP17-03)
-- AU-SA: 7% (follows Commonwealth convention)
-- AU-WA: 7% (follows Commonwealth convention)
-- EU: 3% or 5% (depending on member state)
-- US: 2% (OMB A-4 2023 revision)
-
-**For UK framework, compute EANDCB:**
-```
-EANDCB = Equivalent Annual Net Direct Cost to Business
-       = NPV of direct costs to business (annualised over appraisal period)
-```
-
-This is the headline figure the RPC assesses. It determines the "in/out" regulatory budget classification.
-
-### Step 6: Framework-specific tests
-
-**UK Better Regulation:**
-
-**Small and Micro Business Assessment (SaMBA):**
-```
-AskUserQuestion: "Does this regulation affect small businesses (under 50 employees) or micro businesses (under 10 employees)?"
-Options:
-  - "Yes, and they will be subject to the same requirements as large businesses"
-  - "Yes, but with exemptions or lighter requirements"
-  - "No, small/micro businesses are exempt"
-  - "Not applicable (regulation targets large businesses only)"
-```
-
-If small businesses are affected without exemption, justify why an exemption is not possible. The RPC expects this justification to be robust.
-
-**Competition assessment (OFT 4 questions):**
-1. Will the regulation directly or indirectly limit the number or range of suppliers?
-2. Will it limit the ability of suppliers to compete?
-3. Will it limit suppliers' incentives to compete vigorously?
-4. Will it limit the choices and information available to consumers?
-
-If the answer to any is "yes," a detailed competition assessment is needed.
-
-**Australian OIA:**
-
-**7 RIS Questions** (the backbone of the Australian RIS):
-1. What is the problem you are trying to solve?
-2. Why is government action needed?
-3. What policy options are you considering?
-4. What is the likely net benefit of each option?
-5. Who was consulted and how did their views influence the proposal?
-6. What is the best option from those considered?
-7. How will you implement and evaluate the chosen option?
-
-The skill maps its sections to these 7 questions.
-
-**EU Better Regulation:**
-
-**Subsidiarity check:** Is EU-level action necessary, or can member states act individually?
-
-**SME test:** Impact on small and medium enterprises. Include a specific SME cost estimate.
-
-**Proportionality check:** Is the regulatory response proportionate to the problem?
-
-**US OMB:**
-
-**Baseline analysis:** What happens under current regulation? (Not "do nothing" but "continue current rules.")
-
-**Transfer analysis:** Distinguish between real resource costs and transfers between groups (e.g., a tax transfers money from businesses to government but is not a net cost to society).
-
-**Break-even analysis:** What is the minimum benefit required for the regulation to be justified?
-
-**Queensland (au-qld):**
-
-**Fundamental legislative principles test:** Does the regulation have sufficient regard to the rights and liberties of individuals? Does it have sufficient regard to the institution of Parliament? These are constitutional requirements under the Legislative Standards Act 1992.
-
-**Competition impact assessment:** Consistent with National Competition Policy obligations. Does the regulation restrict competition? If so, demonstrate that the benefits outweigh the costs and that the objectives can only be achieved by restricting competition.
-
-**Direct costs calculation:** Use the Queensland Direct Costs Calculator tool (simplified or standard version) to estimate compliance costs. The OBPR provides both versions.
-
-**Victoria (au-vic):**
-
-**Regulatory Change Measurement (RCM):** For high-impact RIS ($8M+ per year), quantify the change in regulatory burden using the Victorian RCM methodology. Three cost types: administrative costs (paperwork, reporting), compliance costs (substantive changes to behaviour), delay costs (time waiting for approvals). Use the RCM Toolkit from DTF.
-
-**Small business impact statement:** Mandatory within the "Preferred option summary" section (Question 5). Describe specific impacts on small businesses and any accommodations (phased implementation, simplified compliance, exemptions).
-
-**Commissioner for Better Regulation assessment:** The Commissioner independently assesses the adequacy of each RIS. Allow 3-4 business days per draft for low-impact, 10 business days for high-impact. Budget for 3-4 draft iterations.
-
-**NSW (au-nsw):**
-
-**Licensing Framework assessment:** If the proposal creates a new licence or revises an existing one, apply the NSW Licensing Framework. Demonstrate that licensing is the least restrictive option that achieves the regulatory objective.
-
-**Principles-based assessment:** Unlike the prescriptive templates of other jurisdictions, NSW requires demonstration that each of the Seven Better Regulation Principles has been satisfied. This is a principles check, not a template fill.
-
-**SA (au-sa):**
-
-**Multi-agency gatekeeping:** Circulate the draft RIS to all four assessment agencies (DTF, DTED, DFC, DENR) plus Cabinet Office simultaneously. All must assess adequacy before proceeding. Allow time for this parallel review process.
-
-**Family and societal impact assessment:** Unique to SA. Explicitly assess the impact on families, including: financial impacts on households, impacts on family relationships and stability, impacts on children and young people.
-
-**WA (au-wa):**
-
-**Agency Self-Assessment Template:** Must be completed and signed off at Executive Director level before the BRU will engage. This is the gateway to the full process.
-
-**BRU Letter of Advice:** The BRU issues formal Letters of Advice at both the CRIS and DRIS stages. These are independent assessments of the adequacy of the analysis. Address all points raised in the first Letter before finalising the DRIS.
-
-### Step 7: Sensitivity and risk
-
-- What are the key uncertainties in the cost and benefit estimates?
-- Compute switching values: how much would costs need to increase (or benefits decrease) for the preferred option to have negative NPV?
-- For UK: RPC expects sensitivity analysis as a minimum. Monte Carlo for regulations with EANDCB > GBP 50m.
-- Identify the main risks to successful implementation.
-
-### Step 8: Post-implementation review plan
-
-```
-AskUserQuestion: "When should this regulation be reviewed? (Default: 5 years for UK, mandatory within 2 years for AU)"
-```
-
-Outline:
-- Review date
-- Evaluation questions (did it achieve the objectives? Were costs as expected?)
-- Data requirements for the review
-- Who will conduct the review
-
-For UK: reference the Regulatory Policy Committee's post-implementation review guidance.
-For AU: mandatory review within 5-10 years (shorter for significant regulations). The OIA tracks compliance.
-
-### Step 9: Consultation summary
-
-```
-AskUserQuestion: "Has public consultation been conducted? If yes, summarise the key feedback."
-(Free text, or "Not yet" / "Planned")
-```
-
-For UK at `final` stage: consultation is expected. At `consultation` stage: this section describes the planned consultation.
-For AU: consultation is mandatory. RIS Question 5 covers this explicitly.
-
-### Step 10: Executive summary and recommendation
-
-Generate a 1-page executive summary covering:
-1. The problem (2 sentences)
-2. The preferred option (2 sentences)
-3. Headline costs and benefits (EANDCB for UK, net benefit for AU)
-4. Key risks and mitigations
-5. Recommendation
-
-### Step 11: Output
-
-Assemble the full document:
-
-**UK structure:**
-1. Title and RPC reference
-2. Executive summary
-3. Problem under consideration
-4. Rationale for intervention
-5. Policy objective
-6. Description of options
-7. Monetised and non-monetised costs and benefits of each option
-8. EANDCB calculation
-9. Small and Micro Business Assessment
-10. Competition assessment
-11. Wider impacts (equality, environment, health, human rights)
-12. Post-implementation review plan
-13. Summary table (costs/benefits/EANDCB per option)
-14. Annex: analytical methodology
-
-**AU Commonwealth structure (7 RIS questions):**
-1. Cover sheet (entity, contact officer, RIS ID)
-2. Executive summary
-3. Q1: What is the problem?
-4. Q2: Why is government action needed?
-5. Q3: What options are being considered?
-6. Q4: What is the net benefit of each option?
-7. Q5: Who was consulted?
-8. Q6: What is the best option?
-9. Q7: How will it be implemented and evaluated?
-10. Appendix: detailed CBA tables
-
-**Queensland structure (Impact Analysis Statement):**
-
-Note: Queensland uses "Impact Analysis Statement" (IAS), not RIS. Three tiers: Exclusion IAS, Summary IAS, Full IAS (Consultation + Decision).
-
-For Summary IAS:
-1. Header (lead department, proposal name, instrument title, date)
-2. Nature, size and scope of the problem
-3. Objectives of government action
-4. Policy options considered
-5. Impacts of the proposal (costs and benefits)
-6. Direct costs (using Queensland Direct Costs Calculator)
-7. Consultation undertaken
-8. Consistency with fundamental legislative principles
-
-For Full IAS (Consultation IAS, released for 28-day public consultation):
-1. Problem identification with evidence
-2. Objectives of government action
-3. Options analysis (regulatory and non-regulatory)
-4. Impact analysis per option with CBA
-5. Competition impact assessment (National Competition Policy)
-6. Consultation plan and stakeholder engagement
-7. Recommended option with justification
-8. Consistency with fundamental legislative principles
-9. Implementation and evaluation strategy
-
-For Full IAS (Decision IAS, post-consultation):
-All sections from Consultation IAS, plus:
-10. Summary of submissions received and key issues raised
-11. Agency response to consultation feedback
-12. Any changes to the preferred option based on consultation
-
-**Victorian structure (RIS or LIA):**
-
-Note: Victoria has two instruments: RIS (subordinate legislation, under Subordinate Legislation Act 1994) and LIA (primary legislation, under Cabinet Handbook). Both follow the same 7-question structure but LIAs are assessed by the Commissioner for Better Regulation.
-
-Thresholds: < $2M/year = no RIS. $2M-$8M/year = low-impact RIS. > $8M/year = high-impact RIS.
-
-Seven mandatory questions:
-1. Problem analysis: why is the Government considering action?
-2. Objectives: which outcomes is the Government aiming to achieve?
-3. Options identification: what are the possible courses of action?
-4. Impact analysis: what are the expected impacts (benefits and costs) and what is the preferred option?
-5. Preferred option summary: characteristics including small business and competition impacts
-6. Implementation plan: how will the preferred option be put into place?
-7. Evaluation strategy: when and how will the Government evaluate effectiveness?
-
-For high-impact RIS: add Regulatory Change Measurement (RCM) analysis quantifying the change in regulatory burden using the Victorian RCM methodology (administrative costs, compliance costs, delay costs).
-
-**NSW structure (Better Regulation Statement):**
-
-Note: NSW uses two instruments: Better Regulation Statement (BRS, for Cabinet proposals) and RIS (for subordinate legislation under Subordinate Legislation Act 1989). Both must satisfy the Seven Better Regulation Principles.
-
-Seven Better Regulation Principles:
-1. Need for government action established (benefits outweigh costs)
-2. Objective of government action is clear
-3. Impact properly understood across a range of options
-4. Action is effective and proportional
-5. Consultation has informed regulatory development
-6. Simplification, repeal, reform or consolidation considered
-7. Regulation will be periodically reviewed
-
-BRS structure:
-1. Executive summary / overview
-2. Proportionality demonstration
-3. Consultation approach and summary of stakeholder views
-4. Cost-benefit analysis (preferred option provides greatest net benefit)
-5. Preferred option justification
-6. Licensing Framework assessment (if new/revised licence proposed)
-
-**South Australia structure:**
-1. Problem description (nature, evidence, scale, who is affected)
-2. Objectives of government action
-3. Statement of options (regulatory and non-regulatory)
-4. Cost-benefit analysis per option
-5. Consultation evidence
-6. Recommended option with justification
-7. Implementation, monitoring and review
-
-Note: SA uses a multi-agency gatekeeping process. The RIS is assessed across four domains by different agencies: business and regional impacts (DTED), CBA quality (DTF), family and societal impacts (DFC), environmental impacts (DENR).
-
-**Western Australia structure (CRIS/DRIS):**
-
-Note: WA uses a two-stage process with BRU Letters of Advice at each stage. Starts with Agency Self-Assessment Template signed off at Executive Director level.
-
-Consultation RIS (CRIS):
-1. Problem definition
-2. Non-regulatory and regulatory options
-3. Comparative analysis of options
-4. Expected costs and benefits per option
-(BRU reviews and issues Letter of Advice before publication)
-
-Decision RIS (DRIS):
-1. Executive summary
-2. Issue statement
-3. Policy objectives
-4. Options considered
-5. Impact assessment
-6. Consultation summary (incorporating CRIS feedback)
-7. Preferred option with supporting reasons
-8. Implementation and enforcement details
-9. Evaluation/review plan
-(BRU reviews and issues second Letter of Advice)
-
-**EU structure:**
-1. Context and problem definition
-2. Subsidiarity and proportionality
-3. Objectives
-4. Policy options
-5. Impact assessment (economic, social, environmental)
-6. Comparison of options
-7. Preferred option
-8. Monitoring and evaluation
-9. Annexes (SME test, stakeholder consultation)
-
-**US structure:**
-1. Executive summary
-2. Need for regulatory action
-3. Regulatory alternatives
-4. Benefits and costs of alternatives
-5. Transfer analysis
-6. Distributional effects
-7. Uncertainty analysis
-8. Break-even analysis
-
-Save as `ria-{slugified-topic}-{date}.md`.
-
-Add KEY NUMBERS block:
 ```markdown
+# Regulatory Impact Assessment: [Regulation name]
+
+**Framework**: [uk-gb | eu-brg | au-vic] · **Stage**: [screening | consultation | final] · **Date**: [YYYY-MM-DD]
+
+**Regulation**: [one-sentence description]
+**Affected population**: [N businesses / households / consumers, or qualitative range]
+**Recommendation**: **[Option X] preferred**. [One sentence reason.]
+
+## Problem and rationale
+
+**Problem**: [2-3 sentences. Market failure or policy gap.]
+**Primary market failure**: [externality / information asymmetry / coordination failure / public good / distributional / market power]
+**Rationale for government intervention**: [1-2 sentences. Why regulation rather than market, information, tax, subsidy, or voluntary agreement.]
+**Objectives**: [up to 3 SMART objectives]
+
+## Options
+
+Table 1: Options considered.
+
+| # | Option | Instrument | Scope | Affected parties |
+|---|--------|-----------|-------|-----------------|
+| 1 | Do nothing | None (counterfactual) | N/A | N/A |
+| 2 | [Option 2 name] | [e.g. code of practice] | [scope] | [parties] |
+| 3 | [Option 3 name] | [e.g. mandatory disclosure] | [scope] | [parties] |
+| 4 | [Option 4 name] | [e.g. prohibition] | [scope] | [parties] |
+
+## Cost-benefit summary
+
+Table 2: Net impact per option (PV over [N]-year appraisal period, [currency] real [price base]).
+
+| # | Option | PV costs | PV benefits | NPV | BCR |
+|---|--------|---------:|------------:|----:|:---:|
+| 1 | Do nothing | 0 | 0 | 0 | - |
+| 2 | [Option 2] | [val] | [val] | [val] | [val] |
+| 3 | [Option 3] | [val] | [val] | [val] | [val] |
+| 4 | [Option 4] | [val] | [val] | [val] | [val] |
+
+**Compliance costs** (Standard Cost Model): `affected businesses × hours × wage × frequency + direct costs`. [One sentence describing the main cost components.]
+
+**Direct benefits**: [one sentence listing the main benefit channels with any unit values cited].
+
+**Non-monetised impacts** (qualitative): [one sentence listing any effects that could not be monetised].
+
+## Framework-specific tests
+
+[One compact table covering all tests required by the detected framework. Example for uk-gb:]
+
+| Test | Result | Notes |
+|------|--------|-------|
+| EANDCB (2026 prices) | [currency][val]m | [one line] |
+| Small and Micro Business Impact | [disproportionate / proportionate] | [one line] |
+| Competition filter | [pass / fail] | [one line] |
+| Post-implementation review | [date] | [one line] |
+
+## Sensitivity
+
+[One paragraph: what would flip the recommendation. Example shape: "Ranking is robust under a ±20% cost shift. Option 3 would become preferred if compliance hours exceed 40 per business or if the affected population grows beyond 8,000 entities."]
+
+## Post-implementation review plan
+
+**Review date**: [YYYY-MM-DD] ([N] years after commencement)
+**Indicators to track**: [3-5 indicators, each measurable]
+**Data sources**: [1-3 sources]
+**Review trigger**: [what would prompt an earlier review]
+
+## Next step
+
+Hand to `/cost-benefit --from ria-[slug]-[date].md` for deeper NPV analysis on the preferred option, or `/business-case` if the regulation requires a funded delivery vehicle.
+
 <!-- KEY NUMBERS
 type: ria
-framework: [uk/au/eu/us]
-regulation: [topic]
+project: [name]
+framework: [framework]
+stage: [stage]
+n_options: [count]
 preferred_option: [name]
-eandcb: [value, UK only]
-npv_preferred: [value]
-bcr_preferred: [value]
-businesses_affected: [count]
-annual_compliance_cost: [value]
-review_date: [date]
-date: [date]
+preferred_npv: [value]
+preferred_bcr: [value]
+affected_population: [value]
+eandcb: [value or n/a]
+date: [YYYY-MM-DD]
 -->
 ```
 
-Generate companion JSON. If `--format` specified, invoke export skills. If `--audit`, run `/econ-audit`.
+That is the full default deliverable.
 
-## Important Rules
+**Sub-component selection** (via `--section`): emit only the requested parts. In all modes include the header block and the KEY NUMBERS comment.
 
-{{IMPORTANT_RULES_BASE}}
-{{FORMATTING_RULES}}
-- The RIA is not an advocacy document. It presents the evidence for and against each option, including the preferred option. An RIA that only presents benefits is a political document, not an analytical one.
-- Always include the do-nothing baseline. The RPC and OIA will reject an RIA without a proper counterfactual.
-- Compliance costs must be estimated bottom-up (Standard Cost Model), not top-down. "We estimate costs of GBP 10m" without showing the calculation is not acceptable.
-- EANDCB (UK) is the single most scrutinised number in a UK RIA. Get it right. Show the full calculation.
-- For AU, the 7 RIS questions are not optional. Every question must be answered, even if the answer is brief.
-- Sensitivity analysis is mandatory, not optional. The oversight body will red-rate an RIA without it.
-- The post-implementation review plan is not boilerplate. It must specify evaluation questions, data requirements, and a realistic timeline.
-- When monetising benefits, be conservative. Overstated benefits are the single most common reason for RPC red ratings.
+- `full` (default): the whole structure above.
+- `problem`: header + problem and rationale section only.
+- `options`: header + options table only.
+- `cba`: header + cost-benefit summary only.
+- `tests`: header + framework-specific tests table only.
+- `pir`: header + post-implementation review plan only.
+- `verdict`: header + recommendation line only.
+- `problem,options`: header + both sections.
+
+**Format exports** (multi-format via `--format`):
+- **Markdown (.md)**: always generated. `ria-[slug]-[date].md`.
+- **Excel (.xlsx)** (if `xlsx` in `--format`): invoke the `xlsx` skill. Two sheets: `Options comparison` (one row per option with costs, benefits, NPV, BCR, test results) and `SCM calculation` (Standard Cost Model working with blue input cells). Save as `ria-[slug]-[date].xlsx`.
+- **Word (.docx)** (if `word` in `--format`): invoke the `docx` skill. One document, the full RIA structure with cover page, hyperlinked references. Save as `ria-[slug]-[date].docx`.
+- **PowerPoint (.pptx)** (if `pptx` in `--format`): invoke the `pptx` skill. 5 slides: (1) Problem and recommendation, (2) Options table, (3) NPV/BCR comparison, (4) Framework tests, (5) Next steps. Action titles. Save as `ria-[slug]-[date].pptx`.
+- **PDF** (if `pdf` in `--format`): render the markdown through the econstack Quarto template. Save as `ria-[slug]-[date].pdf`.
+- **`all`**: expand to all five formats.
+
+Tell the user (listing only the files actually produced):
+```
+RIA complete. [N] options compared. Preferred: [Option X] (NPV [currency][val]m, BCR [val]).
+
+Saved:
+  ria-[slug]-[date].md
+  [other formats if requested]
+
+Next: /cost-benefit --from ria-[slug]-[date].md for deeper NPV, or /business-case for delivery framing.
+```
+
+## Framework-specific rules
+
+### `uk-gb` (UK Better Regulation Framework)
+- Standard Cost Model for compliance costs. Uses UK ONS ASHE median wage for the affected occupation.
+- EANDCB is mandatory and must be stated in 2026 prices, rounded to one decimal place.
+- Small and Micro Business Impact Assessment is mandatory if businesses are affected.
+- Competition filter must be applied even when the filter returns pass.
+- Post-implementation review required within 5 years for qualifying regulations.
+- RPC (Regulatory Policy Committee) opinion is required before Parliamentary stage.
+
+### `eu-brg` (EU Better Regulation Guidelines)
+- Standard Cost Model applied at EU level; use median wage from Eurostat by Member State.
+- SME test is mandatory. Mitigations must be described if SME cost share is disproportionate.
+- Proportionality and subsidiarity both must be addressed explicitly.
+- Fundamental rights impact (EU Charter, Article 37 environmental, Article 41 good administration, etc.) must be screened.
+- REFIT (regulatory fitness) programme alignment must be stated if the regulation amends existing legislation.
+- Regulatory Scrutiny Board (RSB) opinion is required before Commission adoption.
+
+### `au-vic` (Victorian Regulatory Impact Statement)
+- Significance thresholds: RIS required above AUD 2m annual burden; full LIA above AUD 8m.
+- Use ABS AWE for wage rates in SCM.
+- Regulatory Change Measurement is mandatory: compute the net AUD change in regulatory burden.
+- Victorian Competition and Efficiency Commission reviews competition restrictions.
+- 60-day minimum public consultation.
+- Commissioner for Better Regulation (CBR) opinion is required before cabinet submission.
+
+## Important rules
+
+- **One interactive moment.** Step 1 collects regulation, options, and affected population in one batch. No other AskUserQuestion calls unless the user explicitly asks for a change.
+- **Silent working.** Do not narrate problem framing, rationale, objectives, or tests. Show the result in the deliverable.
+- **Do nothing is mandatory** as Option 1. An RIA without a counterfactual is not an RIA.
+- **Compliance costs use SCM by default**, regardless of framework. All three supported frameworks endorse the Standard Cost Model.
+- **Net present value is framework-specific**. Use the framework's default discount rate: 3.5% (uk-gb), 3-5% (eu-brg), 4% or 7% (au-vic). Real prices throughout.
+- **No double counting with CBA**. If `--with-cba` is used to import a `/cost-benefit` output, the CBA section of the RIA uses those numbers directly and does not recompute.
+- **Transfers are excluded**. Tax receipts, welfare transfers, grant receipts between government bodies are not net social benefits. Note in an Excluded line if material.
+- **No JSON companion file.** Downstream skills parse the markdown.
+- **Em dashes**: never use em dashes. Use commas, colons, parentheses, or "and".
+
+## Integration with other skills
+
+- `/longlist` can feed benefit and cost streams into this skill via `--from` on the markdown file. The Cash flow tags from longlist inform the Standard Cost Model calculation.
+- `/cost-benefit` provides a deeper NPV analysis for the preferred option. This skill's CBA section is intentionally compact; `/cost-benefit` is the detailed version.
+- `/business-case` wraps the RIA in the Five Case Model when the regulation requires a funded delivery vehicle.
+- `/econ-audit` can audit the output for common RIA errors (missing counterfactual, double counting, transfers treated as benefits).
