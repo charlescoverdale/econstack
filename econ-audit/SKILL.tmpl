@@ -1,6 +1,6 @@
 ---
 name: econ-audit
-description: Audit economic analysis outputs (CBA, impact assessments, fiscal briefings) against methodology standards, academic literature, and common errors. 124 checks across 17 categories including Five Case Model, distributional analysis, Aqua Book RIGOUR, strategic misrepresentation detection, and Australian framework checks. Returns a scorecard with issues ranked by severity.
+description: Audit economic analysis outputs (CBA, business cases, impact assessments, fiscal briefings) against methodology standards, academic literature, and common errors. Runs structured checks across core categories including counterfactual, additionality, discounting, double counting, distributional analysis, Aqua Book RIGOUR, and Flyvbjerg-style strategic misrepresentation detection. Returns a RAG scorecard with issues ranked by severity.
 allowed-tools:
   - Bash
   - Read
@@ -9,11 +9,11 @@ allowed-tools:
   - Grep
   - AskUserQuestion
   - Skill
-  - WebSearch
 ---
 
-**Only stop to ask the user when:** document type is unrecognised, or fix confirmation is needed (--fix mode).
-**Never stop to ask about:** which checks to run (run all applicable), grading methodology, or output filename.
+**Only stop to ask the user when:** the document type is unrecognised, or fix confirmation is needed under `--fix` mode.
+**Never stop to ask about:** which checks to run (all applicable ones), grading methodology, or output filename.
+
 {{PREAMBLE}}
 
 {{LEARNINGS}}
@@ -26,597 +26,251 @@ allowed-tools:
 
 # /econ-audit: Economic Analysis Audit
 
-Audit any economic analysis output against methodology standards, academic literature, and practitioner best practice. Works on CBA reports, impact assessments, fiscal briefings, or any document making economic claims with numbers.
+Reviews any economic analysis output against methodology standards and practitioner best practice. Works on CBA reports, business cases, RIA documents, fiscal briefings, macro briefings, or any document making economic claims with numbers.
 
-This is the "second pair of eyes" that catches errors a reviewer would flag. It checks the numbers, the methodology, the assumptions, and the framing.
-
-**This skill is interactive.** It reads your document, runs the audit, presents the scorecard, then asks if you want fixes applied.
+Think of it as a senior partner and an economics professor going through your work and poking holes in it. Returns a RAG (red / amber / green) scorecard with issues ranked by severity, plus an optional `--fix` mode that proposes concrete corrections.
 
 ## Arguments
 
 ```
-/econ-audit [file_or_path] [options]
+/econ-audit [file or directory] [options]
 ```
 
 **Examples:**
 ```
-/econ-audit cba-london-bridge-2026-04-03.md
-/econ-audit io-report-southwark-2026-04-03.md
-/econ-audit .                                       # audit all econ outputs in cwd
-/econ-audit --strict                                 # fail on any amber issue
+/econ-audit cba-schools-2026-04-10.md
+/econ-audit bc-hospital-obc-2026-04-10.md --strict
+/econ-audit . --fix
+/econ-audit ria-climate-disclosure-2026-04-10.md --framework eu-brg
 ```
 
 **Options:**
-- `--strict` : Treat amber issues as failures for grading purposes. The letter grade cap applies to both RED and AMBER issues. Default: only RED issues cap the grade.
-- `--fix` : Auto-fix issues where possible, skipping the interactive fix question. Only fixes RED issues by default (numerical inconsistencies, formula errors, missing caveats). Does NOT change methodology choices (discount rate, additionality assumptions, framework selection). Does NOT delete content. All fixes are shown to the user before being applied. If `--strict` is also specified, AMBER issues are fixed too.
-- `--json` : Output the audit as structured JSON
-- `--framework <name>` : Override framework detection (uk, eu, us, wb, au, nz)
-- `--full` : Skip interactive menus, output full audit report with all categories
-- `--client "Name"` : Add "Prepared for"
-- `--exec` : Generate a management consulting-style executive summary deck (5 slides with action titles). Can be combined with `--format pptx` for both decks.
-- `--format <type>` : Output format(s): `markdown`, `html`, `word`, `pptx`, `pdf`, or `all`. Comma-separate for multiple (e.g. `--format html,pdf`). Default: markdown only
+- `--strict` : Apply higher bars. Green requires all checks pass cleanly; amber becomes red if material.
+- `--fix` : After scoring, propose concrete corrections for each issue. Optionally apply them (prompted per-issue).
+- `--framework <name>` : Override the auto-detected framework (`uk-gb`, `eu-brg`, `wb`, `adb`, `au-vic`).
+- `--section <name>` : Emit only one sub-component. Options: `full` (default), `headline` (letter grade and count only), `issues` (issue list only), `methodology`, `fix-plan` (if --fix was used). Combinable.
+- `--format <type>` : Output format(s). `markdown` (default, always generated), `xlsx`, `word`, or `pdf`.
+- `--client "Name"` : Add "Prepared for" metadata.
+
+## Check categories
+
+The audit runs structured checks across these categories. Checks are framework-aware: some checks apply only to specific frameworks.
+
+| Category | Checks | Applies to |
+|---------|--------|-----------|
+| **Counterfactual** | Is Do Nothing specified? Is it dynamic (not static)? Are all benefits incremental to it? | All |
+| **Additionality** | Deadweight, displacement, leakage applied? Rates defensible? Not applied to carbon? | All |
+| **Discounting** | Framework-appropriate rate? Declining vs flat correct? Health at 1.5% if applicable? | All |
+| **Optimism bias** | Applied at the right rate for project type and stage? | `uk-gb` only |
+| **Double counting** | Construction jobs + capex? Journey time + land value? Gross earnings + tax? | All |
+| **Transfers** | Tax receipts, welfare payments correctly excluded from social CBA? | All |
+| **Sunk costs** | Prior spend excluded? | All |
+| **Cash vs non-cash** | Economic NPV includes all; Financial NPV includes only cash in / cash out? | All |
+| **Five Case consistency** | Financial vs Economic capex, benefits register vs realisation, risk register vs contingency, preferred option consistent | `uk-gb`, `au-vic` business cases |
+| **Distributional** | Is distributional incidence reported? Is it explicit for uk-gb if material, and mandatory for wb, adb, au-vic? | Framework-dependent |
+| **Aqua Book RIGOUR** | Repeatable, Independent, Grounded, Objective, Uncertainty-managed, Robust | `uk-gb` |
+| **Flyvbjerg indicators** | Scope near thresholds, low contingency, optimistic demand, benefit / cost asymmetry | All |
+| **Data vintages** | All cited numbers have a vintage within a reasonable window | All |
+| **Source quality** | Sources cited, from official or peer-reviewed origins | All |
 
 ## Instructions
 
-### Step 1: Detect what's being audited
+### Step 1: Identify the document
 
-Read the file(s) specified. Detect the document type from content:
+If the user passes a single file path, load that file. If they pass a directory, glob for markdown files and audit each one in turn.
 
-| Pattern | Type | Primary standards |
-|---------|------|-------------------|
-| NPV, BCR, discount rate, appraisal period | CBA | Green Book / EU Guide / OMB A-4 |
-| Output multiplier, employment multiplier, IO model | Impact assessment | ONS IOAT, Flegg et al., HMT Additionality |
-| Borrowing, debt, receipts, PSNB | Fiscal briefing | OBR methodology, fiscal rules |
-| GDP, inflation, unemployment, CPI | Macro briefing | ONS methodology, data quality standards |
-| Yield curve, duration, convexity | Financial analysis | Fixed income conventions |
+Auto-detect the document type from the file name or the KEY NUMBERS block at the top:
+- `cba-*.md`, `type: cost-benefit` → CBA
+- `bc-*.md`, `type: business-case` → Business case
+- `ria-*.md`, `type: ria` → RIA
+- `longlist-*.md`, `type: longlist` → Longlist
+- `mca-*.md`, `type: mca` → MCA
+- `io-*.md`, `type: io-report` → IO impact
+- `macro-*.md`, `type: macro-briefing` → Macro briefing
+- `fiscal-*.md`, `type: fiscal-briefing` → Fiscal briefing
+- Unknown → ask the user what it is once.
 
-Also look for the hidden `<!-- KEY NUMBERS -->` block or companion JSON file. If found, parse it for structured data to cross-check against the prose.
+Auto-detect the framework from the document header or KEY NUMBERS. Default to `uk-gb` if missing.
 
-Tell the user: "Auditing [filename] as a [type]. Framework detected: [framework]."
+### Step 2: Run all applicable checks (silent)
 
-**If the document is a skill template or methodology specification** (not a completed analysis): skip numerical consistency checks (Category A) and recomputation checks. Focus on structural, framing, completeness, and methodology categories. Note: "Auditing as a methodology specification. Numerical checks skipped (no computed results to verify)."
+For each check in the category table above, evaluate:
+- **Pass (green)**: the check is met or clearly met.
+- **Warn (amber)**: the check is partially met or cannot be determined from the document.
+- **Fail (red)**: the check is clearly violated or entirely absent when it should be present.
 
-### Step 1b: Load parameter database
+Checks are framework-aware. Do not apply optimism bias checks to a non-uk-gb document. Do not apply Aqua Book RIGOUR to a non-uk-gb document. Do apply Five Case consistency to uk-gb and au-vic business cases, and skip for other document types.
 
-Load the parameter database to validate against:
+### Step 3: Score and rank
 
-```bash
-PARAMS_DIR="$HOME/econstack-data/parameters"
+Compute:
+- Count of passes, warnings, fails
+- Overall letter grade: A (no fails, few warnings), B (few fails, some warnings), C (several fails, many warnings), D (serious methodology gaps), F (unusable)
+- Under `--strict`: amber escalates to red for material issues.
+
+Rank issues by severity:
+- **Critical**: methodology gap that invalidates the conclusion (missing counterfactual, wrong discount rate, material double counting, transfers included in social NPV).
+- **High**: material gap that weakens the conclusion but does not invalidate it.
+- **Medium**: presentation or evidence gap that should be addressed before submission.
+- **Low**: stylistic or completeness nit.
+
+### Step 4: Fix plan (if `--fix`)
+
+For each critical and high issue, propose a concrete fix. Example fixes:
+- "Add a dynamic counterfactual describing deterioration of existing assets over the appraisal period."
+- "Apply 24% optimism bias uplift to capital costs per HMT Table 1 for this project type and stage."
+- "Remove council tax receipts from the benefits table; note in a separate fiscal annex."
+- "Compute additionality using 20% deadweight, 25% displacement, 10% leakage; current analysis uses unadjusted gross benefits."
+
+Under `--fix`, for each proposed fix, ask the user to confirm application. If confirmed, edit the source document in place. If not, record in the fix plan and move on.
+
+### Step 5: Write the output
+
+Save `audit-[target-slug]-[YYYY-MM-DD].md` with this structure.
+
+```markdown
+<!-- KEY NUMBERS
+type: econ-audit
+target: [target file or directory]
+framework: [framework]
+strict: [true|false]
+passes: [count]
+warnings: [count]
+fails: [count]
+grade: [A|B|C|D|F]
+critical_issues: [count]
+high_issues: [count]
+fixes_applied: [count]
+date: [YYYY-MM-DD]
+-->
+
+# Audit: [target file name]
+
+**Date**: [YYYY-MM-DD] · **Framework**: [framework] · **Strict mode**: [on/off]
+
+## Headline
+
+**Grade**: **[A / B / C / D / F]**
+**Checks**: [passes] pass, [warnings] warn, [fails] fail
+**Critical issues**: [count]
+
+[One-sentence summary: e.g. "Grade B. The CBA is sound in structure but applies additionality inconsistently and is missing a distributional analysis."]
+
+## Scorecard
+
+| Category | Result | Notes |
+|----------|:------:|-------|
+| Counterfactual | [G/A/R] | [one line] |
+| Additionality | [G/A/R] | [one line] |
+| Discounting | [G/A/R] | [one line] |
+| Optimism bias (if uk-gb) | [G/A/R] | [one line] |
+| Double counting | [G/A/R] | [one line] |
+| Transfers | [G/A/R] | [one line] |
+| Sunk costs | [G/A/R] | [one line] |
+| Cash vs non-cash | [G/A/R] | [one line] |
+| Five Case consistency (if applicable) | [G/A/R] | [one line] |
+| Distributional | [G/A/R] | [one line] |
+| Aqua Book RIGOUR (if uk-gb) | [G/A/R] | [one line] |
+| Flyvbjerg indicators | [G/A/R] | [one line] |
+| Data vintages | [G/A/R] | [one line] |
+| Source quality | [G/A/R] | [one line] |
+
+## Issues (ranked by severity)
+
+### Critical
+
+- **[Issue 1]**: [description] · Location: [section / line] · Fix: [suggested fix]
+- **[Issue 2]**: [description] · Location: [section / line] · Fix: [suggested fix]
+
+### High
+
+- **[Issue 3]**: [description] · Fix: [suggested fix]
+
+### Medium
+
+- **[Issue 4]**: [description]
+
+### Low
+
+- [Issue 5]
+
+## Methodology notes
+
+[One paragraph: which framework was applied, which checks were skipped and why, any caveats on the audit itself.]
+
+[If --fix]
+## Fix plan
+
+[List of proposed fixes with confirmation status: Applied / Rejected / Pending.]
 ```
 
-For the detected framework, load the relevant parameter files (e.g. `$PARAMS_DIR/uk/discount-rates.json` for UK CBAs). Use these to verify:
-- Discount rates match the correct schedule (check B1, B2)
-- Optimism bias rates are appropriate for the project type (check C2)
-- Additionality rates are plausible (check D3)
-- Multiplier ranges are within expected bounds (check F3, using `uk/construction-benchmarks.json`)
-- Carbon values use the correct schedule (check H2)
-- Health values use the correct QALY/VSL (check I4)
+**Sub-component selection** (via `--section`): emit only the requested parts.
 
-If parameter files are not found, use the built-in benchmark values in the checklist below.
+- `full` (default): the whole structure above.
+- `headline`: grade and count only.
+- `issues`: issue list only.
+- `methodology`: methodology notes only.
+- `fix-plan`: fix plan only (requires `--fix`).
+- Combinable: `--section headline,issues`.
 
-### Step 2: Run the audit checklist
+**Format exports** (via `--format`):
+- **Markdown (.md)**: always generated. `audit-[target-slug]-[date].md`.
+- **Excel (.xlsx)**: one workbook with sheets: `Scorecard`, `Issues`, `Fix plan`. Conditional formatting on the Result column.
+- **Word (.docx)**: one document, full audit.
+- **PDF**: render markdown through econstack Quarto template.
+- `all`: expand to all formats.
 
-Run every applicable check from the master checklist below. Each check produces one of:
-
-- **GREEN**: Pass. No issue.
-- **AMBER**: Warning. Technically defensible but a reviewer might challenge. Or: a missed opportunity to strengthen the analysis.
-- **RED**: Error. Methodologically wrong, inconsistent, or misleading. Must fix.
-
-#### A. Numerical consistency checks
-
-| # | Check | Severity if failed |
-|---|-------|--------------------|
-| A1 | Do all numbers in the executive summary match the tables? | RED |
-| A2 | Does PV costs + PV benefits = correct NPV? (recompute) | RED |
-| A3 | Does BCR = PV benefits / PV costs? (recompute) | RED |
-| A4 | Do undiscounted totals match the sum of year-by-year figures? | RED |
-| A5 | Is the VfM category consistent with the BCR value? | RED |
-| A6 | Do switching values, when applied, actually produce NPV = 0? (recompute) | RED |
-| A7 | Are sensitivity scenario numbers consistent with the stated +/-% variation? | RED |
-| A8 | If a companion JSON exists, do all numbers match between markdown and JSON? | RED |
-| A9 | Are percentage changes correctly computed (not confused with percentage point changes)? | RED |
-| A10 | Are all currency figures in the stated price base year? | AMBER |
-
-#### B. Discount rate and time horizon
-
-| # | Check | Severity if failed |
-|---|-------|--------------------|
-| B1 | Is the discount rate correct for the stated framework? | RED |
-| B2 | For UK Green Book: is the declining schedule applied correctly after year 30? (not flat 3.5%) | RED |
-| B3 | For UK Green Book: are discount factors computed cumulatively (not by applying lower rate from year 0)? | RED |
-| B4 | Is the appraisal period appropriate for the asset type / project? | AMBER |
-| B5 | Is the price base year stated? | AMBER |
-| B6 | Are costs in real terms (not nominal)? Or if nominal, is deflation documented? | AMBER |
-| B7 | For projects > 30 years: does the report acknowledge the declining rate schedule? | AMBER |
-
-#### C. Optimism bias and risk
-
-| # | Check | Severity if failed |
-|---|-------|--------------------|
-| C1 | For UK infrastructure: is optimism bias applied? (must not be 0% without justification). **UK only.** EU, AU, US, and WB frameworks do not require fixed optimism bias uplifts. If framework != uk, skip C1 or convert to AMBER noting the framework-appropriate risk treatment (sensitivity analysis for EU/US, Reference Class Forecasting P50/P90 for AU). | RED |
-| C2 | Is the optimism bias rate appropriate for the project type AND stage? | AMBER |
-| C3 | Is optimism bias applied to capex but not opex (unless justified)? | AMBER |
-| C4 | Is Monte Carlo / probabilistic analysis included for projects > £100m PV? | AMBER |
-| C5 | Are switching values computed and interpreted correctly? (direction must match NPV sign) | RED |
-| C6 | Does the sensitivity analysis cover a meaningful range (not just +/-5%)? See also Category P for deeper sensitivity checks. | AMBER |
-| C7 | Are residual values unreasonably high? (flag if residual > 15% of capex for assets with 60+ year appraisal periods; > 20% for shorter periods) | AMBER |
-
-#### D. Additionality
-
-| # | Check | Severity if failed |
-|---|-------|--------------------|
-| D1 | Are additionality adjustments applied (deadweight, displacement, leakage)? | AMBER |
-| D2 | Are the rates cited with a source (HMT Additionality Guide, MHCLG, etc.)? | AMBER |
-| D3 | Are the rates plausible for the project type? (e.g., displacement > 50% for retail) | AMBER |
-| D4 | Is the net additionality factor correctly computed? (product of (1-d)(1-disp)(1-l)(1-s)) | RED |
-| D5 | Are carbon benefits excluded from additionality adjustments? (they should be) | AMBER |
-
-#### E. Double counting and transfers
-
-| # | Check | Severity if failed |
-|---|-------|--------------------|
-| E1 | Are any benefits counted twice? (e.g., journey time savings AND land value uplift derived from them) | RED |
-| E2 | Are taxes, subsidies, or grants included as costs/benefits in a social CBA? (they should not be, as they are transfers) | RED |
-| E3 | If both economic AND financial analysis are presented, are transfers handled differently in each? | AMBER |
-| E4 | Are wider economic impacts (agglomeration, labour supply) presented separately from core benefits? | AMBER |
-| E5 | Is there clear separation between gross and net figures throughout? | AMBER |
-| E6 | Are sunk costs included? (costs already incurred that cannot be recovered should be excluded from the appraisal) | RED |
-| E7 | Is the counterfactual (Do Nothing) static? (it should evolve over time to reflect deterioration, demand growth, committed policies, not be fixed at the current state. A static counterfactual invalidates the entire incremental analysis.) | RED |
-
-#### F. Multiplier and IO model checks (impact assessments)
-
-| # | Check | Severity if failed |
-|---|-------|--------------------|
-| F1 | Is the multiplier type stated (Type I vs Type II)? | AMBER |
-| F2 | Is Type II used without justification? (Type I is more conservative and defensible) | AMBER |
-| F3 | Is the multiplier plausible for the sector and area? (Type I typically 1.0-1.8; flag if > 2.0) | RED |
-| F4 | Is the regionalization method stated (FLQ, CILQ, SLQ, etc.)? | AMBER |
-| F5 | Are employment multipliers consistent with output multipliers? | AMBER |
-| F6 | Is the data source and year stated? | AMBER |
-| F7 | Are the results described as "indicative upper bounds" or similar caveat? | AMBER |
-| F8 | Does the report acknowledge fixed input proportions / no substitution? | AMBER |
-
-#### G. Framing and interpretation
-
-| # | Check | Severity if failed |
-|---|-------|--------------------|
-| G1 | Is NPV presented as the primary metric (not BCR)? (Green Book is explicit about this) | AMBER |
-| G2 | Are non-monetised benefits described with direction and magnitude? | AMBER |
-| G3 | Is the counterfactual clearly described in the narrative? (What specifically happens without the intervention? Just saying "do nothing" is insufficient.) | AMBER |
-| G4 | Are caveats and limitations clearly stated? | AMBER |
-| G5 | Is the analysis described as "indicative" or "estimates" (not "will create X jobs")? | AMBER |
-| G6 | Are switching value interpretations correct for the NPV sign? | RED |
-| G7 | For negative NPV: does the report explain what would need to change (not just state "Poor VfM")? | AMBER |
-| G8 | Are incremental costs/benefits shown when comparing 3+ options? | AMBER |
-| G9 | Is the methodology section sufficient for a reviewer to replicate the analysis? | AMBER |
-| G10 | Are references provided to the framework and supplementary guidance used? | AMBER |
-| G11 | Are all benefits independent? (flag if benefit B depends on benefit A materialising first, creating a dependency chain that inflates total benefits) | AMBER |
-| G12 | Are real and nominal values mixed in the same table or computation? (all values must be in consistent price terms) | RED |
-
-#### H. Sector-specific checks
-
-**Transport:**
-| # | Check | Severity if failed |
-|---|-------|--------------------|
-| H1 | Are TAG values used for time savings, VOC, accident reduction? | AMBER |
-| H2 | Is the value of time split by trip purpose (work/commute/leisure)? | AMBER |
-| H3 | Are induced traffic effects acknowledged? | AMBER |
-| H4 | Is benefit ramp-up applied (not instant full benefits post-construction)? | AMBER |
-
-**Health:**
-| # | Check | Severity if failed |
-|---|-------|--------------------|
-| H5 | Are QALYs/DALYs valued at the correct framework-specific rate? | AMBER |
-| H6 | Is the QALY/DALY value source cited? | AMBER |
-
-**Environment/carbon:**
-| # | Check | Severity if failed |
-|---|-------|--------------------|
-| H7 | Is the carbon price from the correct source for the framework? | AMBER |
-| H8 | Does the carbon price increase over time (not flat)? | AMBER |
-| H9 | Are embodied construction emissions included alongside operational savings? | AMBER |
-
-#### I. Academic and empirical checks
-
-| # | Check | Severity if failed |
-|---|-------|--------------------|
-| I1 | Reference Class Forecasting: are the cost estimates consistent with the empirical distribution of cost overruns for this project type? (Flyvbjerg et al. 2003 found average overrun of 28% for roads, 45% for rail, 20% for buildings) | AMBER |
-| I2 | Multiplier plausibility: is the employment multiplier consistent with the range found in the academic literature? (Moretti 2010 finds local multipliers of 1.5-2.5 for tradeable sectors) | AMBER |
-| I3 | Benefit optimism: are benefit estimates consistent with ex-post evaluations of similar projects? (Flyvbjerg 2005 found benefits overestimated by 50% on average for transport) | AMBER |
-| I4 | Discount rate justification: does the chosen rate align with the Ramsey formula parameters for the relevant economy? | AMBER |
-| I5 | Does the analysis acknowledge key empirical findings relevant to the project type (e.g., Crompton 1995 on sports facility overestimation, Venables 2007 on agglomeration)? | AMBER |
-| I6 | For residual values: is the assumed remaining asset life consistent with engineering benchmarks for this asset type? (e.g., bridges 100-120 years, buildings 60 years, IT systems 5-10 years) | AMBER |
-
-#### J. Data quality and interpretation (macro briefings)
-
-| # | Check | Severity if failed |
-|---|-------|--------------------|
-| J1 | Is the data freshness stated? (date of latest data point for each indicator must be visible) | AMBER |
-| J2 | Are seasonal adjustments consistently applied? (do not mix SA and NSA series in comparisons) | RED |
-| J3 | Is the unemployment rate the ILO measure (not claimant count)? These are different concepts. | AMBER |
-| J4 | Is CPI or CPIH specified? (ONS lead measure is now CPIH; if using CPI, note the distinction) | AMBER |
-| J5 | Are real wages correctly computed? (nominal wage growth minus CPI inflation, not divided by CPI) | RED |
-| J6 | Is the GDP measure specified? (quarterly growth, annual growth, or level; q/q and y/y must not be confused) | AMBER |
-| J7 | Are labour market figures described as 3-month rolling averages (not point-in-time monthly data)? | AMBER |
-| J8 | Are comparisons like-for-like? (q/q compared to q/q, not q/q compared to y/y) | RED |
-| J9 | Are pre-pandemic comparisons dated? (specify which quarter/year, not just "pre-pandemic levels") | AMBER |
-| J10 | Are forward-looking statements clearly attributed? (BoE, OBR, market expectations; not presented as fact) | AMBER |
-
-#### K. Strategic Case and Five Case Model (CBA only)
-
-| # | Check | Severity if failed |
-|---|-------|--------------------|
-| K1 | Is a Strategic Case present with SMART objectives (Specific, Measurable, Achievable, Relevant, Time-bound)? | AMBER |
-| K2 | Is a theory of change or logic model articulated, linking inputs to activities to outputs to outcomes to impact? | AMBER |
-| K3 | Is the case for intervention stated (market failure, equity rationale, or government objective)? | AMBER |
-| K4 | Does the options appraisal include at least 5 shortlisted options (BAU, do minimum, preferred, and variants)? | AMBER |
-| K5 | Is there a "do minimum" option distinct from "do nothing"? (Do minimum = committed policies only; do nothing = no action. These are different counterfactuals.) | RED |
-| K6 | Is the analysis proportionate to the scale and stage? (SOC can use ranges; OBC needs point estimates with OB; FBC needs firm costs.) | AMBER |
-| K7 | Are Critical Success Factors documented and used to filter the options longlist? | AMBER |
-
-#### L. Distributional analysis
-
-| # | Check | Severity if failed |
-|---|-------|--------------------|
-| L1 | Are distributional impacts by income group assessed? (For projects > GBP 50m PV: RED if absent. Otherwise: AMBER.) | RED/AMBER |
-| L2 | If distributional weights are applied, is the methodology documented and sourced to Green Book Annex 3? | AMBER |
-| L3 | If distributional weights are NOT applied, is their absence justified? (The 2025 Green Book Review strengthened this requirement.) | AMBER |
-| L4 | Are geographic distributional effects documented (which areas benefit, which bear costs)? | AMBER |
-| L5 | Are impacts on protected characteristics (Equality Act 2010 / Public Sector Equality Duty) considered? | AMBER |
-| L6 | Is a place-based context provided where the intervention is spatially targeted? | AMBER |
-
-#### M. Analytical Quality Assurance (Aqua Book RIGOUR)
-
-| # | Check | Severity if failed |
-|---|-------|--------------------|
-| M1 | **Repeatable:** Is the analysis documented sufficiently for another analyst to reproduce the results? (Data sources, transformations, assumptions, and model steps must be traceable.) | AMBER |
-| M2 | **Independent:** Is there evidence of independent review or QA sign-off? (Or at minimum, is it clear that the analyst and commissioner are separate?) | AMBER |
-| M3 | **Grounded in reality:** Are key assumptions validated against observed or empirical data (not just theoretical)? | AMBER |
-| M4 | **Objective:** Is the analysis free from advocacy framing? (Findings should be presented neutrally, not to support a predetermined conclusion.) | AMBER |
-| M5 | **Uncertainty-managed:** Is uncertainty quantified, not just acknowledged? (Sensitivity analysis must cover ranges, not just "results are sensitive to assumptions.") | AMBER |
-| M6 | **Robust:** Are model limitations explicitly stated and communicated to decision-makers? | AMBER |
-
-#### N. Strategic misrepresentation indicators (CBA only)
-
-| # | Check | Severity if failed |
-|---|-------|--------------------|
-| N1 | Are cost estimates at the bottom of the plausible range AND benefit estimates at the top? (Pattern consistent with Flyvbjerg's strategic misrepresentation finding.) | AMBER |
-| N2 | Is the project scope suspiciously close to an approval threshold? (e.g., total cost just below GBP 100m, GBP 500m, or department-specific thresholds.) | AMBER |
-| N3 | Are contingencies below 10% of capex at OBC stage or below 5% at FBC stage? (Unusually low for most project types.) | AMBER |
-| N4 | Is the demand/usage forecast significantly above the historical trend without explanation? (Flyvbjerg 2005: travel demand overestimated by 50% on average.) | AMBER |
-| N5 | Are multiple optimistic assumptions compounded? (Optimistic on costs AND benefits AND timing AND demand.) If yes, compute the combined probability. | RED |
-
-#### O. Green Book 2026 updates
-
-| # | Check | Severity if failed |
-|---|-------|--------------------|
-| O1 | Is an arbitrary BCR threshold applied as a decision rule? (e.g., "BCR must exceed 2.0." The Green Book 2026 explicitly states BCR thresholds are not endorsed as sole decision criteria.) | AMBER |
-| O2 | Is BCR used as the sole criterion for ranking options without considering non-monetised benefits? | AMBER |
-| O3 | For health-related benefits: is the health discount rate of 1.5% applied (rather than the standard 3.5%)? | RED |
-| O4 | For carbon valuation: are DESNZ carbon values recognised as pre-discounted (they use a different discount rate and should not be discounted again with the main STPR)? | RED |
-| O5 | Is wellbeing analysis considered where relevant (health, social care, community programmes)? Green Book 2026 broadens social value to include subjective wellbeing. | AMBER |
-| O6 | Does the document acknowledge that the Green Book discount rate is under independent review (commissioned December 2025, reporting June 2026)? For long-duration projects (30+ years), this could materially affect the NPV. | AMBER |
-
-#### P. Sensitivity analysis depth
-
-These replace and expand check C6 for a more thorough assessment:
-
-| # | Check | Severity if failed |
-|---|-------|--------------------|
-| P1 | Does the sensitivity analysis test more than one variable at a time? (One-at-a-time testing misses correlations between variables.) | AMBER |
-| P2 | Is there a combined downside scenario where multiple adverse assumptions occur simultaneously? (e.g., costs +20% AND benefits -20% AND 2-year delay.) | AMBER |
-| P3 | Are switching values computed for each key variable individually (not just the overall BCR)? | AMBER |
-| P4 | For projects > GBP 100m PV: is Monte Carlo or equivalent probabilistic analysis included with explicit distributional assumptions on inputs? | AMBER |
-| P5 | Does the worst-case scenario test an outcome that would change the investment decision (not just reduce NPV while remaining positive)? | AMBER |
-
-#### R. Australian framework checks (AU only)
-
-These checks apply when the framework is AU (Commonwealth, Victoria, NSW, Queensland). Skip for non-AU documents.
-
-| # | Check | Severity if failed |
-|---|-------|--------------------|
-| R1 | Is the discount rate 7% (or 4% and 7% for Victoria)? AU does not use the UK 3.5% declining schedule. | RED |
-| R2 | For Victoria: are CBA results reported at BOTH 4% and 7% discount rates? (DTF requires dual presentation for transport projects.) | AMBER |
-| R3 | Is Reference Class Forecasting (P50/P90) used instead of UK-style fixed optimism bias uplifts? AU frameworks do not use the Green Book OB percentages. | AMBER |
-| R4 | Is the industry classification ANZSIC (not UK SIC)? Check that sector names match the 19 ANZSIC divisions, not the 19 SIC sections. | AMBER |
-| R5 | For IO impact assessments: is the Census data vintage noted? If Census employment data is > 4 years old, flag: "Regional employment structure based on Census [year], which may not reflect current industry mix." | AMBER |
-| R6 | For IO impact assessments: are regional Type I multipliers in the 1.0-1.7 range? AU SA4 multipliers are typically lower than UK LA multipliers due to larger geographic distances and more open regional economies. Flag if any SA4 multiplier exceeds 1.8. | AMBER |
-| R7 | For mining-heavy regions: is FIFO/DIDO leakage acknowledged? If Mining (B) employment > 20% of regional total, leakage may be significantly higher than the default assumption. | AMBER |
-| R8 | Is the additionality source honest? AU has no equivalent to the UK HMT Additionality Guide. If the report cites "HMT Additionality Guide" for an AU project, flag as incorrect framework application. | RED |
-
-### Step 3: Present the scorecard
-
+Tell the user (listing only files produced):
 ```
-ECONOMIC AUDIT: [filename]
-===========================
-Type:      [CBA / Impact Assessment / Fiscal Briefing / etc.]
-Framework: [UK Green Book / EU / US OMB / AU / etc.]
-Checklist: econstack econ-audit v[VERSION], [N] checks across [N] categories
-Date:      [date]
+Audit complete. Grade [X]. [N] critical, [M] high, [K] medium issues.
 
-SCORECARD (illustrative example)
----------
-Category                    RED   AMBER   GREEN   Score
-A. Numerical consistency     0      1       9     9/10
-B. Discount rate & horizon   0      0       7     7/7
-C. Optimism bias & risk      1      2       4     4/7
-D. Additionality             0      1       4     4/5
-E. Double counting           0      0       7     7/7
-F. Multiplier/IO model       -      -       -     n/a
-G. Framing & interpretation  0      3       9     9/12
-H. Sector-specific           0      1       3     3/4
-I. Academic/empirical        0      2       4     4/6
-J. Data quality (macro)      -      -       -     n/a
-K. Strategic Case / 5CM      0      2       5     5/7
-L. Distributional analysis   0      1       5     5/6
-M. Aqua Book RIGOUR          0      2       4     4/6
-N. Strategic misrep.         0      0       5     5/5
-O. Green Book 2026           0      1       5     5/6
-P. Sensitivity depth         0      1       4     4/5
-R. Australian framework      -      -       -     n/a
--------------------------------------------------
-OVERALL                      1     17      78    78/97
-
-GRADE: [A / B / C / D / F]
-  A (90%+):  Publication-ready. Minor improvements possible.
-  B (75-89%): Strong analysis. Address amber issues before submission.
-  C (60-74%): Adequate but has gaps. Needs revision.
-  D (40-59%): Significant issues. Major revision required.
-  F (<40%):   Fundamental errors. Redo the analysis.
-
-Grade capping rules (override the mechanical percentage):
-- If 1-2 RED issues exist: grade is capped at C (regardless of overall %).
-- If 3-4 RED issues exist: grade is capped at D.
-- If 5+ RED issues exist: grade is F.
-
-A single RED error (e.g., wrong discount rate applied to all 60 years) is a
-fundamental methodological failure. It should not be masked by passing all
-other checks. These caps ensure the grade reflects the severity of issues,
-not just their quantity.
-
-Note: Category F applies only to impact assessments. Category J applies only
-to macro briefings. Categories K, N apply only to CBAs/business cases.
-Category L applies to CBAs and impact assessments. Category R applies only
-to AU-framework documents. Categories M, O, P apply to all analytical
-documents. Categories not applicable are marked n/a and excluded from
-the score calculation.
-
-This audit covers economic methodology. For full Five Case Model
-completeness (Commercial, Financial, Management cases), use
-`/business-case --audit` which checks cross-case consistency.
+Saved:
+  audit-[target-slug]-[date].md
+  [other formats if requested]
 ```
 
-Then list each non-GREEN issue:
+## Framework-specific checks
 
-```
-RED ISSUES (must fix)
----------------------
-[C1] Optimism bias is 0% on a UK infrastructure project.
-     The Green Book requires optimism bias for all infrastructure. At OBC
-     stage for standard civil engineering, apply 20%.
-     FIX: Multiply capital costs by 1.20. This will change PV costs,
-     NPV, BCR, and switching values.
-     REF: Green Book Supplementary Guidance: Optimism Bias (Table 1)
+### `uk-gb`
+- Optimism bias at Table 1 rates per project type and stage.
+- Distributional weights applied if benefits materially affect low-income groups (Annex 4).
+- Aqua Book RIGOUR: Repeatable, Independent, Grounded, Objective, Uncertainty-managed, Robust.
+- Green Book 2026 updates: BCR misuse, health discount rate (1.5%), carbon pre-discounting, wellbeing valuation.
 
-AMBER ISSUES (should address)
------------------------------
-[G3] The Do Nothing counterfactual description lacks specificity.
-     The narrative says "do nothing" without describing what specifically
-     happens without intervention over the appraisal period.
-     SUGGESTION: Add 1-2 sentences on deterioration, demand growth,
-     and committed policies under the counterfactual.
-     REF: Green Book (2026) Chapter 5
+### `eu-brg`
+- SME test applied if business-affecting.
+- Fundamental rights screening performed.
+- Proportionality and subsidiarity addressed.
+- REFIT alignment stated for amendments to existing legislation.
 
-[I1] Capital cost estimates are at risk of Reference Class Forecasting bias.
-     Flyvbjerg et al. (2003) found average cost overruns of 28% for road
-     projects and 45% for rail. Your 44% optimism bias partially addresses
-     this, but consider whether the base estimate already includes some
-     risk contingency (if so, there may be double-counting of risk).
-     REF: Flyvbjerg, B. (2003). "Megaprojects and Risk." Cambridge UP.
-```
+### `wb`
+- Distributional incidence by income decile.
+- Poverty headcount impact reported.
+- Shadow wages applied consistently for labour benefits.
+- OP 10.04 structure followed.
 
-### Step 4: Ask what the user wants to do
+### `adb`
+- 9% EIRR hurdle (or 6% for climate / health / education).
+- Switching values mandatory on all major variables.
+- Poverty and gender disaggregation reported.
+- Climate Typology tagging if climate co-benefits claimed.
 
-Ask using AskUserQuestion (two questions):
+### `au-vic`
+- Investment Logic Map present, with problem-benefit traceability.
+- Benefit Management Plan has owner, KPI, baseline, target, timeframe for every benefit.
+- Disbenefits captured explicitly.
+- P50 / P90 risk allowance applied.
 
-**Question 1:** "What would you like to do with the audit results?"
+## Important rules
 
-Options:
-- A) **Apply fixes** : Fix all RED issues and as many AMBER issues as possible in the source file
-- B) **Fix RED only** : Fix only the critical errors, leave AMBER as notes
-- C) **Save audit report** : Save the scorecard and issue list as a separate file
-- D) **Just the scorecard** : I've seen enough, thanks
+- **Framework-aware.** Do not apply uk-gb checks to an eu-brg or wb document. Only run checks applicable to the detected framework.
+- **Honest about limits.** Some checks cannot be fully verified from a written document alone (e.g. whether the counterfactual is truly dynamic). Use warn (amber) in those cases, not pass.
+- **Severity drives grading.** A single critical issue caps the grade at C regardless of how clean the other checks are.
+- **Fix plans are concrete.** Do not propose vague "improve the counterfactual" fixes. Specify what to add and where.
+- **Do not rewrite the document unilaterally.** Under `--fix`, always confirm each edit with the user before applying.
+- **Em dashes**: never use em dashes. Use commas, colons, parentheses, or "and".
 
-**Question 2 (if A, B, or C):** "What file formats do you need for the audit report?"
+## Integration with other skills
 
-If `--format` was NOT specified on the command line, ask using AskUserQuestion:
-
-Options (multiSelect: true):
-- Markdown (.md) : Default, always included. Plain text scorecard and issue list
-- HTML : Branded single-page report with colour-coded scorecard (red/amber/green), ready to open in browser or email
-- Word (.docx) : Formatted audit report for editing in Microsoft Word
-- PowerPoint (.pptx) : Summary slide deck with scorecard, key issues, and recommendations
-- PDF : Branded consulting-quality PDF via Quarto
-
-If `--format` was specified, skip the format question and use the specified format(s). If `--format all`, expand to `["markdown", "html", "word", "pptx", "pdf"]`.
-
-Markdown is always generated regardless of selection.
-
-If A or B:
-- For each fixable issue, edit the source file directly.
-- Recompute any affected numbers (NPV, BCR, switching values, sensitivity) after fixing.
-- After fixing, re-run the audit to confirm all RED issues are resolved.
-- Save a diff summary showing what changed.
-
-### Step 5: Save and generate formats
-
-Always save the markdown audit report: `audit-{source-filename}-{date}.md`
-If `--json` specified, also save: `audit-{source-filename}-{date}.json`
-
-**Then generate each additional format the user selected:**
-
-**Markdown** (always generated):
-Save as `audit-{source-filename}-{date}.md`. This is the primary output.
-
-**HTML** (if selected):
-Generate a self-contained HTML file with inline CSS. Use a traffic-light colour scheme:
-- RED issues: red background (#FFCCCC) with red border (#CC0000)
-- AMBER issues: amber background (#FFF3CD) with amber border (#CC8800)
-- GREEN checks: green text (#006100)
-- Scorecard table with colour-coded cells
-- Grade displayed prominently with appropriate colour
-- KPI summary bar at the top (total checks, RED count, AMBER count, grade)
-The HTML must be fully self-contained (no external CSS/JS) so it can be emailed or opened offline.
-Save as `audit-{source-filename}-{date}.html`.
-
-**Word (.docx)** (if selected):
-Invoke the `/docx` skill to create a formatted Word document. Instruct the skill to:
-- Use a professional layout with colour-coded issue severity (red/amber headings)
-- Format the scorecard as a table with coloured cells
-- Include a cover page with "Economic Audit Report", the source filename, date, and grade
-- Structure: Executive summary (grade + key findings), Scorecard table, RED issues, AMBER issues, Recommendations, References
-Save as `audit-{source-filename}-{date}.docx`.
-
-**PowerPoint (.pptx)** (if selected):
-Invoke the `/pptx` skill to create a summary slide deck:
-1. Title slide: "Economic Audit Report" with source filename, date, grade
-2. Scorecard slide: the full category table with colour-coded scores
-3. RED issues slide: one slide per RED issue (or combined if few), with issue, fix, and reference
-4. AMBER highlights slide: top 3-5 most impactful AMBER issues
-5. Recommendations slide: prioritised action list
-6. Methodology slide: brief note on audit checklist and sources
-Use red (#CC0000) for RED issue headers, amber (#CC8800) for AMBER, green (#006100) for pass indicators.
-Save as `audit-{source-filename}-{date}.pptx`.
-
-**Executive summary deck** (if `--exec` specified):
-
-Invoke the `/pptx` skill to create a management consulting-style executive summary deck. Every slide follows the **action title + evidence** pattern: a 2-line strapline stating the conclusion (a complete sentence, NOT a topic label), then 3-4 dot points proving it.
-
-Formatting: Action title 24-28pt bold navy (#003078). Body 14-16pt, one key number bolded per bullet. Use red (#CC0000) for RED issue text, amber (#CC8800) for AMBER, green (#006100) for pass indicators. Footer 10pt light grey. Clean white background. Slide numbers bottom-right.
-
-**Slide 1: Title**
-- "Economic Audit" (large, navy)
-- Source filename, date, "Prepared for: [client]" if specified
-
-**Slide 2: Overall grade**
-- Action title: "This analysis scores [A/B/C/D/F]: [1-line plain-language interpretation]"
-  - e.g. "This analysis scores B+: methodologically sound with minor gaps in sensitivity analysis"
-  - e.g. "This analysis scores D: critical errors in discounting and missing additionality adjustments"
-- Evidence:
-  - Overall grade: **[letter]** ([score]/100)
-  - RED issues: **[N]** critical
-  - AMBER issues: **[N]** areas for improvement
-  - GREEN: **[N]** categories passed
-- Optional: compact RAG grid of all 16 audit categories
-
-**Slide 3: Red issues**
-- Action title: "[N] critical issues found that undermine the analysis" (or "No critical issues found" if N=0)
-- Evidence: Top 3 RED issues, each as 1 bullet:
-  - [Issue 1]: [1-line description + impact]
-  - [Issue 2]: [1-line description + impact]
-  - [Issue 3]: [1-line description + impact]
-- If N=0, replace with a summary of what was checked and passed
-
-**Slide 4: Amber issues**
-- Action title: "[N] areas for improvement would strengthen the analysis"
-- Evidence: Top 3 AMBER issues, each as 1 bullet:
-  - [Issue 1]: [1-line description + recommendation]
-  - [Issue 2]: [1-line description + recommendation]
-  - [Issue 3]: [1-line description + recommendation]
-
-**Slide 5: Recommended fixes**
-- Action title: "Addressing [N] issues would raise the grade to [target letter]"
-- Evidence: Prioritised action list (3-5 items):
-  - [Fix 1]: [action + expected grade impact]
-  - [Fix 2]: [action + expected grade impact]
-  - [Fix 3]: [action + expected grade impact]
-- Footer: "Full audit report: audit-{source-filename}-{date}.md"
-
-Save as `audit-exec-{source-filename}-{date}.pptx`.
-
-**PDF** (if selected):
-Render the markdown through the EconStack template:
-```bash
-ECONSTACK_DIR="$HOME/.claude/skills/econstack"
-"$ECONSTACK_DIR/scripts/render-report.sh" audit-{source-filename}-{date}.md \
-  --title "Economic Audit Report" \
-  --subtitle "[source filename] | Grade: [grade]"
-```
-If Quarto is not installed, tell the user: "PDF rendering requires Quarto (https://quarto.org). The markdown report has been saved."
-
-Tell the user what was generated, listing only the files that were actually produced:
-```
-Files saved:
-  audit-{filename}-{date}.md     (scorecard and issues)
-  audit-{filename}-{date}.json   (if --json specified)
-  audit-{filename}-{date}.html   (if HTML selected)
-  audit-{filename}-{date}.docx   (if Word selected)
-  audit-{filename}-{date}.pptx   (if PowerPoint selected)
-  audit-{filename}-{date}.pdf    (if PDF selected)
-  [source file]                   (if fixes applied)
-```
-
-## Key References for Audit Checks
-
-The audit draws on these sources. Cite them when flagging issues:
-
-**Frameworks:**
-- HM Treasury (2022, updated 2026). "The Green Book."
-- HM Treasury (2025). "Green Book Review 2025: Findings and Actions."
-- HM Treasury (2015). "The Aqua Book: Guidance on Producing Quality Analysis for Government."
-- HM Treasury (2014). "Additionality Guide", 4th edition.
-- DLUHC (2025). "The Appraisal Guide", 3rd edition.
-- DfT (2025). "Value for Money Framework." and "VfM Supplementary Guidance on Categories."
-- DfT. "Transport Analysis Guidance (TAG) Data Book."
-- DESNZ (2024). "Valuation of greenhouse gas emissions."
-- European Commission (2014). "Guide to Cost-Benefit Analysis."
-- OMB (2023). "Circular A-4: Regulatory Analysis."
-- NAO. "Quality Assurance of Models."
-- IPA. "Assurance Review Toolkit."
-
-**Academic (cost overruns and benefit optimism):**
-- Flyvbjerg, B., Bruzelius, N., Rothengatter, W. (2003). "Megaprojects and Risk: An Anatomy of Ambition." Cambridge University Press.
-- Flyvbjerg, B. (2005). "Measuring inaccuracy in travel demand forecasting." Transport Reviews, 25(5).
-- Flyvbjerg, B. (2006). "From Nobel Prize to project management: Getting risks right." Project Management Journal, 37(3).
-- Kahneman, D. and Tversky, A. (1979). "Prospect Theory: An Analysis of Decision under Risk." Econometrica, 47(2).
-
-**Academic (multipliers and local economic impacts):**
-- Flegg, A.T. et al. (1995). "On the Appropriate Use of Location Quotients." Regional Studies, 29(6).
-- Moretti, E. (2010). "Local Multipliers." American Economic Review: Papers & Proceedings, 100(2).
-- Crompton, J.L. (1995). "Economic Impact Analysis of Sports Facilities and Events." Journal of Sport Management, 9(1).
-
-**Academic (discounting):**
-- Ramsey, F.P. (1928). "A Mathematical Theory of Saving." Economic Journal, 38(152).
-- Stern, N. (2007). "The Economics of Climate Change." Cambridge University Press.
-- Weitzman, M.L. (2001). "Gamma Discounting." American Economic Review, 91(1).
-
-**Academic (wider economic impacts):**
-- Venables, A.J. (2007). "Evaluating Urban Transport Improvements." Journal of Transport Economics and Policy, 41(2).
-- Graham, D.J. (2007). "Agglomeration, Productivity, and Transport Investment." Journal of Transport Economics and Policy, 41(3).
-
-**Australian frameworks:**
-- ABS (2026). "Australian National Accounts: Input-Output Tables, 2023-24."
-- Infrastructure Australia (2021). "Assessment Framework."
-- Victorian DTF (2025). "Investment Lifecycle and High Value High Risk Guidelines."
-- NSW Treasury (2024). "TPG23-08: NSW Government Guide to Cost-Benefit Analysis."
-- Gretton, P. (2013). "On input-output tables: uses and abuses." Productivity Commission Staff Research Note.
-- Lenzen, M. et al. (2017). "New multi-regional input-output databases for Australia." Economic Systems Research, 29(2).
-
-**EU frameworks:**
-- European Commission (2014). "Guide to Cost-Benefit Analysis of Investment Projects." DG Regio.
-
-## Important Rules
-
-{{IMPORTANT_RULES_BASE}}
-{{FORMATTING_RULES}}
-- Every issue must cite a specific source (framework document, academic paper, or empirical finding).
-- RED issues must include a concrete fix instruction, not just "this is wrong."
-- AMBER issues must include a specific suggestion, not just "consider reviewing."
-- The audit must be reproducible: another economist should reach the same conclusions given the same checklist.
-- Do not invent issues that are not supported by the checklist. If the analysis is good, say so.
-- Cross-check every number you can. Recompute NPV, BCR, and switching values independently and compare.
-- If a companion JSON file exists, verify every number in the prose against the JSON. Mismatches between prose and data are RED.
-- Be precise about which academic finding supports each flag. Do not vaguely cite "the literature."
-- The grade is mechanical (% of checks that pass) with RED caps applied. If any RED issues exist, the grade is capped at C regardless of overall percentage. If 3+ RED issues exist, capped at D. If 5+ RED, grade is F. Do not override with subjective judgment beyond these caps.
-- If the document type is not recognized, tell the user and ask what type of analysis it is.
-- If the document references hardcoded values (TAG rates, carbon prices, QALY values, median incomes), check their vintage. Flag as AMBER if more than 12 months old with: "[Value] dated [year] may be outdated. Verify against latest [source]."
+- Audits outputs from `/longlist`, `/cost-benefit`, `/business-case`, `/mca`, `/reg-impact`, `/macro-briefing`, `/fiscal-briefing`, `/io-report`, `/la-profile`, and `/market-research`.
+- Can be run automatically via the `--audit` flag on most econstack skills (they invoke `/econ-audit` on their own output after generation).
