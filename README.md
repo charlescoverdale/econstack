@@ -38,7 +38,7 @@ git clone https://github.com/charlescoverdale/econstack.git ~/.claude/skills/eco
 git clone https://github.com/charlescoverdale/econstack-data.git ~/econstack-data
 ```
 
-Everything installs locally: the skills, the parameter database, and the 391 UK local authority datasets are cloned to your own machine. There is no central econstack server, no database, no telemetry. The skills read files from your local drive through Claude Code's normal file access, so your project notes, costings, and client materials stay on your device. The only information that travels to Anthropic is what Claude itself reads during each invocation, the same as any other Claude Code workflow.
+Everything installs locally: the skills, the parameter database, and the 391 UK local authority datasets are cloned to your own machine. There is no central econstack server, no database, no telemetry. The skills read files from your local drive through Claude Code's normal file access, so your project notes, costings, and client materials stay on your device. Nothing is sent anywhere until you ask Claude a question, and even then it is the same privacy posture as using Claude Code for anything else: there is no extra layer, no phone-home, no third-party service.
 
 You can come to econstack with zero project documents and start from a one-line description, or you can point it to wherever your existing materials live: costings, design briefs, brainstorming notes, prior business cases, stakeholder correspondence. The skill reads them automatically and factors the bespoke context into the analysis, so you do not need to retype anything you have already captured elsewhere.
 

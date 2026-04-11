@@ -91,15 +91,9 @@ Good before a ministerial meeting, investment committee, exam, or as a regular p
 /macro-briefing [country or topic] [options]
 ```
 
-**Examples:**
+**Example:**
 ```
-/macro-briefing                           # UK by default
-/macro-briefing --country us
-/macro-briefing --country eu
-/macro-briefing --country au
-/macro-briefing --international           # add cross-country comparison
-/macro-briefing --focus inflation         # inflation-focused briefing
-/macro-briefing --format pptx             # PowerPoint slide deck
+/macro-briefing --country uk --format pdf
 ```
 
 **Options:**

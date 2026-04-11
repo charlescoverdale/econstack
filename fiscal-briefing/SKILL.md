@@ -91,14 +91,9 @@ Optionally adds a full Debt Sustainability Analysis (DSA) via the [debtkit](http
 /fiscal-briefing [country or topic] [options]
 ```
 
-**Examples:**
+**Example:**
 ```
-/fiscal-briefing                           # UK by default
-/fiscal-briefing --country us
-/fiscal-briefing --country au
-/fiscal-briefing --dsa                     # Add DSA via debtkit
-/fiscal-briefing --focus debt              # Just the debt position
-/fiscal-briefing --format pptx
+/fiscal-briefing --country uk --format pdf
 ```
 
 **Options:**
