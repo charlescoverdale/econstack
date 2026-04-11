@@ -2,7 +2,7 @@
 
 ![Version](https://img.shields.io/badge/version-0.12.0-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
-![Skills](https://img.shields.io/badge/skills-12-orange)
+![Skills](https://img.shields.io/badge/skills-11-orange)
 ![Parameters](https://img.shields.io/badge/parameters-57_files-purple)
 ![Frameworks](https://img.shields.io/badge/frameworks-5-red)
 
@@ -89,16 +89,6 @@ Every analysis starts by establishing who the decision-maker represents (the ref
 
 ```
 /cost-benefit "New secondary school in Leeds" --framework uk-gb --format xlsx,word
-```
-
----
-
-### `/mca`
-
-Multi-criteria analysis and MCDA for options appraisal. Describe your decision problem and the skill generates tailored criteria, builds scoring scales with descriptors specific to each criterion, and walks you through weighting and scoring. You can put in your own criteria and scores, or it helps you brainstorm the criteria from scratch. Output is one ranked scoring matrix with a one-line verdict, a sensitivity paragraph, and optionally an Excel workbook so you can re-run the scoring without re-invoking the skill.
-
-```
-/mca "Choosing between 3 sites for a new hospital in Leeds" --framework uk-gb --format xlsx,word
 ```
 
 ---
@@ -269,7 +259,6 @@ Letter grade A-F, with auto-fix option.
 ```
 econstack/
 ├── cost-benefit/        /cost-benefit   CBA with economic + financial NPV (5 frameworks)
-├── mca/                 /mca            Multi-criteria analysis (5 frameworks)
 ├── macro-briefing/      /macro-briefing Macroeconomic monitor (UK, US, EU, AU)
 ├── fiscal-briefing/     /fiscal-briefing Public finances (UK, US, AU)
 ├── market-research/     /market-research Industry and market analysis (multi-geo)

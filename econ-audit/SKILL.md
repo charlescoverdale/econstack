@@ -328,5 +328,5 @@ Saved:
 
 ## Integration with other skills
 
-- Audits outputs from `/longlist`, `/cost-benefit`, `/business-case`, `/mca`, `/reg-impact`, `/macro-briefing`, `/fiscal-briefing`, `/io-report`, `/la-profile`, and `/market-research`.
+- Audits outputs from `/longlist`, `/cost-benefit`, `/business-case`, `/reg-impact`, `/macro-briefing`, `/fiscal-briefing`, `/io-report`, `/la-profile`, and `/market-research`.
 - Can be run automatically via the `--audit` flag on most econstack skills (they invoke `/econ-audit` on their own output after generation).

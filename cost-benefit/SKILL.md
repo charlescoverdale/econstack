@@ -600,4 +600,3 @@ Next: /business-case to wrap in Five Case Model, or /econ-audit to check for err
 - `/longlist` produces the markdown file this skill reads via `--from`. The Cash flow column drives the financial case.
 - `/business-case` consumes this skill's output as the Economic Case of the Five Case Model.
 - `/econ-audit` can audit this skill's output for common CBA errors (counterfactual missing, additionality not applied, transfers as benefits, optimism bias missing).
-- `/mca` covers non-monetised benefits that do not fit this skill's additive model; use `--with-cba` on the MCA to avoid double counting.
