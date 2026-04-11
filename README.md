@@ -22,7 +22,7 @@ Built on 16 R packages on CRAN and a parameter database covering the UK, EU, Aus
 
 If you spend time wrangling discount rates, writing up RIAs, formatting CBA spreadsheets, or structuring evaluation frameworks, econstack automates the mechanical parts so you can focus on the judgment calls.
 
-If you already have a report, model, or output format that you like, upload it or link to it and the skills will adapt to match your structure and style. Your previous work becomes the template for future analyses.
+If you already have a report, model, or output format that you like, tell Claude where it is located and it will match your structure and style. Your previous work becomes the template for future analyses.
 
 ---
 
@@ -38,7 +38,7 @@ git clone https://github.com/charlescoverdale/econstack.git ~/.claude/skills/eco
 git clone https://github.com/charlescoverdale/econstack-data.git ~/econstack-data
 ```
 
-Everything installs locally: the skills, the parameter database, and the 391 UK local authority datasets are cloned to your own machine. There is no central econstack server, no database, no telemetry. The skills read files from your local drive through Claude Code's normal file access, so your project notes, costings, and client materials stay on your device. Nothing is sent anywhere until you ask Claude a question, and even then it is the same privacy posture as using Claude Code for anything else: there is no extra layer, no phone-home, no third-party service.
+Your project files stay on your computer. When you run a skill, Claude Code reads the files you point it at, sends that content to Anthropic to generate the analysis (as with any LLM request), and writes the output back to your machine. That is the entire data flow. econstack itself has no server, no database, and does not share anything with third parties. Anthropic does not train on the content of API requests by default.
 
 You can come to econstack with zero project documents and start from a one-line description, or you can point it to wherever your existing materials live: costings, design briefs, brainstorming notes, prior business cases, stakeholder correspondence. The skill reads them automatically and factors the bespoke context into the analysis, so you do not need to retype anything you have already captured elsewhere.
 
@@ -99,11 +99,9 @@ The headline output is a seven-column table of benefits and costs: number, name,
 
 **The cash flow tag is the bridge to the financial case.** Every item is tagged from the sponsor's perspective: cash in (real money onto the sponsor's books), cash out (real money off the sponsor's books), or non-cash (social value with no money attached, like heat deaths avoided, WELLBYs, biodiversity). This drives `/cost-benefit`'s financial case: only cash in and cash out items count for the Financial NPV, while the full set counts for the Economic NPV. That's how the skill tells you whether a project is socially worthwhile AND financially self-sustaining in one go.
 
-**How to quantify / monetise: the bridge to the NPV.** Every item gets a suggested estimation method, either a published unit value from a named data source, an analytical approach, or "qualitative only" if no defensible monetisation exists. The downstream CBA starts with a clear method per line, not a blank cell.
+**How to quantify / monetise: the bridge to the NPV.** Every item gets a suggested estimation method, either a published unit value from a named data source, an analytical approach, or "qualitative only" if no defensible monetisation exists.
 
-Recognises the three classic double-counting traps and flags them automatically: construction employment + capital cost, journey time savings + land value uplift, and gross earnings + tax revenue. Excludes sunk costs by default. Splits carbon into embodied (construction) and operational (in-use). Does not adjust carbon benefits for additionality (per Green Book / DESNZ guidance).
-
-Framework-aware: align to UK Green Book benefit categories, EU Better Regulation impacts, World Bank OP 10.04 lens, Asian Development Bank poverty and gender disaggregation, or Australian Treasury (Victoria) Investment Logic Map. Hands off a markdown longlist that `/cost-benefit`, `/business-case`, and `/reg-impact` can read directly via `--from`, so the suggested method and cash flow tags flow straight through without retyping.
+Recognises the three classic double-counting traps and flags them automatically: construction employment + capital cost, journey time savings + land value uplift, and gross earnings + tax revenue. Excludes sunk costs by default.
 
 ```
 /longlist "New secondary school in Leeds" --framework uk-gb --format xlsx,word
