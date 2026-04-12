@@ -1,0 +1,77 @@
+#!/usr/bin/env bash
+# econstack-relink — create top-level skill symlinks so Claude Code discovers all skills
+#
+# Claude Code discovers skills from ~/.claude/skills/*/SKILL.md (one level deep).
+# Without relinking, skills nested inside the econstack/ directory may not be
+# discovered if the system's skill description budget is exhausted by other
+# skill packs. This script creates a real directory for each skill at the top
+# level of ~/.claude/skills/ and symlinks the SKILL.md file into it.
+#
+# Usage:
+#   econstack-relink           # link all skills
+#   econstack-relink --remove  # remove all links (uninstall)
+#
+# Safe to run repeatedly. Skips skills that already have a non-econstack
+# directory at the target path.
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+INSTALL_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+SKILLS_DIR="$(dirname "$INSTALL_DIR")"
+
+# Directories to skip (not skills)
+SKIP_DIRS="bin|scripts|templates|\.git|\.github|\.gstack"
+
+REMOVE=false
+if [ "${1:-}" = "--remove" ]; then
+  REMOVE=true
+fi
+
+count=0
+for skill_dir in "$INSTALL_DIR"/*/; do
+  [ -d "$skill_dir" ] || continue
+  skill=$(basename "$skill_dir")
+
+  # Skip non-skill directories
+  echo "$skill" | grep -qE "^($SKIP_DIRS)$" && continue
+
+  # Must contain a SKILL.md
+  [ -f "$skill_dir/SKILL.md" ] || continue
+
+  target="$SKILLS_DIR/$skill"
+
+  if [ "$REMOVE" = true ]; then
+    # Only remove if it's our symlinked directory
+    if [ -d "$target" ] && [ -L "$target/SKILL.md" ]; then
+      link_target=$(readlink "$target/SKILL.md" 2>/dev/null || true)
+      case "$link_target" in
+        *econstack*)
+          rm -f "$target/SKILL.md"
+          rmdir "$target" 2>/dev/null || true
+          count=$((count + 1))
+          ;;
+      esac
+    fi
+    continue
+  fi
+
+  # Skip if a non-econstack directory already exists at this path
+  if [ -d "$target" ] && [ ! -L "$target/SKILL.md" ] && [ -f "$target/SKILL.md" ]; then
+    # Check it's not already ours
+    continue
+  fi
+
+  # Clean up old symlink if the target itself is a symlink (from our earlier workaround)
+  [ -L "$target" ] && rm -f "$target"
+
+  # Create real directory and symlink SKILL.md into it
+  mkdir -p "$target"
+  ln -snf "$INSTALL_DIR/$skill/SKILL.md" "$target/SKILL.md"
+  count=$((count + 1))
+done
+
+if [ "$REMOVE" = true ]; then
+  echo "Removed $count econstack skill links"
+else
+  echo "Linked $count econstack skills into $SKILLS_DIR"
+fi

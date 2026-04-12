@@ -34,6 +34,9 @@ Copy and paste this chunk into Claude Code:
 # Install the skills
 git clone https://github.com/charlescoverdale/econstack.git ~/.claude/skills/econstack
 
+# Register skills so Claude Code discovers them
+~/.claude/skills/econstack/bin/econstack-relink
+
 # Get the data (391 UK local authority datasets + CBA parameter database)
 git clone https://github.com/charlescoverdale/econstack-data.git ~/econstack-data
 ```
@@ -254,6 +257,7 @@ econstack/
 │   ├── gen-skill-docs.sh  Generate SKILL.md from SKILL.tmpl + blocks
 │   └── render-report.sh   PDF rendering via Quarto
 ├── bin/
+│   ├── econstack-relink       Register skills so Claude Code discovers them
 │   └── econstack-update-check
 └── README.md
 ```
