@@ -24,6 +24,10 @@ If you spend time wrangling discount rates, writing up RIAs, formatting CBA spre
 
 If you already have a report, model, or output format that you like, tell Claude where it is located and it will match your structure and style. Your previous work becomes the template for future analyses.
 
+### How to integrate econstack into your workflow
+
+Talk to econstack the way you would brief an analyst or junior staff member. Use Claude's voice input (the whisper/flow function) and speak naturally: "I need a CBA for a new cycling lane in Bristol, 5km, council is funding it, compare against do-nothing and a bus lane option." econstack picks up the framework, parameters, and structure from context, so you do not need to remember flags or syntax. The more context you give up front (project documents, prior reports, costings, stakeholder feedback), the less back-and-forth you will have. Point it at your files and let it read them. Think of it as delegating the first draft to a competent analyst who knows the standard frameworks, then applying your own judgement to the output.
+
 ---
 
 ## Quick start
