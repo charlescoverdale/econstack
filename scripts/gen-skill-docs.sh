@@ -6,7 +6,7 @@
 #   ./scripts/gen-skill-docs.sh              # Generate all SKILL.md files
 #   ./scripts/gen-skill-docs.sh --dry-run    # Show what would change, don't write
 #   ./scripts/gen-skill-docs.sh --check      # Exit non-zero if any SKILL.md is stale
-#   ./scripts/gen-skill-docs.sh cost-benefit # Generate one skill only
+#   ./scripts/gen-skill-docs.sh longlist     # Generate one skill only
 #
 set -euo pipefail
 

@@ -301,6 +301,5 @@ Saved:
 ## Integration with other skills
 
 - `/fiscal-briefing` is the deep-dive companion on public finances. This skill summarises fiscal; `/fiscal-briefing` gives the full picture with optional DSA.
-- `/cost-benefit` and `/business-case` may want the latest discount rate environment and inflation from this skill's `rates` and `prices` sections.
 - `/market-research` may reference the macro assessment as background for sector reports.
 - `/econ-audit` can audit this skill's output for vintage staleness and consistency.

@@ -1,31 +1,24 @@
 # Generated reports and outputs
-io-report-*.md
-io-report-*.json
-io-report-*.html
-io-report-*.docx
-io-report-*.pptx
-io-report-*.pdf
-impact-data-*.json
-cba-*.md
-cba-*.json
-cba-*.html
-cba-*.docx
-cba-*.pptx
-cba-*.pdf
-cba-*.xlsx
 audit-*.md
 audit-*.json
 audit-*.html
 audit-*.docx
 audit-*.pptx
 audit-*.pdf
-la-profile-*.md
-la-profile-*.json
 macro-briefing-*.md
 macro-briefing-*.json
 fiscal-briefing-*.md
 fiscal-briefing-*.json
-impact-preview.html
+market-research-*.md
+market-research-*.json
+briefing-note-*.md
+briefing-note-*.json
+longlist-*.md
+longlist-*.json
+longlist-*.xlsx
+longlist-*.docx
+longlist-*.pptx
+longlist-*.pdf
 
 # Quarto intermediates
 *.qmd

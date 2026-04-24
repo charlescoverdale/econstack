@@ -1,6 +1,6 @@
 ---
 name: econ-audit
-description: Audit economic analysis outputs (CBA, business cases, impact assessments, fiscal briefings) against methodology standards, academic literature, and common errors. Runs structured checks across core categories including counterfactual, additionality, discounting, double counting, distributional analysis, Aqua Book RIGOUR, and Flyvbjerg-style strategic misrepresentation detection. Returns a RAG scorecard with issues ranked by severity.
+description: Audit economic analysis outputs (fiscal briefings, macro briefings, market research, longlists, and other quantitative economic documents) against methodology standards, academic literature, and common errors. Runs structured checks across core categories including counterfactual, additionality, discounting, double counting, distributional analysis, Aqua Book RIGOUR, and Flyvbjerg-style strategic misrepresentation detection. Returns a RAG scorecard with issues ranked by severity.
 allowed-tools:
   - Bash
   - Read
@@ -26,7 +26,7 @@ allowed-tools:
 
 # /econ-audit: Economic Analysis Audit
 
-Reviews any economic analysis output against methodology standards and practitioner best practice. Works on CBA reports, business cases, RIA documents, fiscal briefings, macro briefings, or any document making economic claims with numbers.
+Reviews any economic analysis output against methodology standards and practitioner best practice. Works on fiscal briefings, macro briefings, market research reports, longlists, or any document making economic claims with numbers.
 
 Think of it as a senior partner and an economics professor going through your work and poking holes in it. Returns a RAG (red / amber / green) scorecard with issues ranked by severity, plus an optional `--fix` mode that proposes concrete corrections.
 
@@ -38,10 +38,10 @@ Think of it as a senior partner and an economics professor going through your wo
 
 **Examples:**
 ```
-/econ-audit cba-schools-2026-04-10.md
-/econ-audit bc-hospital-obc-2026-04-10.md --strict
+/econ-audit longlist-schools-2026-04-10.md
+/econ-audit fiscal-uk-2026-04-10.md --strict
 /econ-audit . --fix
-/econ-audit ria-climate-disclosure-2026-04-10.md --framework eu-brg
+/econ-audit macro-uk-2026-04-10.md --framework uk-gb
 ```
 
 **Options:**
@@ -80,14 +80,11 @@ The audit runs structured checks across these categories. Checks are framework-a
 If the user passes a single file path, load that file. If they pass a directory, glob for markdown files and audit each one in turn.
 
 Auto-detect the document type from the file name or the KEY NUMBERS block at the top:
-- `cba-*.md`, `type: cost-benefit` → CBA
-- `bc-*.md`, `type: business-case` → Business case
-- `ria-*.md`, `type: ria` → RIA
 - `longlist-*.md`, `type: longlist` → Longlist
-- `mca-*.md`, `type: mca` → MCA
-- `io-*.md`, `type: io-report` → IO impact
 - `macro-*.md`, `type: macro-briefing` → Macro briefing
 - `fiscal-*.md`, `type: fiscal-briefing` → Fiscal briefing
+- `market-*.md`, `type: market-research` → Market research
+- `briefing-*.md`, `type: briefing-note` → Briefing note
 - Unknown → ask the user what it is once.
 
 Auto-detect the framework from the document header or KEY NUMBERS. Default to `uk-gb` if missing.
@@ -272,5 +269,5 @@ Saved:
 
 ## Integration with other skills
 
-- Audits outputs from `/longlist`, `/cost-benefit`, `/business-case`, `/reg-impact`, `/macro-briefing`, `/fiscal-briefing`, `/io-report`, `/la-profile`, and `/market-research`.
+- Audits outputs from `/longlist`, `/macro-briefing`, `/fiscal-briefing`, `/market-research`, and `/briefing-note`.
 - Can be run automatically via the `--audit` flag on most econstack skills (they invoke `/econ-audit` on their own output after generation).

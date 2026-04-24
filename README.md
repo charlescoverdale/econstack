@@ -2,7 +2,7 @@
 
 ![Version](https://img.shields.io/badge/version-0.12.0-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
-![Skills](https://img.shields.io/badge/skills-11-orange)
+![Skills](https://img.shields.io/badge/skills-6-orange)
 
 Professional economic analysis, powered by AI.
 
@@ -12,21 +12,19 @@ Built on 16 R packages on CRAN and a parameter database covering the UK, EU, Aus
 
 ### Who this is for
 
-- A government economist writing a Green Book CBA or Magenta Book evaluation
-- A consultant preparing an IO impact assessment or regulatory impact assessment
 - An analyst pulling a macro briefing before a ministerial meeting
 - A policy officer drafting a 2-page briefing note for a minister or board
-- A programme manager commissioning an evaluation and needing an evaluation plan
-- A local authority officer building an economic profile for a funding bid
+- An economist brainstorming a benefits and costs longlist before a CBA
 - A trade analyst assessing bilateral trade flows and comparative advantage
+- A researcher auditing the methodology of an economic analysis output
 
-If you spend time wrangling discount rates, writing up RIAs, formatting CBA spreadsheets, or structuring evaluation frameworks, econstack automates the mechanical parts so you can focus on the judgment calls.
+If you spend time pulling macro and fiscal data, structuring briefing notes, scoping out benefits and costs, or auditing analysis, econstack automates the mechanical parts so you can focus on the judgment calls.
 
 If you already have a report, model, or output format that you like, tell Claude where it is located and it will match your structure and style. Your previous work becomes the template for future analyses.
 
 ### How to integrate econstack into your workflow
 
-Talk to econstack the way you would brief an analyst or junior staff member. Use Claude's voice input and speak naturally: "I need a CBA for a new cycling lane in Bristol, 5km, council is funding it, compare against do-nothing and a bus lane option." econstack picks up the framework, parameters, and structure from context, so you do not need to remember flags or syntax. The more context you give up front (project documents, prior reports, costings, stakeholder feedback), the less back-and-forth you will have. Point it at your files and let it read them. Think of it as delegating the first draft to a competent analyst who knows the standard frameworks, then applying your own judgement to the output.
+Talk to econstack the way you would brief an analyst or junior staff member. Use Claude's voice input and speak naturally: "Give me a macro briefing on UK inflation and interest rates for next week's committee." econstack picks up the framework, parameters, and structure from context, so you do not need to remember flags or syntax. The more context you give up front (project documents, prior reports, costings, stakeholder feedback), the less back-and-forth you will have. Point it at your files and let it read them. Think of it as delegating the first draft to a competent analyst who knows the standard frameworks, then applying your own judgement to the output.
 
 ---
 
@@ -84,27 +82,13 @@ Combine formats with commas: `--format markdown,xlsx,pptx`.
 
 ## Skills
 
-### `/cost-benefit`
-
-Come with a one-line description ("I'm building a bridge in Melbourne") or a detailed set of inputs (costing schedules, theory of change, benefit streams by beneficiary group). The skill walks you through what it needs, fills in the framework-specific parameters automatically, and asks the right questions based on your project type and location.
-
-If you have a similar CBA or business case for a comparable asset that you like, upload it and tell econstack to use it as a reference. It will adopt that framing when building your new analysis.
-
-Every analysis starts by establishing who the decision-maker represents (the referent group) and what perspective to take. This follows the Campbell & Brown multiple account framework: costs and benefits are tagged to stakeholder groups, disaggregated into referent and non-referent flows, and verified with the identity check (Referent Group NPV + Non-Referent NPV = Efficiency NPV). You can see exactly whose costs are being weighed against whose benefits.
-
-```
-/cost-benefit "New secondary school in Leeds" --framework uk-gb --format xlsx,word
-```
-
----
-
 ### `/longlist`
 
-The messy-whiteboard-phase skill. Before you run a CBA, a business case, or an RIA, you need to know what benefits to measure and what costs to include. `/longlist` is a structured brainstorm that helps you think through both, systematically, using multiple lenses (stakeholder mapping, Theory of Change, framework taxonomy, sector template, commonly-missed checklist). It runs the brainstorm internally and shows you the result: two clean tables of benefits and costs that you can hand straight to `/cost-benefit`.
+The messy-whiteboard-phase skill. Before you run a CBA, a business case, or an RIA, you need to know what benefits to measure and what costs to include. `/longlist` is a structured brainstorm that helps you think through both, systematically, using multiple lenses (stakeholder mapping, Theory of Change, framework taxonomy, sector template, commonly-missed checklist). It runs the brainstorm internally and shows you the result: two clean tables of benefits and costs that you can hand straight to any downstream CBA or business case workflow.
 
 The headline output is a seven-column table of benefits and costs: number, name, plain-English description, materiality rating (H/M/L), cash flow tag (Cash in / Cash out / Non-cash), how to quantify, and how to monetise.
 
-**The cash flow tag is the bridge to the financial case.** Every item is tagged from the sponsor's perspective: cash in (real money onto the sponsor's books), cash out (real money off the sponsor's books), or non-cash (social value with no money attached, like heat deaths avoided, WELLBYs, biodiversity). This drives `/cost-benefit`'s financial case: only cash in and cash out items count for the Financial NPV, while the full set counts for the Economic NPV. That's how the skill tells you whether a project is socially worthwhile AND financially self-sustaining in one go.
+**The cash flow tag is the bridge to the financial case.** Every item is tagged from the sponsor's perspective: cash in (real money onto the sponsor's books), cash out (real money off the sponsor's books), or non-cash (social value with no money attached, like heat deaths avoided, WELLBYs, biodiversity). This drives the financial case downstream: only cash in and cash out items count for the Financial NPV, while the full set counts for the Economic NPV. That lets you tell whether a project is socially worthwhile AND financially self-sustaining in one go.
 
 **How to quantify / monetise: the bridge to the NPV.** Every item gets a suggested estimation method, either a published unit value from a named data source, an analytical approach, or "qualitative only" if no defensible monetisation exists.
 
@@ -112,20 +96,6 @@ Recognises the three classic double-counting traps and flags them automatically:
 
 ```
 /longlist "New secondary school in Leeds" --framework uk-gb --format xlsx,word
-```
-
----
-
-### `/business-case`
-
-Draft a complete business case in the Five Case Model structure (Strategic, Economic, Commercial, Financial, Management). Delegates the CBA computation to `/cost-benefit` and adjusts depth by stage (SOC/OBC/FBC) and proportionality (under GBP 1m to over GBP 100m).
-
-Guides you through the structured thinking: options vs counterfactual, preferred option selection, consistency across the five cases. The **Strategic Case** frames the problem, the options considered, and the Critical Success Factors. The **Economic Case** delegates to `/cost-benefit` for the NPV/BCR numbers. The **Commercial Case** covers procurement strategy, risk allocation, and contractual terms. The **Financial Case** covers funding sources and the year-by-year affordability profile. The **Management Case** covers governance, programme plan, risk register, and benefits realisation plan.
-
-Cross-case consistency checks flag mismatches between financial and economic costs, benefits register and realisation plan, risk register and economic case contingency, and the preferred option across all five cases. Cash flow tags from the longlist flow through unchanged to keep the economic and financial cases internally consistent. Supports `--with-cba` to import an existing CBA output and `--from` to import a longlist.
-
-```
-/business-case "New hospital wing in Greater Manchester" --framework uk-gb --stage fbc --format docx,pdf
 ```
 
 ---
@@ -167,45 +137,6 @@ Supports UK, US, EU, Australia, and global scope. Multiple geographies can be co
 
 ---
 
-### `/io-report` (UK and Australia)
-
-Quantitative economic impact assessment for 391 UK local authorities and 88 Australian SA4 regions. Input an investment amount or jobs number in a specific sector and location, and the skill builds regional input-output tables from the latest national IO data (ONS Blue Book 2025 for UK, ABS IO Tables 2023-24 for AU), computes direct and indirect (supply chain) multipliers via FLQ regionalization, and estimates the net additional impact on output, employment, and GVA. Auto-detects country from location name and currency.
-
-Allows you to choose between Type I and Type II multipliers, adjust for additionality (deadweight, displacement, leakage) with sensitivities, and benchmark your results against comparable areas. All additionality assumptions are aligned with HM Treasury Green Book guidance. Full report output includes detailed methodology and an honest discussion of the limitations of IO models.
-
-```
-/io-report "GBP 10m in Manufacturing in Manchester"
-/io-report "500 jobs in Construction in Glasgow" --type2
-```
-
----
-
-### `/la-profile` (UK)
-
-Economic snapshot for any of the 391 UK local authorities. Covers demographics, labour market, earnings, industry structure, housing, business activity, productivity, skills, and deprivation. All indicators are benchmarked against the LA's own country average (England, Scotland, or Wales) and can be compared side-by-side with other local authorities. Pick the sections you need and export to Markdown, Word, PowerPoint, or PDF.
-
-```
-/la-profile "Manchester"
-/la-profile "Leeds" --compare "Birmingham"
-```
-
----
-
-### `/reg-impact`
-
-Regulatory Impact Assessment for proposed legislation, policy, or regulatory change. Applies the Standard Cost Model for compliance costs, runs the framework-specific tests (EANDCB and Small and Micro Business Impact for UK, SME test and Fundamental Rights screening for EU, Regulatory Change Measurement for Victoria), and produces a compact RIA with a single recommendation.
-
-The output covers problem definition, market failure, options compared (including Do Nothing), cost-benefit summary per option, framework tests, sensitivity, post-implementation review plan, and a one-line verdict.
-
-```
-/reg-impact "Mandatory climate risk disclosure for listed companies"
-/reg-impact "Ban on single-use plastics in food packaging" --framework uk-gb
-/reg-impact "New data protection requirements for AI systems" --framework eu-brg
-/reg-impact "Short-term rental regulation" --framework au-vic
-```
-
----
-
 ### `/briefing-note`
 
 Two-page policy briefing note for ministers, boards, committees, and internal decision-makers. Problem, analysis, options, recommendation. Four templates covering minister submissions, board papers, committee briefings, and internal memos. This is the skill to use when you need to put something in front of a decision-maker quickly, with the right level of formality for the audience.
@@ -224,7 +155,7 @@ Think of it as a senior partner and an economics professor going through your wo
 When it finds issues, it gives you a structured step-by-step plan to fix them and updates the methodology accordingly. Designed to improve over time as the rest of the repo evolves: as the parameter database and skill coverage expand, so does the audit's ability to cross-check your work.
 
 ```
-/econ-audit io-report-manchester-2026-04-03.md --strict
+/econ-audit macro-uk-2026-04-03.md --strict
 /econ-audit . --fix
 ```
 
@@ -244,15 +175,10 @@ You can always override any parameter or bring your own data. If you have in-hou
 
 ```
 econstack/
-├── cost-benefit/        /cost-benefit   CBA with economic + financial NPV (5 frameworks)
 ├── macro-briefing/      /macro-briefing Macroeconomic monitor (UK, US, EU, AU)
 ├── fiscal-briefing/     /fiscal-briefing Public finances (UK, US, AU)
 ├── market-research/     /market-research Industry and market analysis (multi-geo)
-├── io-report/           /io-report      Input-output impact (391 UK LAs)
-├── la-profile/          /la-profile     Local authority profiles (391 UK LAs)
-├── business-case/       /business-case  Five Case Model business case (5 frameworks)
 ├── briefing-note/       /briefing-note  Policy briefing note (4 templates)
-├── reg-impact/          /reg-impact     Regulatory Impact Assessment (3 frameworks)
 ├── longlist/            /longlist       Pre-appraisal benefits and costs longlist (5 frameworks)
 ├── econ-audit/          /econ-audit     Methodology audit (124 checks)
 ├── templates/

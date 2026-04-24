@@ -1,6 +1,6 @@
 ---
 name: longlist
-description: Brainstorm a longlist of benefits and costs for a project. Outputs two clean tables (benefits and costs), each with materiality (H/M/L), a cash flow tag (cash in / cash out / non-cash), a quantification method, and a monetisation method. Supports HMT Green Book, EU Better Regulation Guidelines, World Bank, Asian Development Bank, and the Victorian Treasury High Value High Risk (HVHR) framework. Hands off to /cost-benefit.
+description: Brainstorm a longlist of benefits and costs for a project. Outputs two clean tables (benefits and costs), each with materiality (H/M/L), a cash flow tag (cash in / cash out / non-cash), a quantification method, and a monetisation method. Supports HMT Green Book, EU Better Regulation Guidelines, World Bank, Asian Development Bank, and the Victorian Treasury High Value High Risk (HVHR) framework.
 allowed-tools:
   - Bash
   - Read
@@ -25,13 +25,7 @@ allowed-tools:
 
 # /longlist: Benefits and Costs Longlist
 
-The pre-CBA brainstorming skill. Produces a single clean longlist of benefits and costs for a project, with materiality (H/M/L), how to quantify each item, and how to monetise it. Designed to hand straight off to `/cost-benefit`.
-
-```
-/longlist       = "What benefits and costs should I include?"
-     ↓
-/cost-benefit   = "Now monetise and compute NPV"
-```
+The pre-CBA brainstorming skill. Produces a single clean longlist of benefits and costs for a project, with materiality (H/M/L), how to quantify each item, and how to monetise it. Designed to hand straight off to any downstream CBA or business case workflow.
 
 The output is two tables. That is the whole skill.
 
@@ -155,7 +149,7 @@ Silently walk through these lenses to surface candidates. Do not show the workin
 - Distributional impacts (regional Victoria, equity groups, Aboriginal Victorians)
 - **Disbenefits** (HVHR requires negative impacts to be captured explicitly alongside benefits)
 
-Each HVHR benefit MUST have: a named **owner**, a measurable **KPI**, a **baseline**, a **target**, a **measurement method**, and a **realisation timeframe**. The longlist captures the KPI and measurement method in the quantification column. The owner, baseline, target, and timeframe are added in `/cost-benefit` or the business case.
+Each HVHR benefit MUST have: a named **owner**, a measurable **KPI**, a **baseline**, a **target**, a **measurement method**, and a **realisation timeframe**. The longlist captures the KPI and measurement method in the quantification column. The owner, baseline, target, and timeframe are added downstream in the CBA or business case.
 
 Target longlist size: **8-15 benefits and 5-10 costs**. Do not pad. Do not produce 30 items.
 
@@ -247,7 +241,7 @@ Source: Authors' analysis.
 
 ## Next step
 
-Hand this to `/cost-benefit` to monetise and compute both economic and financial NPV.
+Hand this to a downstream CBA or business case workflow to monetise and compute both economic and financial NPV.
 
 <!-- KEY NUMBERS
 type: longlist
@@ -292,8 +286,6 @@ Longlist complete. [N] benefits, [M] costs.
 
 Saved: longlist-[slug]-[date].md
 [Other formats listed only if generated]
-
-Next: /cost-benefit --from longlist-[slug]-[date].md
 ```
 
 ## Method library (for filling in the quantification + monetisation + cash flow columns)
@@ -425,6 +417,5 @@ For HVHR projects, every benefit needs a KPI and a measurement method. The "quan
 
 ## Integration with other skills
 
-- `/cost-benefit` reads a longlist markdown file directly via `--from longlist-[slug]-[date].md`. The two tables are the input. `/cost-benefit` consumes the **Cash flow** column to produce both an Economic NPV (all items at shadow prices) and a Financial NPV (cash items only, at the sponsor's cost of capital).
-- `/business-case` and `/reg-impact` likewise parse the markdown tables directly. No JSON companion is required.
-- If a user runs `/cost-benefit` without a longlist, that skill may invoke `/longlist` first.
+- The two tables are designed to hand off directly to any downstream CBA, business case, or RIA workflow. The **Cash flow** column supports both an Economic NPV (all items at shadow prices) and a Financial NPV (cash items only, at the sponsor's cost of capital).
+- `/econ-audit` can audit a longlist for double counting, transfer inclusion, and filter compliance.
