@@ -46,6 +46,7 @@ COMPLETION_STATUS="$(load_block completion-status.md)"
 FORMATTING_RULES="$(load_block formatting-rules.md)"
 IMPORTANT_RULES_BASE="$(load_block important-rules-base.md)"
 FORMAT_DISPATCHER="$(load_block format-dispatcher.md)"
+CITATION_DISCIPLINE="$(load_block citation-discipline.md)"
 # exec-format-spec.md exists as reference but is not used as a placeholder.
 # Skills that need exec formatting have it inline (tailored per skill).
 
@@ -94,6 +95,7 @@ blocks = {
     '{{FORMATTING_RULES}}': open('$BLOCKS_DIR/formatting-rules.md').read(),
     '{{IMPORTANT_RULES_BASE}}': open('$BLOCKS_DIR/important-rules-base.md').read(),
     '{{FORMAT_DISPATCHER}}': open('$BLOCKS_DIR/format-dispatcher.md').read(),
+    '{{CITATION_DISCIPLINE}}': open('$BLOCKS_DIR/citation-discipline.md').read(),
 }
 for placeholder, block in blocks.items():
     content = content.replace(placeholder, block)

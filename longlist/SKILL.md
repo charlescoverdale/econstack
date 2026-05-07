@@ -360,6 +360,43 @@ Saved: longlist-[slug]-[date].md
 [Other formats listed only if generated]
 ```
 
+## Citation discipline
+
+Every numerical claim in the output must be followed by an inline citation in the form `[SOURCE_CODE, vintage]`. `SOURCE_CODE` is a short tag (e.g. `ONS_PSF`, `OBR_EFO`, `BoE_MPR`, `Fed_FOMC`, `ECB_EB`, `RBA_SoMP`, `IMF_WEO`, `OECD_EO`, `Eurostat`, `BLS`, `BEA`, `FRED`, `ABS`, `Comtrade`) matching an entry in the References footer. `vintage` is the publication date of the source data (e.g. `Mar 2026`, `Q4 2025`, `Jan 2026`).
+
+**Examples:**
+
+> CPI was 3.4% YoY in March 2026 [ONS_CPI, Mar 2026].
+
+> The OBR forecasts borrowing falling to 1.6% of GDP by 2028-29 [OBR_EFO, Mar 2026].
+
+> Industry concentration is moderate: HHI is 1,820 across the top 8 firms [Companies_House, Q4 2025].
+
+**Numbers that cannot be sourced to a primary publication must NOT appear in the output.** No exceptions: do not estimate, infer from training data, interpolate, or recall from memory. If a needed number isn't in fetched data, state it explicitly:
+
+> [Source] has not yet published this measure for [period].
+
+**Self-check before output**: scan the draft for every number. If any number lacks an inline citation, either add the citation or remove the number. Citation density should be roughly even across sections; a section with no citations is a red flag that the section was generated rather than sourced.
+
+
+## Factuality
+
+When citing parameter values (carbon prices, QALY values, VTTS, optimism bias percentages, distributional weights), use values from `~/econstack-data/parameters/` rather than recall. The parameter database is the source of truth and is dated. If a parameter is not in the database, state that and use a built-in default with an explicit "fallback" annotation. Do not invent or interpolate parameter values from memory.
+
+Common gotchas: HMT Green Book STPR is currently 3.5% with a declining schedule for long horizons (Annex 6); DESNZ shadow carbon price varies by year and is published annually; QALY GBP 70k is the Green Book wellbeing supplement value, not the NICE HTA threshold (GBP 20k to 30k). Cite which is which.
+
+## Out of scope (unless explicitly requested)
+
+A longlist is a brainstorm, not a CBA. Do NOT:
+
+- Recommend which benefits or costs to pursue. That is a downstream judgement.
+- Compute NPV, BCR, or rank-order options.
+- Apply optimism bias or sensitivity analysis here. Those belong in CBA.
+- Pre-quantify items as "M" or "L" without explaining the materiality reasoning in one line.
+- Skip items because they are likely to be small. Materiality is L, not zero.
+
+If the user asks for any of the above, route to `/cba` or `/business-case` (downstream CBA / business-case skills) rather than expanding longlist scope.
+
 ## Method library (for filling in the quantification + monetisation + cash flow columns)
 
 This is a lookup the skill uses internally. Do not show it to the user. Pick the closest match for each item; if nothing fits, fall back to "primary research" or "qualitative only". The Cash flow column assumes a government sponsor. Adjust for other sponsors per Step 4 rules (e.g. avoided NHS costs are Cash in to the NHS as sponsor but Non-cash to a municipality).

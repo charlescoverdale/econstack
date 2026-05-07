@@ -227,6 +227,24 @@ Saved:
   [other formats if requested]
 ```
 
+{{CITATION_DISCIPLINE}}
+
+## Factuality
+
+Audit findings carry weight only if they cite the framework rule being audited against. Every issue in the Issues table needs a citation to the canonical source: Green Book paragraph or annex, Magenta Book chapter, Aqua Book principle, EU Better Regulation toolbox tool number, World Bank OP, ADB project guidelines, AU Treasury CBA guide, Victorian HVHR Investment Lifecycle Guide. Do not paraphrase or invent rules.
+
+Common gotchas: STPR is 3.5% (Green Book Annex 6) with a declining schedule, NOT a flat 3.5% across all horizons; optimism bias rates depend on project type AND stage (Outline vs Final Business Case); ADB EIRR hurdle is 9% (general) or 6% (climate, health, education); HMT shadow carbon comes from DESNZ, not Treasury directly.
+
+## Out of scope (unless explicitly requested)
+
+An audit is a methodology check, not a redo of the analysis:
+
+- Do NOT re-compute NPV / BCR / EIRR yourself unless the user asks.
+- Do NOT propose alternative parameter values; flag the issue and reference the canonical source.
+- Do NOT make a positive recommendation about whether the option should proceed.
+- Do NOT extend beyond the framework the audit is targeting (the `--framework` flag bounds the audit scope).
+- Where issues cross framework boundaries, surface them as a "framework choice" finding rather than auditing against a framework the user did not select.
+
 ## Framework-specific checks
 
 ### `uk-gb`

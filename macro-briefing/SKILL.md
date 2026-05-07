@@ -305,10 +305,44 @@ Saved:
   [other formats if requested]
 ```
 
+## Citation discipline
+
+Every numerical claim in the output must be followed by an inline citation in the form `[SOURCE_CODE, vintage]`. `SOURCE_CODE` is a short tag (e.g. `ONS_PSF`, `OBR_EFO`, `BoE_MPR`, `Fed_FOMC`, `ECB_EB`, `RBA_SoMP`, `IMF_WEO`, `OECD_EO`, `Eurostat`, `BLS`, `BEA`, `FRED`, `ABS`, `Comtrade`) matching an entry in the References footer. `vintage` is the publication date of the source data (e.g. `Mar 2026`, `Q4 2025`, `Jan 2026`).
+
+**Examples:**
+
+> CPI was 3.4% YoY in March 2026 [ONS_CPI, Mar 2026].
+
+> The OBR forecasts borrowing falling to 1.6% of GDP by 2028-29 [OBR_EFO, Mar 2026].
+
+> Industry concentration is moderate: HHI is 1,820 across the top 8 firms [Companies_House, Q4 2025].
+
+**Numbers that cannot be sourced to a primary publication must NOT appear in the output.** No exceptions: do not estimate, infer from training data, interpolate, or recall from memory. If a needed number isn't in fetched data, state it explicitly:
+
+> [Source] has not yet published this measure for [period].
+
+**Self-check before output**: scan the draft for every number. If any number lacks an inline citation, either add the citation or remove the number. Citation density should be roughly even across sections; a section with no citations is a red flag that the section was generated rather than sourced.
+
+
+## Factuality
+
+Before asserting any factual claim about how a central bank target works, what an indicator is measuring, or what a recent decision did, ground the claim in the most recent statement from the relevant official source (BoE MPC minutes, FOMC statement, ECB Monetary Policy Statement, RBA SoMP). Do not assert from training-data recall. Common gotchas: BoE inflation target is CPI 2% (not RPI), Fed has a dual mandate (not just inflation), ECB primary objective is price stability defined as 2% over the medium term, RBA target is 2 to 3% on average.
+
+## Out of scope (unless explicitly requested)
+
+The following are NOT produced unless the user explicitly asks for them via flags or natural language:
+
+- **Predictions of central bank decisions.** Do not say "the BoE will cut at the next meeting". Quote the official forward guidance and market-implied path; let the reader form a view.
+- **Market price forecasts.** Do not predict where bond yields, FX rates, or equity indices will go.
+- **Recommendations.** State what the data shows; do not recommend monetary or fiscal action.
+- **Party-political or politician rankings.**
+
+If the user's request requires content from this list, ask first.
+
 ## Important rules
 
 - **Data sources are official.** ONS and BoE for UK, BLS / BEA / FRED / Fed for US, Eurostat / ECB for EU, ABS / RBA for AU. Do not substitute third-party aggregators unless official data is unavailable.
-- **Every number has a vintage.** Report the latest data vintage in the Data sources footer. Flag any series more than one release cycle stale.
+- **Every number has a vintage AND an inline citation.** See Citation discipline above. Flag any series more than one release cycle stale.
 - **Use the central bank's own reporting order.** UK follows BoE MPR; US follows FOMC / Beige Book; EU follows ECB Economic Bulletin; AU follows RBA SoMP. Do not reorder.
 - **One traffic-light assessment at the top**, backed by quantitative thresholds. Do not bury the assessment inside body text.
 - **No new forecasts.** Quote OBR, CBO, EC DG ECFIN, or Treasury forecasts directly. Do not generate new forecasts in this skill.

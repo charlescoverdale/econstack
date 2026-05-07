@@ -298,6 +298,41 @@ Saved:
   [other formats if requested]
 ```
 
+## Citation discipline
+
+Every numerical claim in the output must be followed by an inline citation in the form `[SOURCE_CODE, vintage]`. `SOURCE_CODE` is a short tag (e.g. `ONS_PSF`, `OBR_EFO`, `BoE_MPR`, `Fed_FOMC`, `ECB_EB`, `RBA_SoMP`, `IMF_WEO`, `OECD_EO`, `Eurostat`, `BLS`, `BEA`, `FRED`, `ABS`, `Comtrade`) matching an entry in the References footer. `vintage` is the publication date of the source data (e.g. `Mar 2026`, `Q4 2025`, `Jan 2026`).
+
+**Examples:**
+
+> CPI was 3.4% YoY in March 2026 [ONS_CPI, Mar 2026].
+
+> The OBR forecasts borrowing falling to 1.6% of GDP by 2028-29 [OBR_EFO, Mar 2026].
+
+> Industry concentration is moderate: HHI is 1,820 across the top 8 firms [Companies_House, Q4 2025].
+
+**Numbers that cannot be sourced to a primary publication must NOT appear in the output.** No exceptions: do not estimate, infer from training data, interpolate, or recall from memory. If a needed number isn't in fetched data, state it explicitly:
+
+> [Source] has not yet published this measure for [period].
+
+**Self-check before output**: scan the draft for every number. If any number lacks an inline citation, either add the citation or remove the number. Citation density should be roughly even across sections; a section with no citations is a red flag that the section was generated rather than sourced.
+
+
+## Factuality
+
+Audit findings carry weight only if they cite the framework rule being audited against. Every issue in the Issues table needs a citation to the canonical source: Green Book paragraph or annex, Magenta Book chapter, Aqua Book principle, EU Better Regulation toolbox tool number, World Bank OP, ADB project guidelines, AU Treasury CBA guide, Victorian HVHR Investment Lifecycle Guide. Do not paraphrase or invent rules.
+
+Common gotchas: STPR is 3.5% (Green Book Annex 6) with a declining schedule, NOT a flat 3.5% across all horizons; optimism bias rates depend on project type AND stage (Outline vs Final Business Case); ADB EIRR hurdle is 9% (general) or 6% (climate, health, education); HMT shadow carbon comes from DESNZ, not Treasury directly.
+
+## Out of scope (unless explicitly requested)
+
+An audit is a methodology check, not a redo of the analysis:
+
+- Do NOT re-compute NPV / BCR / EIRR yourself unless the user asks.
+- Do NOT propose alternative parameter values; flag the issue and reference the canonical source.
+- Do NOT make a positive recommendation about whether the option should proceed.
+- Do NOT extend beyond the framework the audit is targeting (the `--framework` flag bounds the audit scope).
+- Where issues cross framework boundaries, surface them as a "framework choice" finding rather than auditing against a framework the user did not select.
+
 ## Framework-specific checks
 
 ### `uk-gb`

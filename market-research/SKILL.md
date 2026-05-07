@@ -320,9 +320,44 @@ Saved:
   [other formats if requested]
 ```
 
+## Citation discipline
+
+Every numerical claim in the output must be followed by an inline citation in the form `[SOURCE_CODE, vintage]`. `SOURCE_CODE` is a short tag (e.g. `ONS_PSF`, `OBR_EFO`, `BoE_MPR`, `Fed_FOMC`, `ECB_EB`, `RBA_SoMP`, `IMF_WEO`, `OECD_EO`, `Eurostat`, `BLS`, `BEA`, `FRED`, `ABS`, `Comtrade`) matching an entry in the References footer. `vintage` is the publication date of the source data (e.g. `Mar 2026`, `Q4 2025`, `Jan 2026`).
+
+**Examples:**
+
+> CPI was 3.4% YoY in March 2026 [ONS_CPI, Mar 2026].
+
+> The OBR forecasts borrowing falling to 1.6% of GDP by 2028-29 [OBR_EFO, Mar 2026].
+
+> Industry concentration is moderate: HHI is 1,820 across the top 8 firms [Companies_House, Q4 2025].
+
+**Numbers that cannot be sourced to a primary publication must NOT appear in the output.** No exceptions: do not estimate, infer from training data, interpolate, or recall from memory. If a needed number isn't in fetched data, state it explicitly:
+
+> [Source] has not yet published this measure for [period].
+
+**Self-check before output**: scan the draft for every number. If any number lacks an inline citation, either add the citation or remove the number. Citation density should be roughly even across sections; a section with no citations is a red flag that the section was generated rather than sourced.
+
+
+## Factuality
+
+Before asserting any factual claim about an industry classification, concentration threshold, or framework definition, ground it in the canonical source. Common gotchas: HHI thresholds (US DOJ 2023 guidelines: <1,000 unconcentrated, 1,000-1,800 moderately concentrated, >1,800 highly concentrated; the older 1,500/2,500 thresholds are deprecated), industry classification systems (SIC, NAICS, ANZSIC, NACE differ; cite which one), Porter's Five Forces are forces NOT determinants (use the canonical names: rivalry, threat of new entrants, threat of substitutes, supplier power, buyer power). Do not assert market sizes from training-data recall; pull from a primary publication.
+
+## Out of scope (unless explicitly requested)
+
+The following are NOT produced unless the user explicitly asks for them via flags or natural language:
+
+- **Investment recommendations.** Do not say "this is a good market to enter" or "investors should". State the structural facts; let the reader judge.
+- **M&A predictions.** Do not name specific deals as "likely". Cite announced deals only.
+- **Stock recommendations.** No buy/sell/hold language on listed companies.
+- **Litigation predictions.** Do not forecast regulatory or antitrust outcomes.
+- **Forward private-firm valuations** unless the user supplies them.
+
+If the user's request requires content from this list, ask first.
+
 ## Important rules
 
-- **Credibility is everything.** Every data point is cited. No unverifiable claims. Prefer official sources.
+- **Credibility is everything.** Every data point is cited inline (see Citation discipline above). No unverifiable claims. Prefer official sources.
 - **Source hierarchy is strict.** Official → regulatory → trade → industry codes → company filings → trade associations → news. Use the highest available.
 - **Porter ratings are qualitative with drivers.** Do not assign a rating without naming the drivers.
 - **HHI and CR4 use public data.** If data is incomplete, note it explicitly rather than inventing numbers.

@@ -335,6 +335,42 @@ If `--exec` specified, generate a 3-slide deck:
 2. Key finding + supporting evidence (3 bullets)
 3. Recommendation + next steps
 
+## Citation discipline
+
+Every numerical claim in the output must be followed by an inline citation in the form `[SOURCE_CODE, vintage]`. `SOURCE_CODE` is a short tag (e.g. `ONS_PSF`, `OBR_EFO`, `BoE_MPR`, `Fed_FOMC`, `ECB_EB`, `RBA_SoMP`, `IMF_WEO`, `OECD_EO`, `Eurostat`, `BLS`, `BEA`, `FRED`, `ABS`, `Comtrade`) matching an entry in the References footer. `vintage` is the publication date of the source data (e.g. `Mar 2026`, `Q4 2025`, `Jan 2026`).
+
+**Examples:**
+
+> CPI was 3.4% YoY in March 2026 [ONS_CPI, Mar 2026].
+
+> The OBR forecasts borrowing falling to 1.6% of GDP by 2028-29 [OBR_EFO, Mar 2026].
+
+> Industry concentration is moderate: HHI is 1,820 across the top 8 firms [Companies_House, Q4 2025].
+
+**Numbers that cannot be sourced to a primary publication must NOT appear in the output.** No exceptions: do not estimate, infer from training data, interpolate, or recall from memory. If a needed number isn't in fetched data, state it explicitly:
+
+> [Source] has not yet published this measure for [period].
+
+**Self-check before output**: scan the draft for every number. If any number lacks an inline citation, either add the citation or remove the number. Citation density should be roughly even across sections; a section with no citations is a red flag that the section was generated rather than sourced.
+
+
+## Factuality
+
+Briefing notes are decision tools and so factual errors are particularly damaging. Before asserting any quantitative or technical claim, verify it against a primary source. If a needed fact is not available in the fetched data or supplied context, say so explicitly rather than recall from memory:
+
+> The latest [indicator] for [period] has not yet been published.
+
+Common gotchas in policy briefing: definitions drift between governments (e.g. "free school meals", "hate crime", "rough sleeping" all have specific operational definitions that have changed); thresholds and rates change frequently; "the government has committed to X" requires a citation to a specific document.
+
+## Out of scope (unless explicitly requested)
+
+A briefing note is constrained by `--stance`. Do not exceed it:
+
+- If `--stance neutral`, do NOT smuggle a recommendation into analysis sections. Keep analysis and recommendation strictly separate.
+- If `--stance advocate`, do NOT hide counterarguments; the reader's trust depends on acknowledging downsides.
+- Do NOT predict election outcomes, party positions, or politician behaviour.
+- Do NOT generate options the user did not ask for; if scope feels limited, ask whether to expand.
+
 ## Important Rules
 
 - Never use em dashes.
