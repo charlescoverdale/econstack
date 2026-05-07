@@ -45,6 +45,7 @@ SAFETY_HOOKS="$(load_block safety-hooks.md)"
 COMPLETION_STATUS="$(load_block completion-status.md)"
 FORMATTING_RULES="$(load_block formatting-rules.md)"
 IMPORTANT_RULES_BASE="$(load_block important-rules-base.md)"
+FORMAT_DISPATCHER="$(load_block format-dispatcher.md)"
 # exec-format-spec.md exists as reference but is not used as a placeholder.
 # Skills that need exec formatting have it inline (tailored per skill).
 
@@ -92,6 +93,7 @@ blocks = {
     '{{COMPLETION_STATUS}}': open('$BLOCKS_DIR/completion-status.md').read(),
     '{{FORMATTING_RULES}}': open('$BLOCKS_DIR/formatting-rules.md').read(),
     '{{IMPORTANT_RULES_BASE}}': open('$BLOCKS_DIR/important-rules-base.md').read(),
+    '{{FORMAT_DISPATCHER}}': open('$BLOCKS_DIR/format-dispatcher.md').read(),
 }
 for placeholder, block in blocks.items():
     content = content.replace(placeholder, block)

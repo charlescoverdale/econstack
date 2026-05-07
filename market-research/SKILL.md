@@ -287,13 +287,29 @@ Table: Trade position.
 - `sizing` / `players` / `concentration` / `porter` / `pestle` / `regulation` / `supply` / `trade` / `pricing` / `outlook`: that single section only.
 - Combinable: `--section summary,porter,outlook`.
 
-**Format exports** (via `--format`):
-- **Markdown (.md)**: always generated. `market-[slug]-[date].md`.
+**Format-specific output structure** (only produce formats explicitly requested; see dispatcher below):
+- **Markdown (.md)**: `market-[slug]-[date].md` with the structure shown above.
 - **Excel (.xlsx)**: workbook with sheets: `Summary`, `Sizing`, `Players`, `Segments`, `Trade`, `Porter` (one row per force), `PESTLE`.
 - **Word (.docx)**: one document, full report with cover page, hyperlinked sources.
 - **PowerPoint (.pptx)**: 7 slides: (1) Exec summary, (2) Market sizing, (3) Players and concentration, (4) Porter's Five Forces, (5) PESTLE and regulation, (6) Trade and supply chain, (7) Outlook. Action titles.
 - **PDF**: render markdown through econstack Quarto template.
-- **`all`**: expand to all formats.
+
+## Output formats
+
+The user requests format(s) via `--format`. Default: `md`. Comma-separated lists are allowed (e.g. `--format md,pdf`); `all` expands to every supported format.
+
+For each format **explicitly requested**, produce that file and only that file:
+
+- `md`: write the markdown inline (only when `md` is in the requested set).
+- `docx`: invoke the `docx` skill with the rendered content.
+- `pdf`: render via the econstack Quarto template (or invoke the `pdf` skill if no template exists for this skill).
+- `xlsx`: invoke the `xlsx` skill with the structured tables.
+- `pptx`: invoke the `pptx` skill with the briefing as a deck.
+
+**Do NOT produce formats that were not requested.** This is the v0.4 fix for the multi-format leak that previously caused `--format pdf` to also write `.md` and `.docx` files alongside the PDF. Any intermediate files needed during rendering must go to a temp directory and be cleaned up before the skill returns.
+
+When you finish, the file listing in your "Saved:" message must contain exactly the files the user asked for, no extras.
+
 
 Tell the user (listing only files produced):
 ```

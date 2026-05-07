@@ -210,12 +210,13 @@ date: [YYYY-MM-DD]
 - `fix-plan`: fix plan only (requires `--fix`).
 - Combinable: `--section headline,issues`.
 
-**Format exports** (via `--format`):
-- **Markdown (.md)**: always generated. `audit-[target-slug]-[date].md`.
+**Format-specific output structure** (only produce formats explicitly requested; see dispatcher below):
+- **Markdown (.md)**: `audit-[target-slug]-[date].md` with the structure shown above.
 - **Excel (.xlsx)**: one workbook with sheets: `Scorecard`, `Issues`, `Fix plan`. Conditional formatting on the Result column.
 - **Word (.docx)**: one document, full audit.
 - **PDF**: render markdown through econstack Quarto template.
-- `all`: expand to all formats.
+
+{{FORMAT_DISPATCHER}}
 
 Tell the user (listing only files produced):
 ```

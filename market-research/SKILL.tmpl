@@ -231,13 +231,14 @@ Table: Trade position.
 - `sizing` / `players` / `concentration` / `porter` / `pestle` / `regulation` / `supply` / `trade` / `pricing` / `outlook`: that single section only.
 - Combinable: `--section summary,porter,outlook`.
 
-**Format exports** (via `--format`):
-- **Markdown (.md)**: always generated. `market-[slug]-[date].md`.
+**Format-specific output structure** (only produce formats explicitly requested; see dispatcher below):
+- **Markdown (.md)**: `market-[slug]-[date].md` with the structure shown above.
 - **Excel (.xlsx)**: workbook with sheets: `Summary`, `Sizing`, `Players`, `Segments`, `Trade`, `Porter` (one row per force), `PESTLE`.
 - **Word (.docx)**: one document, full report with cover page, hyperlinked sources.
 - **PowerPoint (.pptx)**: 7 slides: (1) Exec summary, (2) Market sizing, (3) Players and concentration, (4) Porter's Five Forces, (5) PESTLE and regulation, (6) Trade and supply chain, (7) Outlook. Action titles.
 - **PDF**: render markdown through econstack Quarto template.
-- **`all`**: expand to all formats.
+
+{{FORMAT_DISPATCHER}}
 
 Tell the user (listing only files produced):
 ```

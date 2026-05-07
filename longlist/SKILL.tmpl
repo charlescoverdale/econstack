@@ -272,13 +272,14 @@ That is the entire output. No methodology section. No shortlist section. No deta
 
 Always include the KEY NUMBERS comment at the bottom.
 
-**Format exports** (multi-format via `--format`):
-- **Markdown (.md)**: always generated.
+**Format-specific output structure** (only produce formats explicitly requested; see dispatcher below):
+- **Markdown (.md)**: `longlist-[slug]-[date].md` with the structure shown above.
 - **Excel (.xlsx)**: invoke the `xlsx` skill. Two sheets: `Benefits` and `Costs`, seven columns each. Conditional formatting on the materiality column (green H, amber M, grey L) and on the Cash flow column (green "Cash in", red "Cash out", grey "Non-cash"). Save as `longlist-[slug]-[date].xlsx`.
 - **Word (.docx)**: invoke the `docx` skill. One document: header block, benefits table, costs table, excluded list, cash flow summary. Save as `longlist-[slug]-[date].docx`.
 - **PowerPoint (.pptx)**: invoke the `pptx` skill. Four slides: title / counterfactual, benefits table, costs table, cash flow summary. Action titles. Save as `longlist-[slug]-[date].pptx`.
 - **PDF**: render markdown through the econstack Quarto template. Save as `longlist-[slug]-[date].pdf`.
-- **`all`**: expand to all five formats.
+
+{{FORMAT_DISPATCHER}}
 
 Tell the user:
 ```

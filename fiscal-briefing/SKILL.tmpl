@@ -208,30 +208,75 @@ date: [YYYY-MM-DD]
 - `deficit` / `debt` / `receipts` / `spending` / `rules` / `outlook` / `dsa`: that single section only.
 - Combinable: `--section headline,rules,outlook`.
 
-**Format exports** (via `--format`):
-- **Markdown (.md)**: always generated. `fiscal-[country]-[date].md`.
+**Format-specific output structure** (only produce when explicitly requested; see dispatcher below):
+- **Markdown (.md)**: `fiscal-[country]-[date].md` with the structure shown above.
 - **Excel (.xlsx)**: workbook with sheets per dimension (Headline, Receipts, Spending, Rules, Outlook, optional DSA). Historical context back 10 years.
 - **Word (.docx)**: one document, full briefing, cover page, TOC.
 - **PowerPoint (.pptx)**: 5 slides: (1) Headline, (2) Receipts, (3) Spending, (4) Rules and outlook, (5) Risks.
 - **PDF**: render markdown through econstack Quarto template.
-- **`all`**: expand to all formats.
+
+{{FORMAT_DISPATCHER}}
 
 Tell the user (listing only files produced):
 ```
 Fiscal briefing complete. [Country]. Deficit [val]% of GDP, debt [val]% of GDP. Fiscal rule: [status].
 
 Saved:
-  fiscal-[country]-[date].md
-  [other formats if requested]
+  [only the files actually produced for the requested format(s)]
 ```
+
+## Citation discipline
+
+Every numerical claim in the briefing must be followed by an inline citation in the form `[SOURCE_CODE, vintage]`. `SOURCE_CODE` is a short tag (e.g. `ONS_PSF`, `OBR_EFO`, `BoE_MPR`, `HMRC_PB`, `Treasury_MTS`, `CBO_BBO`, `ABS_GFS`) that maps to a full reference in the Data sources footer. `vintage` is the publication date of the source data (e.g. `Mar 2026`).
+
+**Examples:**
+
+> Public sector net debt reached 95.8% of GDP in February 2026 [ONS_PSF, Feb 2026].
+
+> The OBR forecasts borrowing falling to 1.6% of GDP by 2028-29 [OBR_EFO, Mar 2026].
+
+> CBO projects the federal deficit at USD 1.7 trillion in FY2025 [CBO_BBO, Jan 2025].
+
+**Numbers that cannot be sourced to a primary publication must NOT appear in the briefing.** No exceptions: do not estimate, infer from training data, interpolate, or recall from memory. If a needed number isn't in the fetched data, state it explicitly:
+
+> [Source] has not yet published this measure. Headroom for FY26-27 will be available after the Spring Statement on [date].
+
+**Self-check before output**: scan the draft for every number. If any number lacks an inline citation, either add the citation or remove the number. Do not ship a briefing where the citation density is uneven across sections.
+
+## Factuality rules
+
+A wrong claim that has a citation is still wrong. Before asserting any factual claim about how a fiscal rule, definition, or formula works, consult the fact pack at `fiscal-briefing/facts/` (one markdown file per topic). Topics covered: triple lock, fiscal mandate, debt definitions, benefit uprating, ONS classification thresholds.
+
+**Things you must NOT assert without computing them from the latest data**:
+
+- "The 2.5% floor is the binding arm of the triple lock" (which arm binds varies year to year; compute it from current September CPI and July earnings growth).
+- "The fiscal mandate is binding" (depends on current OBR forecasts, not memory).
+- "The welfare cap has been breached" (depends on the most recent Charter assessment).
+- Any "headroom" figure (changes at every fiscal event; pull from current EFO output).
+
+If the fact pack and current data disagree, **trust the current data and note the discrepancy** in the Risks section so the user can sanity-check.
+
+**Fact pack structure**: each topic is a small markdown file in `fiscal-briefing/facts/` with the canonical definition, the rule for which-arm-binds (where applicable), and dated wording. Read the relevant fact file before drafting any section that touches that topic.
+
+## Out of scope (unless explicitly requested)
+
+The following are NOT produced unless the user explicitly asks for them via flags or natural language:
+
+- **Alternative policy options.** Don't suggest "the government could change X by doing Y". That is a human task with bias and political-judgement risks. Only emit policy options if the user passes `--policies "X, Y, Z"` (a comma-separated list of policies they want analysed).
+- **Recommendations or decisions.** State what the data shows; do not recommend what the Chancellor / Treasury Secretary / Treasurer should do.
+- **Forecasts beyond the publication horizon.** Use the official forecast body's projections (OBR / CBO / PBO). Do not extrapolate further.
+- **Scenarios that aren't in the source.** No "what if growth is 0.5pp lower" unless the user requests it via `--dsa` (which produces standardised IMF stress tests via debtkit).
+- **Party-political or politician rankings.** Stay above politics.
+
+If the user's request requires content from this list, ask first.
 
 ## Important rules
 
 - **Official sources only.** ONS / HMRC / HMT / OBR for UK, BEA / Treasury / CBO / OMB for US, ABS / Treasury / PBO for AU. No third-party aggregators unless official data is unavailable.
-- **Every number has a vintage.** Report the latest data release date in the Data sources footer.
+- **Every number has a vintage AND an inline citation.** See Citation discipline above. The Data sources footer is for the full reference list.
 - **Forecasts come from the official forecast body** (OBR, CBO, PBO). Do not generate new forecasts here.
 - **One headline summary at the top**, backed by the Headline position table.
-- **Fiscal rule status is explicit** (Met, At risk, Breached) with headroom.
+- **Fiscal rule status is explicit** (Met, At risk, Breached) with headroom. Compute headroom from current EFO data; do not recall it.
 - **DSA is optional** and requires `debtkit`. Note the install command if it is missing.
 - **Em dashes**: never use em dashes. Use commas, colons, parentheses, or "and".
 

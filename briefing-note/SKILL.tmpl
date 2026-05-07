@@ -272,9 +272,11 @@ key_finding: [one sentence]
 
 ### Step 6: Output
 
-Save as `briefing-{slugified-topic}-{date}.md`.
+Save as `briefing-{slugified-topic}-{date}.md` if and only if markdown is in the requested output set (the default).
 
-If `--format-output` specified, invoke the appropriate export skill (docx, pptx, pdf).
+{{FORMAT_DISPATCHER}}
+
+(Note: in this skill `--format` selects the briefing template, not the output format. Output format is controlled by `--format-output`. The dispatcher above applies to whatever the user passes via `--format-output`.)
 
 If `--exec` specified, generate a 3-slide deck:
 1. Title + issue statement

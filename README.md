@@ -1,6 +1,6 @@
 # econstack
 
-![Version](https://img.shields.io/badge/version-0.12.0-blue)
+![Version](https://img.shields.io/badge/version-0.13.0-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Skills](https://img.shields.io/badge/skills-6-orange)
 
@@ -41,6 +41,10 @@ git clone https://github.com/charlescoverdale/econstack.git ~/.claude/skills/eco
 
 # Get the data (391 UK local authority datasets + CBA parameter database)
 git clone https://github.com/charlescoverdale/econstack-data.git ~/econstack-data
+
+# Optional: cut down permission prompts during long runs
+# (copy into your project's .claude/ folder or merge into ~/.claude/settings.json)
+cp ~/.claude/skills/econstack/.claude/settings.json.example .claude/settings.json
 ```
 
 Your project files stay on your computer. When you run a skill, Claude Code reads the files you point it at, sends that content to Anthropic to generate the analysis (as with any LLM request), and writes the output back to your machine. That is the entire data flow. econstack itself has no server, no database, and does not share anything with third parties. Anthropic does not train on the content of API requests by default.

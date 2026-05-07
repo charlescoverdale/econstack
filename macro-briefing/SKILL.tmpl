@@ -216,13 +216,14 @@ That is the full default deliverable.
 - `activity`, `labour`, `prices`, `rates`, `financial`, `fiscal`, `trade`, `housing`: that one section only.
 - Combinable: `--section headline,prices,labour`.
 
-**Format exports** (via `--format`):
-- **Markdown (.md)**: always generated. `macro-[country]-[date].md`.
+**Format-specific output structure** (only produce formats explicitly requested; see dispatcher below):
+- **Markdown (.md)**: `macro-[country]-[date].md` with the structure shown above.
 - **Excel (.xlsx)**: one workbook with sheets per dimension (Activity, Labour, Prices, Rates, Fiscal, Trade, Housing). Each sheet has the latest print plus prior 12 months of history. Conditional formatting on the assessment column.
 - **Word (.docx)**: one document with cover page, table of contents, full briefing.
 - **PowerPoint (.pptx)**: 6 slides: (1) Assessment, (2) Activity, (3) Labour and inflation, (4) Monetary policy, (5) Fiscal and trade, (6) Outlook and risks. Action titles.
 - **PDF**: render markdown through econstack Quarto template.
-- **`all`**: expand to all formats.
+
+{{FORMAT_DISPATCHER}}
 
 Tell the user (listing only files produced):
 ```
