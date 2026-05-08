@@ -1,0 +1,264 @@
+#!/usr/bin/env bash
+# econstack-greenbook: bridge between the /cost-benefit skill and the
+# greenbook R package. Reads a JSON spec on stdin, returns JSON on stdout.
+#
+# Resolves greenbook in this order:
+#   1. installed CRAN package (library(greenbook))
+#   2. dev source at $GREENBOOK_DEV_PATH or ~/Documents/2026/Claude/Sandbox/greenbook
+#   3. graceful failure: returns {"ok": false, "error": "greenbook_not_installed"}
+#
+# Usage:
+#   echo '{"action": "version"}' | econstack-greenbook
+#   echo '{"action": "appraise", "costs": [...], "benefits": [...], ...}' | econstack-greenbook
+#
+# Exit codes: 0 always (errors are reported in JSON, never via exit code).
+
+set -euo pipefail
+
+GREENBOOK_DEV_PATH="${GREENBOOK_DEV_PATH:-$HOME/Documents/2026/Claude/Sandbox/greenbook}"
+
+if ! command -v Rscript >/dev/null 2>&1; then
+  printf '%s\n' '{"ok":false,"error":"rscript_not_found"}'
+  exit 0
+fi
+
+INPUT="$(cat)"
+
+# Pass spec to R as an env var to avoid shell quoting hell
+export GB_BRIDGE_INPUT="$INPUT"
+export GB_DEV_PATH="$GREENBOOK_DEV_PATH"
+
+Rscript --vanilla --default-packages=base,utils,stats - <<'RSCRIPT'
+suppressWarnings(suppressMessages({
+  ok_json <- requireNamespace("jsonlite", quietly = TRUE)
+}))
+if (!ok_json) {
+  cat('{"ok":false,"error":"jsonlite_not_installed"}\n')
+  quit(save = "no", status = 0L)
+}
+
+emit <- function(x) {
+  cat(jsonlite::toJSON(x, auto_unbox = TRUE, na = "null", null = "null", digits = 8))
+  cat("\n")
+  quit(save = "no", status = 0L)
+}
+
+spec_raw <- Sys.getenv("GB_BRIDGE_INPUT", unset = "")
+if (!nzchar(spec_raw)) emit(list(ok = FALSE, error = "no_input"))
+
+spec <- tryCatch(
+  jsonlite::fromJSON(spec_raw, simplifyVector = TRUE),
+  error = function(e) NULL
+)
+if (is.null(spec)) emit(list(ok = FALSE, error = "invalid_json"))
+
+# Load greenbook (installed first, then dev source)
+loaded <- FALSE
+load_msg <- ""
+if (suppressWarnings(suppressMessages(requireNamespace("greenbook", quietly = TRUE)))) {
+  suppressWarnings(suppressMessages(library(greenbook)))
+  loaded <- TRUE
+  load_msg <- "installed"
+} else {
+  dev_path <- Sys.getenv("GB_DEV_PATH", unset = "")
+  if (nzchar(dev_path) && dir.exists(dev_path) && file.exists(file.path(dev_path, "DESCRIPTION"))) {
+    if (suppressWarnings(suppressMessages(requireNamespace("devtools", quietly = TRUE)))) {
+      ok <- tryCatch({
+        suppressWarnings(suppressMessages(devtools::load_all(dev_path, quiet = TRUE)))
+        TRUE
+      }, error = function(e) FALSE)
+      if (ok) {
+        loaded <- TRUE
+        load_msg <- paste0("dev_source:", dev_path)
+      }
+    }
+  }
+}
+
+if (!loaded) {
+  emit(list(
+    ok = FALSE,
+    error = "greenbook_not_installed",
+    hint = "install.packages('greenbook') OR set GREENBOOK_DEV_PATH to a clone of the repo with devtools available"
+  ))
+}
+
+action <- spec$action %||% ""
+`%||%` <- function(a, b) if (is.null(a) || (length(a) == 1L && is.na(a))) b else a
+
+# Common helper: data versions
+dv <- function() {
+  out <- tryCatch(as.data.frame(gb_data_versions()), error = function(e) NULL)
+  if (is.null(out)) return(NULL)
+  out
+}
+
+# Dispatch
+if (action == "version") {
+  emit(list(
+    ok = TRUE,
+    backend = load_msg,
+    greenbook_version = as.character(packageVersion("greenbook")),
+    r_version = paste(R.version$major, R.version$minor, sep = "."),
+    data_versions = dv()
+  ))
+}
+
+if (action == "appraise") {
+  costs <- spec$costs
+  benefits <- spec$benefits
+  if (is.null(costs) || is.null(benefits)) emit(list(ok = FALSE, error = "missing_costs_or_benefits"))
+  res <- tryCatch(
+    gb_appraise(
+      costs = as.numeric(costs),
+      benefits = as.numeric(benefits),
+      years = if (!is.null(spec$years)) as.integer(spec$years) else NULL,
+      schedule = spec$schedule %||% "standard",
+      ob = spec$ob,
+      ob_dimension = spec$ob_dimension %||% "capex",
+      ob_mitigation = as.numeric(spec$ob_mitigation %||% 0),
+      metb = isTRUE(spec$metb),
+      metb_rate = as.numeric(spec$metb_rate %||% 0.20),
+      base_year = if (!is.null(spec$base_year)) as.integer(spec$base_year) else NULL,
+      vintage = spec$vintage %||% "2022"
+    ),
+    error = function(e) e$message
+  )
+  if (is.character(res)) emit(list(ok = FALSE, error = "appraise_failed", message = res))
+  emit(list(
+    ok = TRUE,
+    npv = unname(res$npv),
+    bcr = unname(res$bcr),
+    pv_costs = unname(res$pv_costs),
+    pv_benefits = unname(res$pv_benefits),
+    optimism_bias = unname(res$optimism_bias),
+    metb_applied = unname(res$metb_applied),
+    costs_adjusted = unname(res$costs),
+    benefits_adjusted = unname(res$benefits),
+    data_versions = dv()
+  ))
+}
+
+if (action == "discount_factor") {
+  years <- as.integer(spec$years %||% 0)
+  res <- tryCatch(
+    gb_discount_factor(years, schedule = spec$schedule %||% "standard"),
+    error = function(e) e$message
+  )
+  if (is.character(res)) emit(list(ok = FALSE, error = "df_failed", message = res))
+  emit(list(ok = TRUE, years = years, factors = unname(res)))
+}
+
+if (action == "metb") {
+  vals <- as.numeric(spec$values %||% spec$costs)
+  if (length(vals) == 0L) emit(list(ok = FALSE, error = "missing_values"))
+  res <- tryCatch(gb_metb(vals, rate = as.numeric(spec$rate %||% 0.20)), error = function(e) e$message)
+  if (is.character(res)) emit(list(ok = FALSE, error = "metb_failed", message = res))
+  emit(list(ok = TRUE, values = unname(res)))
+}
+
+if (action == "carbon_npv") {
+  emissions <- as.numeric(spec$emissions)
+  years <- as.integer(spec$years)
+  if (length(emissions) == 0L || length(emissions) != length(years)) {
+    emit(list(ok = FALSE, error = "carbon_inputs_mismatch"))
+  }
+  res <- tryCatch(
+    gb_carbon_npv(
+      emissions = emissions, years = years,
+      scenario = spec$scenario %||% "central",
+      schedule = spec$schedule %||% "standard"
+    ),
+    error = function(e) e$message
+  )
+  if (is.character(res)) emit(list(ok = FALSE, error = "carbon_failed", message = res))
+  emit(list(ok = TRUE, npv = unname(res$npv) %||% unname(res),
+            data_versions = dv()))
+}
+
+if (action == "eanc") {
+  npv <- as.numeric(spec$npv)
+  years <- as.integer(spec$years)
+  res <- tryCatch(
+    gb_eanc(npv = npv, years = years, schedule = spec$schedule %||% "standard"),
+    error = function(e) e$message
+  )
+  if (is.character(res)) emit(list(ok = FALSE, error = "eanc_failed", message = res))
+  emit(list(ok = TRUE, eanc = unname(res)))
+}
+
+if (action == "wellby") {
+  res <- tryCatch(
+    gb_wellby(
+      life_satisfaction_change = as.numeric(spec$life_satisfaction_change),
+      persons = as.numeric(spec$persons),
+      years = as.numeric(spec$years %||% 1)
+    ),
+    error = function(e) e$message
+  )
+  if (is.character(res)) emit(list(ok = FALSE, error = "wellby_failed", message = res))
+  emit(list(ok = TRUE, value = unname(res), data_versions = dv()))
+}
+
+if (action == "qaly") {
+  res <- tryCatch(
+    gb_qaly(
+      qalys = as.numeric(spec$qalys),
+      scenario = spec$scenario %||% "dhsc",
+      base_year = if (!is.null(spec$base_year)) as.integer(spec$base_year) else NULL
+    ),
+    error = function(e) e$message
+  )
+  if (is.character(res)) emit(list(ok = FALSE, error = "qaly_failed", message = res))
+  emit(list(ok = TRUE, value = unname(res), data_versions = dv()))
+}
+
+if (action == "vpf") {
+  res <- tryCatch(
+    gb_vpf(
+      year = as.integer(spec$year %||% 2024),
+      series = spec$series %||% "central"
+    ),
+    error = function(e) e$message
+  )
+  if (is.character(res)) emit(list(ok = FALSE, error = "vpf_failed", message = res))
+  emit(list(ok = TRUE, value = unname(res), data_versions = dv()))
+}
+
+if (action == "dist_weighted_npv") {
+  res <- tryCatch(
+    gb_dist_weighted_npv(
+      cashflow = as.numeric(spec$cashflow),
+      recipient_income = as.numeric(spec$recipient_income),
+      eta = as.numeric(spec$eta %||% 1.3),
+      reference = spec$reference %||% "median"
+    ),
+    error = function(e) e$message
+  )
+  if (is.character(res)) emit(list(ok = FALSE, error = "dist_failed", message = res))
+  emit(list(ok = TRUE, npv_weighted = unname(res$npv_weighted) %||% unname(res)))
+}
+
+if (action == "validate") {
+  app_spec <- spec$appraisal %||% spec
+  costs <- as.numeric(app_spec$costs %||% 0)
+  benefits <- as.numeric(app_spec$benefits %||% 0)
+  if (length(costs) == 0 || length(benefits) == 0) {
+    emit(list(ok = FALSE, error = "validate_needs_costs_benefits"))
+  }
+  app <- tryCatch(
+    gb_appraise(costs = costs, benefits = benefits),
+    error = function(e) e$message
+  )
+  if (is.character(app)) emit(list(ok = FALSE, error = "build_appraisal_failed", message = app))
+  res <- tryCatch(gb_validate(app), error = function(e) e$message)
+  if (is.character(res)) emit(list(ok = FALSE, error = "validate_failed", message = res))
+  emit(list(ok = TRUE, validation = res))
+}
+
+if (action == "data_versions") {
+  emit(list(ok = TRUE, data_versions = dv()))
+}
+
+emit(list(ok = FALSE, error = "unknown_action", action = action))
+RSCRIPT

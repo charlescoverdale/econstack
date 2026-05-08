@@ -1,12 +1,12 @@
 # econstack
 
-![Version](https://img.shields.io/badge/version-0.13.1-blue)
+![Version](https://img.shields.io/badge/version-0.14.0-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
-![Skills](https://img.shields.io/badge/skills-6-orange)
+![Skills](https://img.shields.io/badge/skills-7-orange)
 
 Professional economic analysis, powered by AI.
 
-econstack is a set of [Claude Code](https://claude.ai/code) skills that handle the mechanical parts of economic analysis: live macro and fiscal briefings, market research, policy briefing notes, pre-appraisal longlisting, and methodology audit. 6 skills designed to work on the inputs and checks around a policy decision, so you can focus on the judgement calls. Supports HM Treasury Green Book, EU Better Regulation, World Bank, Asian Development Bank, and Australian Treasury (Victoria) frameworks with framework-native output.
+econstack is a set of [Claude Code](https://claude.ai/code) skills that handle the mechanical parts of economic analysis: live macro and fiscal briefings, market research, policy briefing notes, pre-appraisal longlisting, full cost-benefit analysis, and methodology audit. 7 skills designed to work on the inputs and checks around a policy decision, so you can focus on the judgement calls. Supports HM Treasury Green Book, EU Better Regulation, World Bank, Asian Development Bank, and Australian Treasury (Victoria) frameworks with framework-native output.
 
 Backed by 57 audited parameter files and 20+ R packages on CRAN.
 
@@ -104,6 +104,23 @@ Recognises the three classic double-counting traps and flags them automatically:
 
 ---
 
+### `/cost-benefit`
+
+The full Green Book cost-benefit analysis. Takes a project description (or a `/longlist` markdown file via `--from`) and returns an economic NPV and a financial NPV side by side, with a one-line headline verdict telling you whether the project is socially worthwhile **and** financially self-sustaining. Backed by the [`greenbook` R package](https://github.com/charlescoverdale/greenbook) when available, with graceful fallback when not.
+
+The skill closes the methodology gaps that most off-the-shelf CBAs miss: kinked Social Time Preference Rate (3.5/3.0/2.5/2.0/1.5% across 30/75/125/200/300-year bands), GDP-deflator real-terms rebasing, optimism bias with mitigation factor (Mott MacDonald 2002 categories), Marginal Excess Tax Burden of 20% on tax-financed costs (mandatory under Green Book 2022 §5.36), WELLBY / QALY / VPF wellbeing valuation routed through dedicated greenbook functions on the 1.5% health schedule, DESNZ Nov-2023 single-consolidated carbon series with low/central/high scenarios (the historical traded vs non-traded split has been retired), iso-elastic distributional weights at eta = 1.3, EANC for unequal-life options, sensitivity in one paragraph (scenario / switching / tornado / discount-rate), referent group identity check, validation gate that aborts on broken counterfactuals or missing METB, sidecar JSON for downstream Five Case Model handoff, and an automatic `/econ-audit` pass on the produced markdown. Supports `uk-gb`, `eu-brg`, `wb`, `adb`, `au-vic` with framework-native parameter sets.
+
+Every output carries a vintage stamp: greenbook version, STPR vintage, GDP deflator vintage, OB / METB / carbon / VPF / QALY / WELLBY vintages. So an appraisal you ran today can be re-run a year from now and the numbers will still be reproducible against the same parameter set.
+
+```
+/cost-benefit --from longlist-leeds-school-2026-05-07.md
+/cost-benefit "Rural water project, Indonesia" --framework adb
+/cost-benefit "Victorian level crossing removal" --framework au-vic
+/cost-benefit --from longlist.md --ob-mitigation 0.4 --carbon-scenario high --format xlsx,word
+```
+
+---
+
 ### `/macro-briefing`
 
 Up-to-date macroeconomic reports for the UK, US, Euro area, and Australia. Tell it what you care about most (CPI, GDP growth, labour market, yield curves) or let it pick for you. Pulls live data from official government databases (ONS, FRED, ECB, ABS), structures it into a professional briefing following each central bank's reporting conventions, and lets you tailor the output to the indicators that matter for your work. Every number is traceable: full methodology, data sources, and vintage dates included.
@@ -184,6 +201,7 @@ econstack/
 ├── market-research/     /market-research Industry and market analysis (multi-geo)
 ├── briefing-note/       /briefing-note  Policy briefing note (4 templates)
 ├── longlist/            /longlist       Pre-appraisal benefits and costs longlist (5 frameworks)
+├── cost-benefit/        /cost-benefit   Cost-benefit analysis (greenbook-backed, 5 frameworks)
 ├── econ-audit/          /econ-audit     Methodology audit (124 checks)
 ├── templates/
 │   └── blocks/          Shared template blocks (preamble, formatting, rules)

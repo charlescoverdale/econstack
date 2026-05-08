@@ -1,0 +1,93 @@
+#!/usr/bin/env bash
+# econstack-test-cba: regression test for the /cost-benefit skill backend.
+#
+# Exercises the greenbook bridge with a stylised Leeds-school appraisal that
+# touches all the major code paths: OB lookup by category, OB mitigation,
+# METB, kinked STPR over a 60-year horizon, base-year rebasing.
+#
+# Asserts:
+#   - bridge returns ok=true
+#   - all expected keys are present in the JSON
+#   - data_versions is non-empty (vintage stamping works)
+#
+# Exit 0 on pass, non-zero on fail. Suitable for CI.
+
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+ECONSTACK_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+BRIDGE="$ECONSTACK_DIR/bin/econstack-greenbook"
+TESTS_DIR="$ECONSTACK_DIR/tests/cba"
+EXPECTED="$TESTS_DIR/expected.json"
+
+if [ ! -x "$BRIDGE" ]; then
+  echo "FAIL: bridge not executable at $BRIDGE" >&2
+  exit 2
+fi
+
+if [ ! -f "$EXPECTED" ]; then
+  echo "FAIL: expected manifest missing at $EXPECTED" >&2
+  exit 2
+fi
+
+# Build a stylised cashflow representative of Leeds-school fixture:
+#   capex: 60m total, 3-year S-curve [0.20, 0.50, 0.30] -> [12, 30, 18]
+#   opex: 6m/year from year 3 onward (year 0-2 = 0)
+#   benefits: ramp 0/0/0/2/4/6, then 6m/year flat from year 6 to year 60
+#
+# Cost stream length = 60 years
+COSTS_JSON='[12, 30, 18]'
+for i in $(seq 0 56); do
+  COSTS_JSON="${COSTS_JSON%]}, 6]"
+done
+
+# Benefits: ramp [0, 0, 0, 2, 4, 6], then 6 for years 6-60
+BENEFITS_JSON='[0, 0, 0, 2, 4, 6]'
+for i in $(seq 0 53); do
+  BENEFITS_JSON="${BENEFITS_JSON%]}, 6]"
+done
+
+# Build full spec
+SPEC=$(cat <<EOF
+{
+  "action": "appraise",
+  "costs": $COSTS_JSON,
+  "benefits": $BENEFITS_JSON,
+  "ob": "non_standard_buildings",
+  "ob_mitigation": 0,
+  "metb": true,
+  "metb_rate": 0.20,
+  "base_year": 2024,
+  "schedule": "standard",
+  "vintage": "2022"
+}
+EOF
+)
+
+OUT="$(echo "$SPEC" | "$BRIDGE")"
+
+# Parse out via python (avoids jq dependency)
+RESULT=$(python3 - <<PY
+import json, sys
+d = json.loads('''$OUT''')
+required = ["npv", "bcr", "pv_costs", "pv_benefits", "optimism_bias", "metb_applied", "data_versions"]
+errs = []
+if not d.get("ok"):
+    errs.append("not_ok: " + str(d.get("error")))
+for k in required:
+    if k not in d:
+        errs.append("missing_key: " + k)
+if "data_versions" in d and not d["data_versions"]:
+    errs.append("data_versions_empty")
+if errs:
+    print("FAIL: " + " | ".join(errs))
+    sys.exit(1)
+print("PASS: NPV={:.2f}, BCR={:.3f}, OB={:.3f}, METB={}".format(
+    d["npv"], d["bcr"], d["optimism_bias"], d["metb_applied"]
+))
+PY
+)
+
+EXIT=$?
+echo "$RESULT"
+exit $EXIT

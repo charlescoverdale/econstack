@@ -11,9 +11,10 @@ Each skill has its own directory with a `SKILL.md` defining the workflow.
 - `market-research/SKILL.md` : Industry and market analysis (sizing, structure, competition, M&A, multi-geo)
 - `briefing-note/SKILL.md` : Policy briefing note (1-2 pages, UK GES / AU Treasury / consulting / think-tank formats)
 - `longlist/SKILL.md` : Pre-appraisal longlist builder. Brainstorms benefits and costs across 6 benefit lenses (stakeholder, market failure, ToC, framework taxonomy, sector library, Flyvbjerg-informed commonly-missed checklist) and 5 cost lenses (direct, indirect/induced, compliance/SCM, other parties, risk). Framework-aware. Outputs two clean tables that hand off to any downstream CBA or business case workflow.
+- `cost-benefit/SKILL.md` : Full cost-benefit analysis. Economic NPV + Financial NPV side by side, BCR, optimism bias with mitigation, METB, real-terms rebasing, WELLBY / QALY / VPF wellbeing valuation, DESNZ Nov-2023 carbon, distributional weights, EANC, validation gate, auto-audit. Backed by the `greenbook` R package via `bin/econstack-greenbook` bridge. Sidecar JSON for downstream business-case handoff.
 - `econ-audit/SKILL.md` : Methodology audit (124 checks across 17 categories, RED/AMBER/GREEN grading, includes AU framework checks)
 
-**Preamble tiers:** All 6 skills get update check, learnings, safety hooks, and completion status. 2 skills (longlist, econ-audit) additionally get the parameter database check because they read from `~/econstack-data/parameters/`. The other 4 (macro-briefing, fiscal-briefing, market-research, briefing-note) pull live data and do not use the parameter database.
+**Preamble tiers:** All 7 skills get update check, learnings, safety hooks, and completion status. 3 skills (longlist, cost-benefit, econ-audit) additionally get the parameter database check because they read from `~/econstack-data/parameters/`. The other 4 (macro-briefing, fiscal-briefing, market-research, briefing-note) pull live data and do not use the parameter database. The cost-benefit skill also runs Step 0 backend detection against `bin/econstack-greenbook` (the greenbook R package bridge); if greenbook is unavailable it falls back to LLM-side computation with reduced reproducibility.
 
 ## Important Rules
 
@@ -38,7 +39,11 @@ The skill has specialized workflows that produce better results than ad-hoc answ
 - Market size, industry, competition, M&A, Porter's Five Forces, HHI → invoke market-research
 - Briefing note, policy brief, ministerial brief, "write me a 2-pager", decision brief → invoke briefing-note
 - Brainstorm benefits, longlist, what costs should I include, beneficiary mapping, "what am I missing", benefit streams, benefits register, pre-CBA scoping, pre-appraisal scoping → invoke longlist
+- CBA, cost-benefit, NPV, BCR, appraisal, "is this worth doing", "value for money", Green Book appraisal, business case economics, METB, optimism bias, WELLBY / QALY / VPF, equivalent annual cost, switching values → invoke cost-benefit
 - Audit, check methodology, review my numbers, "is this analysis right" → invoke econ-audit
+
+**Workflow chains:**
+- `/longlist` → `/cost-benefit` → `/econ-audit` is the canonical appraisal pipeline. Each skill writes a markdown deliverable that the next reads. `/cost-benefit` also writes a sidecar JSON for future `/business-case` consumption.
 
 ## Versioning
 

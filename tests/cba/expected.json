@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "fixture": "leeds-school",
+  "framework": "uk-gb",
+  "sponsor": "government",
+  "stage": "obc",
+  "price_base_year": 2024,
+  "horizon": 60,
+  "ob_category": "non_standard_buildings",
+  "ob_mitigation": 0,
+  "metb": true,
+  "metb_rate": 0.20,
+  "schedule": "standard",
+  "tolerance": 0.01,
+  "expected_npv_sign": "positive_or_negative_either_acceptable",
+  "expected_metb_applied": true,
+  "expected_keys_present": [
+    "npv", "bcr", "pv_costs", "pv_benefits",
+    "optimism_bias", "metb_applied", "data_versions"
+  ],
+  "notes": "This fixture exercises the bridge end-to-end with greenbook v0.1.0. The exact NPV depends on capex S-curve weights and benefit ramp logic; the regression test asserts the keys are present and the numerical computation runs without error, not a specific NPV value. Sign is left open: with METB at 20% and OB applied, this stylised stream may net positive or negative depending on benefit assumptions."
+}
