@@ -113,12 +113,13 @@ Default output: one clean deliverable with headline verdict, options, costs, ben
 - `--sponsor <type>` : `government` (default), `private`, `blended`, `philanthropic`. Drives the financial case discount rate. Carried through from the longlist if `--from` is used.
 - `--section <name>` : Emit only one sub-component. Options: `full` (default), `headline`, `costs`, `benefits`, `economic`, `financial`, `sensitivity`, `stakeholder`, `validation`. Combinable with commas.
 - `--format <type>` : Output format(s). `markdown` (default, always generated), `xlsx`, `word`, `pptx`, `pdf`, or `all`. Comma-separate for multiple.
-- `--distributional` : Apply Green Book Annex A4 iso-elastic welfare weights (eta = 1.3, reference = median equivalised income). Silent if not set.
+- `--distributional` : Apply Green Book iso-elastic welfare weights (eta = 1.25 since the October 2026 update; 1.3 before), reference = median equivalised income. Silent if not set.
 - `--stage <name>` : `soc` (Strategic Outline Case), `obc` (Outline Business Case, default), `fbc` (Full Business Case). Drives the optimism bias uplift.
 - `--ob-mitigation <pct>` : Optimism bias mitigation factor in `[0, 1]`. Default `0`. Use `0.3` to `0.5` once an active risk register is in place. Greenbook: `gb_apply_ob(mitigation = ...)`.
 - `--price-base <year>` : Price base year for real-terms rebasing. Default = current calendar year. All cash inputs are re-based via `gb_rebase()` before discounting. Greenbook: `gb_deflator()` / `gb_real()` / `gb_rebase()`.
 - `--carbon-scenario <name>` : `low` / `central` (default) / `high`. Pulls from the consolidated DESNZ Nov-2023 series. Greenbook: `gb_carbon_value()`.
-- `--schedule <name>` : `standard` (default), `health` (1.5% baseline for QALY/WELLBY-monetised consequences only), `catastrophic` (3.0% for projects where catastrophic risk dominates). Greenbook: `gb_stpr(schedule = ...)`.
+- `--schedule <name>` : `standard` (default and, since HM Treasury's October 2026 update, the only schedule: one STPR for all proposals). `health` (1.5% baseline) and `catastrophic` (3.0%) exist only with `--vintage 2003`, for reproducing appraisals made before 28 October 2026.
+- `--vintage <id>` : STPR vintage. `2026-10` (default: 3.00% years 1-30, 2.50% 31-75, 2.25% 76-125, no discounting beyond year 125) or `2003` (the pre-October 2026 schedule, 3.5% declining to 1.0%). Passed to the bridge as `vintage`.
 - `--horizon <years>` : Override the default appraisal period (60 infrastructure / 30 programmes / 10 IT). For horizons > 30 years the kinked STPR schedule kicks in automatically.
 - `--cea` : Cost-effectiveness mode. When monetisation of the dominant benefit is impossible (low-monetisability flag from /longlist), replaces BCR with cost per output unit. Greenbook: `gb_cost_per_unit()`.
 - `--audit` / `--no-audit` : Auto-run /econ-audit on the produced markdown at the end. Default: `--audit`.
@@ -128,7 +129,7 @@ Default output: one clean deliverable with headline verdict, options, costs, ben
 
 | Flag | Discount rate | Optimism bias | Carbon price | VPF / VSL | VTTS | METB | Wellbeing |
 |------|--------------|---------------|--------------|-----------|------|------|-----------|
-| `uk-gb` | Kinked STPR: 3.5% y0-30, 3.0% y31-75, 2.5% y76-125, 2.0% y126-200, 1.5% y201-300 | Mott MacDonald 2002 by project type, with `--ob-mitigation` | DESNZ Nov-2023 single consolidated series, low/central/high | DfT TAG v2.03FC anchor 2023 = GBP 2.474m WTP, +2% real per capita growth | DfT TAG Data Book | **20% on tax-financed costs (mandatory)** | WELLBY GBP 13k (2019 prices); QALY GBP 70k (2024 prices, DHSC) |
+| `uk-gb` | Kinked STPR (October 2026): 3.00% y1-30, 2.50% y31-75, 2.25% y76-125; no discounting beyond y125 | Mott MacDonald 2002 by project type, with `--ob-mitigation` | DESNZ Nov-2023 single consolidated series, low/central/high | DfT TAG v2.03FC anchor 2023 = GBP 2.474m WTP, +2% real per capita growth | DfT TAG Data Book | **20% on tax-financed costs (mandatory)** | WELLBY GBP 13k (2019 prices); QALY GBP 70k (2024 prices, DHSC) |
 | `eu-brg` | 3% advanced / 5% convergence (flat) | Not used; scenario sensitivity | EU ETS + EC shadow | EUR 3.6m (DG MOVE) | EU TEN-T values | n/a | n/a |
 | `wb` | 6% (country-specific ERR) | Not used; scenario sensitivity | WB shadow (USD 40-80/tCO2e, rising to 50-100 by 2030) | By country income group | Local shadow wages | n/a | n/a |
 | `adb` | 9% EIRR (6% for climate / health / education per 2017 revision) | Not used; switching values mandatory | ADB shadow (USD 36.30+/tCO2e) | Country-specific | ADB shadow wages | n/a | n/a |
@@ -182,7 +183,7 @@ Do NOT ask perspective, referent group, distributional weights, sensitivity meth
 - Perspective: social / national for government sponsors; investor for private sponsors.
 - Referent group: all residents of the host country (or region for au-vic).
 - Price base year: current calendar year unless `--price-base` overrides. Real-terms rebasing applied to all cash inputs before discounting (uk-gb only; greenbook `gb_rebase()`).
-- Schedule: `standard` for the main appraisal. The `health` schedule is applied **only** to QALY / WELLBY benefit lines; do not apply 1.5% to monetary or non-health benefits.
+- Schedule: `standard` for every row. HM Treasury withdrew the separate health rate in October 2026 (one STPR for all proposals); use `health` only with `--vintage 2003` when reproducing an earlier appraisal, and then only on QALY / WELLBY rows.
 
 ### Step 2: Compute (silent)
 
@@ -198,18 +199,19 @@ rebased_value = gb_rebase(value, from = source_year, to = price_base_year)
 echo '{"action":"appraise", ..., "base_year": <price_base>}' | econstack-greenbook
 ```
 
-Greenbook bundles HMT's December-2025 GDP deflator. Outputs cite the deflator vintage in the KEY NUMBERS block. For non-uk-gb frameworks, the user supplies values already in the chosen base year.
+Greenbook (0.2.0+) bundles HMT's October 2026 (Budget) GDP deflator: ONS outturn to 2025 and OBR forecasts to 2031, so 2026 prices are available. Outputs cite the deflator vintage in the KEY NUMBERS block. For non-uk-gb frameworks, the user supplies values already in the chosen base year.
 
 #### 2.2 Discount factors
 
-When `BACKEND=greenbook` (uk-gb): factors come back from the `appraise` action; for ad-hoc factor lookup use action `discount_factor`. Greenbook schedules: `standard` (default), `health` (1.5% baseline; apply only to QALY/WELLBY rows), `catastrophic` (3.0%).
+When `BACKEND=greenbook` (uk-gb): factors come back from the `appraise` action; for ad-hoc factor lookup use action `discount_factor`. Greenbook 0.2.0+ applies the October 2026 schedule by default (`vintage = "2026-10"`); pass `vintage = "2003"` for the earlier schedule and its `health` (1.5%) and `catastrophic` (3.0%) variants. The bridge returns the vintage used as `stpr_vintage`.
 
 When `BACKEND=skill` (uk-gb), compute cumulatively across the kinked bands:
 
 ```
 df(0) = 1.0
 For t = 1 to horizon:
-  r = STPR(t):  3.5% (1-30), 3.0% (31-75), 2.5% (76-125), 2.0% (126-200), 1.5% (201-300)
+  r = STPR(t):  3.00% (1-30), 2.50% (31-75), 2.25% (76-125); stop at year 125
+  (pre-October 2026 vintage: 3.5% (1-30), 3.0% (31-75), 2.5% (76-125), 2.0% (126-200), 1.5% (201-300))
   df(t) = df(t-1) / (1 + r)
 ```
 
@@ -251,7 +253,7 @@ This is mandatory under Green Book 2022 §5.36. **Skip METB only when sponsor is
 
 #### 2.6 Wellbeing valuation (WELLBY / QALY / VPF)
 
-When a benefit row's quantification method is one of `wellby`, `qaly`, or `vpf`, **route the monetisation through the dedicated greenbook function** rather than generic prices. These rows are also discounted on the `health` schedule (1.5%) when `--schedule` is not overridden.
+When a benefit row's quantification method is one of `wellby`, `qaly`, or `vpf`, **route the monetisation through the dedicated greenbook function** rather than generic prices. They are discounted on the standard STPR like every other row: HM Treasury withdrew the separate 1.5% health rate in October 2026.
 
 ```
 WELLBY:  echo '{"action":"wellby","life_satisfaction_change":0.5,"persons":1000,"years":3}' | bridge
@@ -321,10 +323,10 @@ VfM category (uk-gb only):
 
 #### 2.12 Distributional weighting (`--distributional`)
 
-When set, weight cashflows by stakeholder income relative to median equivalised income, eta = 1.3 (Green Book Annex A4 iso-elastic). Bridge action: `dist_weighted_npv`. Add Table 8 (Distributionally weighted NPV by stakeholder group) to the output.
+When set, weight cashflows by stakeholder income relative to median equivalised income, eta = 1.25 (Green Book, October 2026; 1.3 before). Bridge action: `dist_weighted_npv`. Add Table 8 (Distributionally weighted NPV by stakeholder group) to the output.
 
 ```
-echo '{"action":"dist_weighted_npv","cashflow":[...],"recipient_income":[...],"eta":1.3}' | bridge
+echo '{"action":"dist_weighted_npv","cashflow":[...],"recipient_income":[...],"eta":1.25}' | bridge
 ```
 
 #### 2.13 Cost-effectiveness fallback (`--cea`)
@@ -448,7 +450,7 @@ In all backends, enforce these checks:
 6. **Carbon split**: if any embodied or operational carbon is in scope, it appears as its own row (not bundled into capex).
 7. **Cash flow tags**: every line has exactly one of `cash_in`, `cash_out`, `non_cash`.
 8. **Real-terms basis**: all cash inputs share the same `--price-base` year after rebasing.
-9. **Schedule alignment**: `health` schedule applied **only** to QALY/WELLBY rows; not to the project as a whole.
+9. **Schedule alignment**: under the default `2026-10` vintage every row uses the standard STPR; `health` appears only with `--vintage 2003`, and then only on QALY/WELLBY rows.
 
 If any check fails, do **not** write the file. Instead, print:
 
@@ -488,7 +490,7 @@ metb_applied: [yes|no]
 metb_rate_pct: [val or n/a]
 additionality_factor: [val]
 distributional_eta: [val or n/a]
-discount_schedule: [standard|health|catastrophic]
+discount_schedule: [standard|health|catastrophic]  # health/catastrophic only with vintage 2003
 discount_rate_baseline_pct: [val]
 appraisal_period: [val]
 price_base_year: [val]
@@ -686,16 +688,16 @@ If `--no-audit` was set, omit the `Audit:` field from the headline. If `BACKEND=
 ## Framework-specific rules
 
 ### `uk-gb` (UK HMT Green Book)
-- Kinked STPR: 3.5% years 0-30, 3.0% 31-75, 2.5% 76-125, 2.0% 126-200, 1.5% 201-300 (greenbook `gb_stpr()`).
+- Kinked STPR (October 2026): 3.00% years 1-30, 2.50% 31-75, 2.25% 76-125, no discounting beyond year 125 (greenbook `gb_stpr()`; `vintage = "2003"` for the earlier 3.5% schedule).
 - Optimism bias mandatory on capital costs per HMT supplementary Table 1 (Mott MacDonald 2002) by project type and stage. Mitigation factor 0 unless `--ob-mitigation` is set; typical 30-50% reduction once an active risk register is in place.
 - **METB of 20% on all tax-financed costs** (mandatory per Green Book 2022 §5.36). Skip only when sponsor is private or philanthropic.
-- Real-terms rebasing via the bundled HMT December-2025 GDP deflator. Set price base via `--price-base`.
+- Real-terms rebasing via the bundled HMT October 2026 (Budget) GDP deflator, outturn to 2025 and OBR forecasts to 2031. Set price base via `--price-base`.
 - Additionality: standard 20% deadweight, 25% displacement, 10% leakage unless user overrides.
-- Health outcomes use the `health` schedule (1.5% baseline) on QALY/WELLBY rows only. Monetary benefits stay on `standard` (3.5%).
+- Health outcomes are discounted on the standard STPR, like all other rows (HM Treasury withdrew the 1.5% health rate in October 2026).
 - WELLBY (HMT Wellbeing Guidance July 2021), QALY (DHSC supplementary), VPF (DfT TAG v2.03FC) all sourced from greenbook with vintage metadata.
 - Carbon: DESNZ Nov-2023 single consolidated series (`low` / `central` / `high`); historical traded vs non-traded split has been retired.
 - Referent group analysis mandatory if stakeholder groups cross the national boundary.
-- Distributional weights (Annex A4 iso-elastic, eta = 1.3, reference = median equivalised income) under `--distributional`.
+- Distributional weights (iso-elastic, eta = 1.25 since October 2026, reference = median equivalised income) under `--distributional`.
 
 ### `eu-brg` (EU Better Regulation)
 - Flat 3% (advanced Member States) or 5% (convergence MS) discount rate.
@@ -738,7 +740,7 @@ If `--no-audit` was set, omit the `Audit:` field from the headline. If `BACKEND=
 - **Sunk costs are excluded.** Resources already committed that cannot be recovered are irrelevant to the forward-looking decision.
 - **Cash flow tags drive the financial case.** Only items tagged `Cash in` or `Cash out` on the longlist count for Financial NPV. Non-cash items are excluded entirely, no matter how large.
 - **Two discount rates.** The economic case uses the kinked STPR (uk-gb) or framework flat rate. The financial case uses the sponsor's cost of capital (flat, typically 4.5% for government, 8-12% for private). Do not conflate them.
-- **Health schedule scope.** The 1.5% `health` schedule is applied **only** to QALY and WELLBY rows. Do not run a whole appraisal at 1.5% just because it has a health benefit.
+- **No separate health rate.** Since October 2026 HM Treasury applies one STPR to all proposals. The 1.5% `health` schedule exists only under `--vintage 2003`, for reproducing earlier appraisals, and even then applies only to QALY and WELLBY rows.
 - **Real-terms basis is shared.** All cash inputs must rebase to the same `--price-base` year before discounting. Mixing 2020 and 2024 prices without rebasing is a validation-gate failure.
 - **Do not double count.** If a longlist flagged construction employment + capex, or journey time savings + land value uplift, or gross earnings + tax receipts, those are already handled upstream by `/longlist`. Do not re-add them here.
 - **EANC for unequal lives.** Whenever options have different appraisal periods, present EANC alongside NPV. Without it, NPV comparison across options is misleading.

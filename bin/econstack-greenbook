@@ -84,6 +84,14 @@ if (!loaded) {
 }
 
 action <- spec$action %||% ""
+
+# greenbook 0.2.0 (October 2026 Green Book discounting) made `vintage` select
+# the STPR schedule and added it to the discounting functions; 0.1.x used it
+# as a label only. Default to the current schedule on 0.2.0+, and only pass
+# `vintage` to functions that accept it.
+gb_v2 <- utils::packageVersion("greenbook") >= "0.2.0"
+gb_vintage <- spec$vintage %||% (if (gb_v2) "2026-10" else "2022")
+vintage_arg <- if (gb_v2) list(vintage = gb_vintage) else list()
 `%||%` <- function(a, b) if (is.null(a) || (length(a) == 1L && is.na(a))) b else a
 
 # Common helper: data versions
@@ -120,7 +128,7 @@ if (action == "appraise") {
       metb = isTRUE(spec$metb),
       metb_rate = as.numeric(spec$metb_rate %||% 0.20),
       base_year = if (!is.null(spec$base_year)) as.integer(spec$base_year) else NULL,
-      vintage = spec$vintage %||% "2022"
+      vintage = gb_vintage
     ),
     error = function(e) e$message
   )
@@ -133,6 +141,7 @@ if (action == "appraise") {
     pv_benefits = unname(res$pv_benefits),
     optimism_bias = unname(res$optimism_bias),
     metb_applied = unname(res$metb_applied),
+    stpr_vintage = gb_vintage,
     costs_adjusted = unname(res$costs),
     benefits_adjusted = unname(res$benefits),
     data_versions = dv()
@@ -142,7 +151,8 @@ if (action == "appraise") {
 if (action == "discount_factor") {
   years <- as.integer(spec$years %||% 0)
   res <- tryCatch(
-    gb_discount_factor(years, schedule = spec$schedule %||% "standard"),
+    do.call(gb_discount_factor,
+            c(list(years, schedule = spec$schedule %||% "standard"), vintage_arg)),
     error = function(e) e$message
   )
   if (is.character(res)) emit(list(ok = FALSE, error = "df_failed", message = res))
@@ -164,11 +174,11 @@ if (action == "carbon_npv") {
     emit(list(ok = FALSE, error = "carbon_inputs_mismatch"))
   }
   res <- tryCatch(
-    gb_carbon_npv(
+    do.call(gb_carbon_npv, c(list(
       emissions = emissions, years = years,
       scenario = spec$scenario %||% "central",
       schedule = spec$schedule %||% "standard"
-    ),
+    ), vintage_arg)),
     error = function(e) e$message
   )
   if (is.character(res)) emit(list(ok = FALSE, error = "carbon_failed", message = res))
@@ -180,7 +190,8 @@ if (action == "eanc") {
   npv <- as.numeric(spec$npv)
   years <- as.integer(spec$years)
   res <- tryCatch(
-    gb_eanc(npv = npv, years = years, schedule = spec$schedule %||% "standard"),
+    do.call(gb_eanc, c(list(npv = npv, years = years,
+                            schedule = spec$schedule %||% "standard"), vintage_arg)),
     error = function(e) e$message
   )
   if (is.character(res)) emit(list(ok = FALSE, error = "eanc_failed", message = res))
@@ -230,13 +241,19 @@ if (action == "dist_weighted_npv") {
     gb_dist_weighted_npv(
       cashflow = as.numeric(spec$cashflow),
       recipient_income = as.numeric(spec$recipient_income),
-      eta = as.numeric(spec$eta %||% 1.3),
+      # 1.25 since the October 2026 Green Book update (1.3 before).
+      eta = as.numeric(spec$eta %||% 1.25),
       reference = spec$reference %||% "median"
     ),
     error = function(e) e$message
   )
   if (is.character(res)) emit(list(ok = FALSE, error = "dist_failed", message = res))
-  emit(list(ok = TRUE, npv_weighted = unname(res$npv_weighted) %||% unname(res)))
+  # gb_dist_weighted_npv() returns a gb_appraisal: `npv` is the weighted
+  # NPV and `unweighted_npv` the plain one. There is no `npv_weighted`
+  # field, so reading it returned the whole object.
+  emit(list(ok = TRUE, npv_weighted = unname(res$npv),
+            npv_unweighted = unname(res$unweighted_npv),
+            eta = unname(res$eta)))
 }
 
 if (action == "validate") {
